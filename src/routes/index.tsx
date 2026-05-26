@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { 
   FileText, Download, UserPlus, Calendar, Info, 
   Server, Cpu, Image as ImageIcon, Key, Terminal, 
-  Shield, Zap, Globe, Github, ChevronRight, X 
+  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,6 +18,28 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [items, setItems] = useState([{ id: Date.now(), description: "", quantity: 1, unitPrice: 0, discount: 0 }]);
+
+  const addItem = () => {
+    setItems([...items, { id: Date.now(), description: "", quantity: 1, unitPrice: 0, discount: 0 }]);
+  };
+
+  const removeItem = (id: number) => {
+    if (items.length > 1) {
+      setItems(items.filter(item => item.id !== id));
+    }
+  };
+
+  const updateItem = (id: number, field: string, value: any) => {
+    setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const calculateItemTotal = (item: any) => {
+    const subtotal = item.quantity * item.unitPrice;
+    return subtotal - (subtotal * (item.discount / 100));
+  };
+
+  const totalGeral = items.reduce((acc, item) => acc + calculateItemTotal(item), 0);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -261,6 +283,101 @@ function Index() {
                 </Button>
               </CardContent>
             </Card>
+          </div>
+        </section>
+
+        {/* Calculator Section */}
+        <section className="space-y-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-white">Discount Calculator</h2>
+              <p className="text-slate-500">Analyze prices and apply modular discounts</p>
+            </div>
+            <Button 
+              onClick={addItem}
+              className="bg-cyan-600 hover:bg-cyan-500 text-white gap-2 shadow-[0_0_15px_rgba(8,145,178,0.3)]"
+            >
+              <Plus className="h-4 w-4" /> Add Item
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {items.map((item) => (
+              <Card key={item.id} className="bg-zinc-900/40 border-white/5 hover:border-cyan-500/20 transition-all overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                    <div className="md:col-span-4 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Description</label>
+                      <input 
+                        type="text" 
+                        value={item.description}
+                        onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                        placeholder="Item name..."
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-700"
+                      />
+                    </div>
+                    <div className="md:col-span-1 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Qty</label>
+                      <input 
+                        type="number" 
+                        value={item.quantity}
+                        onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Price (R$)</label>
+                      <input 
+                        type="number" 
+                        value={item.unitPrice}
+                        onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value))}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Disc (%)</label>
+                      <input 
+                        type="number" 
+                        value={item.discount}
+                        onChange={(e) => updateItem(item.id, "discount", Number(e.target.value))}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Total</label>
+                      <div className="w-full bg-cyan-500/5 border border-cyan-500/20 rounded-xl px-4 py-3 text-cyan-400 font-bold">
+                        R$ {calculateItemTotal(item).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="md:col-span-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => removeItem(item.id)}
+                        className="h-12 w-full text-slate-600 hover:text-red-400 hover:bg-red-400/10"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="bg-gradient-to-r from-cyan-900/20 to-purple-900/20 rounded-3xl border border-white/10 p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+                <Calculator className="text-cyan-400 h-7 w-7" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-400 font-mono uppercase tracking-widest">Protocol Total Balance</p>
+                <h3 className="text-4xl font-black text-white">R$ {totalGeral.toFixed(2)}</h3>
+              </div>
+            </div>
+            <Button className="bg-white text-black hover:bg-slate-200 px-10 py-7 text-lg font-bold rounded-2xl">
+              Execute Transaction
+            </Button>
           </div>
         </section>
 
