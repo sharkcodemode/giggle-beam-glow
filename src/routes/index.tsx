@@ -22,7 +22,7 @@ function Index() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
         {/* Seção de Matrícula 2026 */}
         <Card className="border-primary/20 shadow-xl overflow-hidden">
           <CardHeader className="bg-primary/5 border-b border-primary/10">
@@ -72,11 +72,11 @@ function Index() {
         </Card>
 
         {/* Player de Áudio Original */}
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="text-xl">Áudio Informativo</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col justify-center min-h-[150px]">
+          <CardContent className="flex flex-col justify-center flex-grow space-y-4">
             <audio 
               controls 
               className="w-full"
@@ -84,6 +84,39 @@ function Index() {
             >
               Seu navegador não suporta o elemento de áudio.
             </audio>
+            <p className="text-xs text-center text-muted-foreground italic">
+              Mensagem informativa sobre o processo de matrícula.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card do Instalador Node.js */}
+        <Card className="border-green-500/20 shadow-xl overflow-hidden">
+          <CardHeader className="bg-green-500/5 border-b border-green-500/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500 rounded-lg">
+                <Server className="h-6 w-6 text-green-950" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Node.js v24.11.1</CardTitle>
+                <CardDescription>Instalador Windows (x64)</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Ambiente de execução JavaScript construído sobre o motor V8 do Chrome.
+            </p>
+            <Button className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white" asChild>
+              <a 
+                href="https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/331aaf90-83c9-4fa7-90b2-2abfd7ea6996?Expires=1779777743&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=Y2ugc%2FsEn4dljOLHNdC9vlNM1%2BnYQohnuHvibtx9EHpf054SRr3qISfPAO6HEzKq0DZOwUgueG%2FRwqZIB%2BE6EA8hknbNJ33O0rVIZfyteddxVx0w3H1%2Fipo%2FaejXLaVZl2EneGhoecVeS4J1XGqhUDfXSOXCGMZ4C3bfOIyN2Kn966v1maTdU64Uv4EAMUbZPk38O52OQ0u8DlqKyBOoo4mRn84wEaHyOLX%2BXn8tJevfCljy%2BTpnDj0DkYQEfcm0iJTHtzMv9kBjdw8RNUEnp%2BFFW%2BYkwUWrNYJa2mFOtqA5j%2FmO%2Ffz0MBW3EtTd8QZoaFvzNlaV347CejVgbXuPkA%3D%3D" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Download className="h-4 w-4" />
+                Baixar Instalador (MSI)
+              </a>
+            </Button>
           </CardContent>
         </Card>
       </div>
