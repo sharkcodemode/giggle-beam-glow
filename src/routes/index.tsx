@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { 
   FileText, Download, UserPlus, Calendar, Info, 
   Server, Cpu, Image as ImageIcon, Key, Terminal, 
-  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2 
+  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2, Utensils 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -283,6 +283,33 @@ function Index() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Meat/Food Item */}
+            <Card className="bg-zinc-900/50 border-white/5 hover:border-orange-500/30 transition-all group relative overflow-hidden">
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src="https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/4412c292-a8ba-4869-92a9-5e144a59a960?Expires=1779797993&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=pFP6N62Mvkai%2Fb7wxMqpDKWnO3SqaNlsJOYzUUx8aP%2FQksTCQJBFfqgpyigy3vvyjL3vhCblmpicwd0bx1sQ0kfn5WOrs0%2FzTH5s76PHgIiLWF25b%2Bm3xYaHMdcyfm94PRVaEz3XiwAl97%2BcfkXsE9K%2FgSYNG%2BL%2F2TI69qQVr50DDyim5msZOIBifRxf7uRXO3kfMwSPVhcS4pdaZdtPsVRrzw5mo7nbP0JsUADuxp22%2BLOYATTLwVjtPfVnKdrsXz3lsrRdJ33m0hNIZNKIRtKs5CaUG4aYsGX3k9BRoyraheSNNTY5MXgVA32zscYvrJpJl45h7yDDW4EGHXMoGw%3D%3D"
+                  className="w-full h-full object-cover opacity-20 group-hover:opacity-50 transition-all duration-700 group-hover:scale-110"
+                  alt="Delicious Meat"
+                />
+              </div>
+              <CardHeader className="relative z-10">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center border border-orange-500/20 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.2)] transition-all">
+                    <Utensils className="text-orange-400 h-6 w-6" />
+                  </div>
+                  <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20">PREMIUM</Badge>
+                </div>
+                <CardTitle className="text-xl text-white mt-4">Menu Gourmet</CardTitle>
+                <CardDescription className="text-slate-300">Carne assada com crosta caramelizada.</CardDescription>
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <Button variant="secondary" className="w-full bg-orange-500/20 hover:bg-orange-500/40 text-orange-100 border-orange-500/30 gap-2">
+                  Order Protocol
+                </Button>
+              </CardContent>
+            </Card>
+
           </div>
         </section>
 
