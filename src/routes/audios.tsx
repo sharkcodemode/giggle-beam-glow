@@ -12,13 +12,13 @@ const TRACKS = [
   {
     id: "taciana-01",
     name: "Taciana — PVC Analysis",
-    src: "https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/4b4fcecb-d659-4934-9432-87fa924d0bf8?Expires=1779800764&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=YU4bPRMlx%2Fd%2BlDFI%2FeOW3pOkmuKO%2BbqqC1TXrTuEDHRAG%2BHPvq31wMjP9hIn6e4mW5tYEtiwx3nnPDHSOZQrIloBTgbYR%2FoJrpCWZXXuURpG%2FnWLZSjQxDwtyYjjkx2rAWwsV5RCDeZqgGZ%2FvowFz3U1pnHvMcr2Bvw4nigke36hzdrdhS2ujAX7DgHLptLHi2nQ2dHb1%2BD%2F3g%2FnH%2FhyLQNj8Q2NeAiZe62ejBQ1LouKgcwEFwiNvdpwnux4MoW1T2dgKFjK3M5iTwasJATT8eNilVxy2BlYHTmC%2FqW7kyzaigxwVvgoR0u1aMERIXZBDpMV1B3hD9ie%2FkwCNLUM8A%3D%3D",
+    src: "/taciana-original.mp3",
     type: "neural_stream_v2"
   },
   {
     id: "taciana-02",
     name: "Taciana — Neural Uplink 2026",
-    src: "https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/e2dce934-088e-4f6d-b5ed-e6bddac41112?Expires=1779803935&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=UBQObzgcgyQlllJq1pWrwR5no0%2Fbc5mRCrCRlJ8q4v5TJI3707ZC89zc%2FxXPukzu1WLPmjyrhoavDhaK5vLkFLVB2Tub8Z3KMygysaA5CwmOa828DgUDzESL8ub9gQSznufbe5EmiUe5%2BXk%2BaEwCmeUu3zInhThB9pSqyICb24lHElHp1aI%2BYdmlXZFbMwzHc3H39ML6544vUxjkoGWU3IMLyKMKNMlhnE%2FDCmp3PenmVaHiz6T6krQtsR6b5MVTp1Baijm5JcHAAGaMBoPM0kJLn6Kmpc5zc2buDiqO4XGO2l%2FQ8Mbs255BamVRCDjSlO8OV1OSuMrBcgAOVDNahw%3D%3D",
+    src: "/taciana-new.mp3",
     type: "neural_stream_v3"
   }
 ];
