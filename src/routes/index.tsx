@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, Download, UserPlus, Calendar, Info, Server } from "lucide-react";
+import { FileText, Download, UserPlus, Calendar, Info, Server, Cpu } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -115,6 +115,36 @@ function Index() {
               >
                 <Download className="h-4 w-4" />
                 Baixar Instalador (MSI)
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Card do Plutonium */}
+        <Card className="border-blue-500/20 shadow-xl overflow-hidden">
+          <CardHeader className="bg-blue-500/5 border-b border-blue-500/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500 rounded-lg">
+                <Cpu className="h-6 w-6 text-blue-950" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Plutonium</CardTitle>
+                <CardDescription>Executável (.exe)</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Cliente para servidores dedicados e ferramentas avançadas.
+            </p>
+            <Button className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white" asChild>
+              <a 
+                href="https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/576a2345-5241-4768-a67c-39979dff7018?Expires=1779777936&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=Q2mtp%2F%2Bk7lOGeNpjGWM8DoJ36m9KRkHgBvPMwu%2FQbDqBq9yU1GQNtEsIg8ssKgqyNUam5FOTgRVYhVOtFZn4JSPF9m7FrFF%2B5%2Bm3DiPQJDen9JIpK7DpoiJaRn%2BjlBNg%2BzwlxBUJ2Ai4PYReiQ24LRCasPsGTWxUCjAynf7ok%2FIzonUP1Npn0zeQF9IDiI3jJ2Qv9ZI8Mw8vd3oNfLlT9nqNUGZCaf6NaIhjm%2FqzPsJX%2BdPs4ejEfzFhU4JTMZ9y%2Fvziccl7S0XdA3ZTbnjLR52wCjJqf92LwWb%2BLUYyPf1i202bGT9WY6qLih9CTn3Pir0Ocj%2F1FyEld2CSu%2FyHqg%3D%3D" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Download className="h-4 w-4" />
+                Baixar Plutonium.exe
               </a>
             </Button>
           </CardContent>
