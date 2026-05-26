@@ -329,7 +329,12 @@ function AudiosPage() {
                 </div>
               </div>
 
-              <audio ref={audioRef} src={activeTrack.src} key={activeTrack.id} preload="metadata" crossOrigin="anonymous" />
+              <audio 
+                ref={audioRef} 
+                src={activeTrack.src} 
+                key={activeTrack.id} 
+                preload="metadata" 
+              />
               
               {/* Playlist Switcher */}
               <div className="mt-10 flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
