@@ -8,8 +8,20 @@ import {
 
 export const Route = createFileRoute("/audios")({ component: AudiosPage });
 
-const TRACK_SRC =
-  "https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/4b4fcecb-d659-4934-9432-87fa924d0bf8?Expires=1779800764&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=YU4bPRMlx%2Fd%2BlDFI%2FeOW3pOkmuKO%2BbqqC1TXrTuEDHRAG%2BHPvq31wMjP9hIn6e4mW5tYEtiwx3nnPDHSOZQrIloBTgbYR%2FoJrpCWZXXuURpG%2FnWLZSjQxDwtyYjjkx2rAWwsV5RCDeZqgGZ%2FvowFz3U1pnHvMcr2Bvw4nigke36hzdrdhS2ujAX7DgHLptLHi2nQ2dHb1%2BD%2F3g%2FnH%2FhyLQNj8Q2NeAiZe62ejBQ1LouKgcwEFwiNvdpwnux4MoW1T2dgKFjK3M5iTwasJATT8eNilVxy2BlYHTmC%2FqW7kyzaigxwVvgoR0u1aMERIXZBDpMV1B3hD9ie%2FkwCNLUM8A%3D%3D";
+const TRACKS = [
+  {
+    id: "taciana-01",
+    name: "Taciana — PVC Analysis",
+    src: "https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/4b4fcecb-d659-4934-9432-87fa924d0bf8?Expires=1779800764&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=YU4bPRMlx%2Fd%2BlDFI%2FeOW3pOkmuKO%2BbqqC1TXrTuEDHRAG%2BHPvq31wMjP9hIn6e4mW5tYEtiwx3nnPDHSOZQrIloBTgbYR%2FoJrpCWZXXuURpG%2FnWLZSjQxDwtyYjjkx2rAWwsV5RCDeZqgGZ%2FvowFz3U1pnHvMcr2Bvw4nigke36hzdrdhS2ujAX7DgHLptLHi2nQ2dHb1%2BD%2F3g%2FnH%2FhyLQNj8Q2NeAiZe62ejBQ1LouKgcwEFwiNvdpwnux4MoW1T2dgKFjK3M5iTwasJATT8eNilVxy2BlYHTmC%2FqW7kyzaigxwVvgoR0u1aMERIXZBDpMV1B3hD9ie%2FkwCNLUM8A%3D%3D",
+    type: "neural_stream_v2"
+  },
+  {
+    id: "taciana-02",
+    name: "Taciana — Neural Uplink 2026",
+    src: "https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/e2dce934-088e-4f6d-b5ed-e6bddac41112?Expires=1779803935&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=UBQObzgcgyQlllJq1pWrwR5no0%2Fbc5mRCrCRlJ8q4v5TJI3707ZC89zc%2FxXPukzu1WLPmjyrhoavDhaK5vLkFLVB2Tub8Z3KMygysaA5CwmOa828DgUDzESL8ub9gQSznufbe5EmiUe5%2BXk%2BaEwCmeUu3zInhThB9pSqyICb24lHElHp1aI%2BYdmlXZFbMwzHc3H39ML6544vUxjkoGWU3IMLyKMKNMlhnE%2FDCmp3PenmVaHiz6T6krQtsR6b5MVTp1Baijm5JcHAAGaMBoPM0kJLn6Kmpc5zc2buDiqO4XGO2l%2FQ8Mbs255BamVRCDjSlO8OV1OSuMrBcgAOVDNahw%3D%3D",
+    type: "neural_stream_v3"
+  }
+];
 
 function fmt(t: number): string {
   if (!Number.isFinite(t) || t < 0) return "0:00";
@@ -26,10 +38,13 @@ function AudiosPage() {
   const sourceRef   = useRef<MediaElementAudioSourceNode | null>(null);
   const rafRef      = useRef<number | null>(null);
 
+  const [activeTrackIdx, setActiveTrackIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration]   = useState(0);
   const [current, setCurrent]     = useState(0);
   const [volume, setVolume]       = useState(0.85);
+
+  const activeTrack = TRACKS[activeTrackIdx];
 
   // ─── analyser draw loop ───
   const draw = useCallback(() => {
@@ -113,6 +128,9 @@ function AudiosPage() {
   }, [ensureAudioGraph]);
 
   useEffect(() => {
+    setIsPlaying(false);
+    setCurrent(0);
+    setDuration(0);
     const audio = audioRef.current;
     if (!audio) return;
     const onTime  = () => setCurrent(audio.currentTime);
@@ -231,9 +249,9 @@ function AudiosPage() {
             <div className="col-span-12 space-y-7 lg:col-span-8">
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--aurora-mint)]">
-                  elevenlabs_neural_stream_v2
+                  {activeTrack.type}
                 </p>
-                <h2 className="mt-2 font-display text-5xl italic md:text-6xl">Taciana — PVC Analysis</h2>
+                <h2 className="mt-2 font-display text-5xl italic md:text-6xl">{activeTrack.name}</h2>
               </div>
 
               {/* Spectrum canvas */}
@@ -281,7 +299,7 @@ function AudiosPage() {
                 </Button>
 
                 <a
-                  href={TRACK_SRC}
+                  href={activeTrack.src}
                   download
                   className="inline-flex h-16 items-center gap-3 rounded-2xl border border-white/15 px-7 font-grotesk text-sm text-white transition hover:border-white/40"
                 >
@@ -311,7 +329,25 @@ function AudiosPage() {
                 </div>
               </div>
 
-              <audio ref={audioRef} src={TRACK_SRC} preload="metadata" crossOrigin="anonymous" />
+              <audio ref={audioRef} src={activeTrack.src} key={activeTrack.id} preload="metadata" crossOrigin="anonymous" />
+              
+              {/* Playlist Switcher */}
+              <div className="mt-10 flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                {TRACKS.map((t, idx) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTrackIdx(idx)}
+                    className={`flex-shrink-0 px-6 py-4 rounded-2xl border transition-all duration-300 flex items-center gap-4 ${
+                      activeTrackIdx === idx 
+                        ? "bg-white/10 border-white/30 text-white shadow-lg" 
+                        : "bg-black/20 border-white/5 text-white/40 hover:border-white/15 hover:text-white/70"
+                    }`}
+                  >
+                    <div className={`h-2 w-2 rounded-full ${activeTrackIdx === idx ? "bg-[var(--aurora-cyan)]" : "bg-white/10"}`} />
+                    <span className="font-mono text-[10px] uppercase tracking-widest">{t.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </section>
