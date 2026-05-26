@@ -1,228 +1,371 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent } from "@/components/ui/card";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  Music, 
-  Play, 
-  Pause, 
-  Volume2, 
-  ArrowLeft, 
-  Waves, 
-  Mic2,
-  Share2,
-  Download
+import {
+  ArrowLeft, ArrowUpRight, Download, Mic2, Pause, Play,
+  Share2, Volume2, Waves,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import { useState, useRef } from "react";
 
-export const Route = createFileRoute("/audios")({
-  component: AudiosPage,
-});
+export const Route = createFileRoute("/audios")({ component: AudiosPage });
+
+const TRACK_SRC =
+  "https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/4b4fcecb-d659-4934-9432-87fa924d0bf8?Expires=1779800764&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=YU4bPRMlx%2Fd%2BlDFI%2FeOW3pOkmuKO%2BbqqC1TXrTuEDHRAG%2BHPvq31wMjP9hIn6e4mW5tYEtiwx3nnPDHSOZQrIloBTgbYR%2FoJrpCWZXXuURpG%2FnWLZSjQxDwtyYjjkx2rAWwsV5RCDeZqgGZ%2FvowFz3U1pnHvMcr2Bvw4nigke36hzdrdhS2ujAX7DgHLptLHi2nQ2dHb1%2BD%2F3g%2FnH%2FhyLQNj8Q2NeAiZe62ejBQ1LouKgcwEFwiNvdpwnux4MoW1T2dgKFjK3M5iTwasJATT8eNilVxy2BlYHTmC%2FqW7kyzaigxwVvgoR0u1aMERIXZBDpMV1B3hD9ie%2FkwCNLUM8A%3D%3D";
+
+function fmt(t: number): string {
+  if (!Number.isFinite(t) || t < 0) return "0:00";
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 function AudiosPage() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef    = useRef<HTMLAudioElement | null>(null);
+  const canvasRef   = useRef<HTMLCanvasElement | null>(null);
+  const ctxRef      = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef   = useRef<MediaElementAudioSourceNode | null>(null);
+  const rafRef      = useRef<number | null>(null);
 
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration]   = useState(0);
+  const [current, setCurrent]     = useState(0);
+  const [volume, setVolume]       = useState(0.85);
+
+  // ─── analyser draw loop ───
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    const analyser = analyserRef.current;
+    if (!canvas || !analyser) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = canvas.clientWidth;
+    const cssH = canvas.clientHeight;
+    if (canvas.width !== cssW * dpr || canvas.height !== cssH * dpr) {
+      canvas.width = cssW * dpr;
+      canvas.height = cssH * dpr;
     }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const bins = analyser.frequencyBinCount;
+    const data = new Uint8Array(bins);
+    analyser.getByteFrequencyData(data);
+
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    // Aurora gradient for bars
+    const grad = ctx.createLinearGradient(0, 0, cssW, 0);
+    grad.addColorStop(0.00, "oklch(0.86 0.21 158)");
+    grad.addColorStop(0.35, "oklch(0.84 0.16 210)");
+    grad.addColorStop(0.65, "oklch(0.68 0.24 295)");
+    grad.addColorStop(1.00, "oklch(0.72 0.28 335)");
+
+    const N = 96;
+    const step = Math.floor(bins / N);
+    const barW = cssW / N;
+
+    for (let i = 0; i < N; i++) {
+      const v = data[i * step] / 255;
+      const h = Math.max(2, v * cssH * 0.92);
+      ctx.fillStyle = grad;
+      ctx.globalAlpha = 0.25 + v * 0.75;
+      const x = i * barW + 1;
+      const y = (cssH - h) / 2;
+      ctx.fillRect(x, y, barW - 2, h);
+    }
+    ctx.globalAlpha = 1;
+
+    rafRef.current = requestAnimationFrame(draw);
+  }, []);
+
+  const ensureAudioGraph = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!ctxRef.current) {
+      const w = window as unknown as { webkitAudioContext?: typeof AudioContext };
+      const AC: typeof AudioContext = typeof AudioContext !== "undefined" ? AudioContext : w.webkitAudioContext!;
+      const ac = new AC();
+      const analyser = ac.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.82;
+      const source = ac.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(ac.destination);
+      ctxRef.current = ac;
+      analyserRef.current = analyser;
+      sourceRef.current = source;
+    }
+    if (ctxRef.current.state === "suspended") {
+      void ctxRef.current.resume();
+    }
+  }, []);
+
+  const togglePlay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    ensureAudioGraph();
+    if (audio.paused) {
+      try { await audio.play(); } catch (e) { console.error(e); }
+    } else {
+      audio.pause();
+    }
+  }, [ensureAudioGraph]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onTime  = () => setCurrent(audio.currentTime);
+    const onMeta  = () => setDuration(audio.duration);
+    const onPlay  = () => { setIsPlaying(true);  if (!rafRef.current) rafRef.current = requestAnimationFrame(draw); };
+    const onPause = () => { setIsPlaying(false); if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } };
+    const onEnded = onPause;
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("loadedmetadata", onMeta);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("ended", onEnded);
+    return () => {
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("loadedmetadata", onMeta);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("ended", onEnded);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      sourceRef.current?.disconnect();
+      analyserRef.current?.disconnect();
+      void ctxRef.current?.close();
+    };
+  }, [draw]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
+  const onSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio || !Number.isFinite(duration) || duration <= 0) return;
+    const t = (Number(e.target.value) / 1000) * duration;
+    audio.currentTime = t;
+    setCurrent(t);
   };
 
+  const progress = duration > 0 ? Math.min(1000, (current / duration) * 1000) : 0;
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30">
-      {/* Dynamic Background Effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_70%)]" />
+    <div className="relative min-h-screen overflow-x-hidden bg-[var(--obsidian)] text-[var(--bone)] selection:bg-[var(--aurora-cyan)]/40 selection:text-[var(--obsidian)]">
+      {/* Aurora bg */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-[25%] left-[5%] h-[70vh] w-[70vh] rounded-full bg-[var(--aurora-violet)]/30 blur-[160px]" />
+        <div className="absolute bottom-[-30%] right-[-10%] h-[70vh] w-[70vh] rounded-full bg-[var(--aurora-cyan)]/25 blur-[160px]" />
+        <div className="absolute top-[40%] left-[40%] h-[50vh] w-[50vh] rounded-full bg-[var(--aurora-plasma)]/15 blur-[140px]" />
       </div>
+      <div aria-hidden className="grain pointer-events-none fixed inset-0 z-0" />
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link to="/" className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5 group-hover:border-white/10 transition-all">
-              <ArrowLeft className="w-4 h-4" />
-            </div>
-            <span className="font-mono text-xs uppercase tracking-widest">Back to Core</span>
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/55 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-6">
+          <Link
+            to="/"
+            className="group inline-flex items-center gap-3 font-grotesk text-sm text-white/65 transition hover:text-white"
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5 transition group-hover:border-white/30">
+              <ArrowLeft className="h-4 w-4" />
+            </span>
+            Back to Index
           </Link>
-          
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-cyan-500 font-bold">Audio Interface Tier S</span>
+          <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-white/45">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--aurora-mint)]" />
+            Audio Interface · Tier S
           </div>
         </div>
       </header>
 
-      <main className="relative pt-32 pb-24 px-6 max-w-7xl mx-auto">
-        {/* Hero Section */}
-        <div className="mb-20 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-widest mb-6">
-            <Waves className="w-3 h-3" />
-            Neural Voice Processing
+      <main className="relative z-10 mx-auto max-w-[1600px] px-6 pb-32 pt-32">
+        {/* Hero */}
+        <section className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 lg:col-span-7">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--aurora-cyan)]/30 bg-[var(--aurora-cyan)]/5 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--aurora-cyan)]">
+              <Waves className="h-3 w-3" /> Neural voice processing
+            </div>
+            <h1 className="font-display text-[clamp(72px,12vw,200px)] leading-[0.85] tracking-[-0.04em]">
+              <span className="block">audio</span>
+              <span className="block italic text-aurora">vault.</span>
+            </h1>
+            <p className="mt-8 max-w-[44ch] text-[16px] leading-relaxed text-white/60">
+              Câmara de encriptação neural de áudio em alta-fidelidade.
+              Análise espectral em tempo real, motor PVC ElevenLabs,
+              precisão vocal biométrica máxima.
+            </p>
           </div>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-6 bg-gradient-to-b from-white via-white to-white/20 bg-clip-text text-transparent">
-            AUDIO<br />VAULT
-          </h1>
-          <p className="text-slate-500 max-w-xl mx-auto text-lg font-medium leading-relaxed">
-            High-fidelity neural audio encryption. Powered by ElevenLabs PVC technology for maximum vocal biometric accuracy.
-          </p>
-        </div>
 
-        {/* Audio Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Main Audio Card */}
-          <Card className="group relative bg-[#0a0a0a] border-white/5 hover:border-cyan-500/30 transition-all duration-500 overflow-hidden lg:col-span-2">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
-            <CardContent className="relative p-10">
-              <div className="flex flex-col md:flex-row gap-10 items-center">
-                {/* Visualizer Circle */}
-                <div className="relative w-48 h-48 flex-shrink-0">
-                  <div className={`absolute inset-0 rounded-full border-2 border-dashed border-cyan-500/20 ${isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''}`} />
-                  <div className={`absolute inset-2 rounded-full border-2 border-white/5 ${isPlaying ? 'animate-pulse' : ''}`} />
-                  <div className="absolute inset-4 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center backdrop-blur-sm">
-                    <Mic2 className={`w-12 h-12 text-white transition-all duration-500 ${isPlaying ? 'scale-110 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'opacity-40'}`} />
-                  </div>
-                  
-                  {/* Floating particles (CSS only) */}
-                  {isPlaying && [1,2,3,4,5].map((i) => (
-                    <div 
-                      key={i}
-                      className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-ping"
-                      style={{
-                        top: `${Math.random() * 100}%`,
-                        left: `${Math.random() * 100}%`,
-                        animationDuration: `${1 + Math.random()}s`,
-                        animationDelay: `${Math.random()}s`
-                      }}
+          <div className="col-span-12 hidden items-end justify-end lg:col-span-5 lg:flex">
+            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-white/35">
+              ── side A · take 01 · obsidian aurora ── 2026
+            </p>
+          </div>
+        </section>
+
+        {/* Player */}
+        <section className="conic-border mt-20 overflow-hidden rounded-[32px] bg-[var(--obsidian-2)]/65 p-8 md:p-12">
+          <div className="grid grid-cols-12 gap-10">
+            {/* Disc */}
+            <div className="col-span-12 flex items-center justify-center lg:col-span-4">
+              <div className="relative aspect-square w-full max-w-[320px]">
+                <div className={`absolute inset-0 rounded-full border border-dashed border-white/15 ${isPlaying ? "animate-[spin_18s_linear_infinite]" : ""}`} />
+                <div className="absolute inset-3 rounded-full border border-white/10" />
+                <div className="absolute inset-6 grid place-items-center rounded-full bg-aurora">
+                  <div className="grid h-[88%] w-[88%] place-items-center rounded-full bg-[var(--obsidian)]">
+                    <Mic2
+                      className={`h-12 w-12 text-white transition-all duration-500 ${
+                        isPlaying ? "scale-110 drop-shadow-[0_0_20px_var(--aurora-cyan)]" : "opacity-50"
+                      }`}
+                      strokeWidth={1.5}
                     />
-                  ))}
-                </div>
-
-                <div className="flex-1 space-y-6 text-center md:text-left">
-                  <div>
-                    <h3 className="text-3xl font-black text-white mb-2">Taciana PVC Analysis</h3>
-                    <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">elevenlabs_neural_stream_v2.mp3</p>
                   </div>
-
-                  <div className="space-y-4">
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className={`h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-300 ${isPlaying ? 'w-2/3' : 'w-0'}`} />
-                    </div>
-                    <div className="flex justify-between font-mono text-[10px] text-slate-600">
-                      <span>00:00</span>
-                      <span className="text-cyan-500/50">LIVE_PROCESSING</span>
-                      <span>00:15</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                    <Button 
-                      onClick={togglePlay}
-                      className="h-16 w-16 rounded-2xl bg-white text-black hover:bg-cyan-400 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]"
-                    >
-                      {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
-                    </Button>
-                    
-                    <Button variant="outline" className="h-16 px-8 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold group">
-                      <Download className="w-5 h-5 mr-3 group-hover:animate-bounce" />
-                      Download
-                    </Button>
-
-                    <Button variant="ghost" className="h-16 w-16 rounded-2xl text-slate-500 hover:text-white hover:bg-white/5">
-                      <Share2 className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <audio 
-                ref={audioRef}
-                src="https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/4b4fcecb-d659-4934-9432-87fa924d0bf8?Expires=1779800764&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=YU4bPRMlx%2Fd%2BlDFI%2FeOW3pOkmuKO%2BbqqC1TXrTuEDHRAG%2BHPvq31wMjP9hIn6e4mW5tYEtiwx3nnPDHSOZQrIloBTgbYR%2FoJrpCWZXXuURpG%2FnWLZSjQxDwtyYjjkx2rAWwsV5RCDeZqgGZ%2FvowFz3U1pnHvMcr2Bvw4nigke36hzdrdhS2ujAX7DgHLptLHi2nQ2dHb1%2BD%2F3g%2FnH%2FhyLQNj8Q2NeAiZe62ejBQ1LouKgcwEFwiNvdpwnux4MoW1T2dgKFjK3M5iTwasJATT8eNilVxy2BlYHTmC%2FqW7kyzaigxwVvgoR0u1aMERIXZBDpMV1B3hD9ie%2FkwCNLUM8A%3D%3D"
-                onEnded={() => setIsPlaying(false)}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Stats Sidebar */}
-          <Card className="bg-[#0a0a0a] border-white/5 p-8 flex flex-col justify-between">
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                  <Volume2 className="w-6 h-6 text-purple-400" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-white">System Logs</h4>
-                  <p className="text-xs text-slate-500 font-mono tracking-tighter">tier_s_authentication_active</p>
-                </div>
-              </div>
-
-              <div className="space-y-4 font-mono text-[10px]">
-                <div className="flex justify-between py-2 border-b border-white/5">
-                  <span className="text-slate-600 uppercase">Bitrate</span>
-                  <span className="text-cyan-500">320 KBPS</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/5">
-                  <span className="text-slate-600 uppercase">Sample Rate</span>
-                  <span className="text-cyan-500">48.0 KHZ</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/5">
-                  <span className="text-slate-600 uppercase">Latency</span>
-                  <span className="text-cyan-500">12MS</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/5">
-                  <span className="text-slate-600 uppercase">Encryption</span>
-                  <span className="text-cyan-500">AES-256</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-10 p-4 rounded-2xl bg-white/5 border border-white/5">
-              <div className="flex items-center gap-2 mb-3">
-                <Music className="w-4 h-4 text-slate-400" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metadata</span>
+            {/* Controls */}
+            <div className="col-span-12 space-y-7 lg:col-span-8">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--aurora-mint)]">
+                  elevenlabs_neural_stream_v2
+                </p>
+                <h2 className="mt-2 font-display text-5xl italic md:text-6xl">Taciana — PVC Analysis</h2>
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed italic">
-                "Este áudio contém traços biométricos vocais processados através da infraestrutura PROCORE."
+
+              {/* Spectrum canvas */}
+              <div className="relative h-32 overflow-hidden rounded-2xl border border-white/10 bg-black/50">
+                <canvas ref={canvasRef} className="block h-full w-full" />
+                {!isPlaying && (
+                  <div className="pointer-events-none absolute inset-0 grid place-items-center font-mono text-[10px] uppercase tracking-[0.35em] text-white/30">
+                    awaiting signal — press play
+                  </div>
+                )}
+              </div>
+
+              {/* Scrubber */}
+              <div className="space-y-2">
+                <div className="relative h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-aurora"
+                    style={{ width: `${(progress / 1000) * 100}%` }}
+                  />
+                  <input
+                    type="range"
+                    min={0}
+                    max={1000}
+                    value={progress}
+                    onChange={onSeek}
+                    aria-label="Seek"
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  />
+                </div>
+                <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-white/45">
+                  <span>{fmt(current)}</span>
+                  <span className="text-[var(--aurora-cyan)]/70">live processing</span>
+                  <span>{fmt(duration)}</span>
+                </div>
+              </div>
+
+              {/* Controls row */}
+              <div className="flex flex-wrap items-center gap-4">
+                <Button
+                  onClick={togglePlay}
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                  className="h-16 w-16 rounded-2xl bg-[var(--bone)] text-[var(--obsidian)] shadow-[0_20px_60px_-15px_var(--aurora-cyan)] hover:bg-white"
+                >
+                  {isPlaying ? <Pause className="h-6 w-6 fill-current" /> : <Play className="ml-1 h-6 w-6 fill-current" />}
+                </Button>
+
+                <a
+                  href={TRACK_SRC}
+                  download
+                  className="inline-flex h-16 items-center gap-3 rounded-2xl border border-white/15 px-7 font-grotesk text-sm text-white transition hover:border-white/40"
+                >
+                  <Download className="h-4 w-4" /> Download
+                </a>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Share"
+                  className="h-16 w-16 rounded-2xl text-white/55 hover:bg-white/10 hover:text-white"
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
+
+                <div className="ml-auto flex items-center gap-3">
+                  <Volume2 className="h-4 w-4 text-white/55" />
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(volume * 100)}
+                    onChange={(e) => setVolume(Number(e.target.value) / 100)}
+                    aria-label="Volume"
+                    className="h-1.5 w-32 cursor-pointer appearance-none rounded-full bg-white/15 accent-[var(--aurora-mint)]"
+                  />
+                </div>
+              </div>
+
+              <audio ref={audioRef} src={TRACK_SRC} preload="metadata" crossOrigin="anonymous" />
+            </div>
+          </div>
+        </section>
+
+        {/* Stats */}
+        <section className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            ["Bitrate",    "320", "kbps"],
+            ["Sample",     "48.0", "khz"],
+            ["Latency",    "12",   "ms"],
+            ["Encryption", "AES",  "256"],
+          ].map(([k, v, unit]) => (
+            <div
+              key={k}
+              className="rounded-2xl border border-white/10 bg-[var(--obsidian-2)]/50 p-6 transition hover:border-white/25"
+            >
+              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">{k}</p>
+              <p className="mt-3 font-display text-4xl">
+                <span className="text-white">{v}</span>
+                <span className="ml-1 text-base text-white/40">{unit}</span>
               </p>
             </div>
-          </Card>
-        </div>
-
-        {/* Visualization Grid Placeholder */}
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-24 rounded-2xl bg-white/[0.02] border border-white/5 flex items-end p-4 group hover:bg-white/[0.05] transition-colors">
-              <div className="w-full flex justify-between items-end gap-1">
-                {[...Array(5)].map((_, j) => (
-                  <div 
-                    key={j} 
-                    className={`flex-1 bg-white/10 rounded-full transition-all duration-500 ${isPlaying ? 'group-hover:bg-cyan-500/50' : ''}`}
-                    style={{ 
-                      height: `${20 + Math.random() * 80}%`,
-                      animation: isPlaying ? `wave 1s ease-in-out infinite ${j * 0.1}s` : 'none'
-                    }} 
-                  />
-                ))}
-              </div>
-            </div>
           ))}
-        </div>
-      </main>
+        </section>
 
-      <style>{`
-        @keyframes wave {
-          0%, 100% { height: 20%; }
-          50% { height: 80%; }
-        }
-      `}</style>
+        {/* Metadata */}
+        <section className="mt-10 grid grid-cols-12 gap-6">
+          <div className="col-span-12 rounded-3xl border border-white/10 bg-[var(--obsidian-2)]/40 p-8 lg:col-span-8">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">metadata</p>
+            <p className="mt-5 max-w-prose font-display text-3xl italic leading-snug text-white/85">
+              "Este áudio contém traços biométricos vocais processados através
+              da infraestrutura procore — cada onda é uma assinatura."
+            </p>
+            <div className="mt-8 grid grid-cols-2 gap-6 font-mono text-[11px] uppercase tracking-widest text-white/45 md:grid-cols-4">
+              <div><p className="text-white/35">format</p><p className="mt-1 text-white">mp3</p></div>
+              <div><p className="text-white/35">channels</p><p className="mt-1 text-white">stereo</p></div>
+              <div><p className="text-white/35">engine</p><p className="mt-1 text-white">elevenlabs</p></div>
+              <div><p className="text-white/35">profile</p><p className="mt-1 text-white">pvc.v2</p></div>
+            </div>
+          </div>
+          <div className="col-span-12 flex flex-col justify-between rounded-3xl border border-white/10 bg-gradient-to-br from-[var(--aurora-violet)]/15 via-transparent to-[var(--aurora-cyan)]/15 p-8 lg:col-span-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/55">next</p>
+            <p className="font-display text-3xl">
+              Voltar ao <span className="italic text-aurora">índice</span> de ativos
+            </p>
+            <Link
+              to="/"
+              className="mt-6 inline-flex items-center gap-2 font-grotesk text-sm text-white hover:text-[var(--aurora-mint)]"
+            >
+              Explorar Index <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
