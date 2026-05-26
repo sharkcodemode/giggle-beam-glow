@@ -83,8 +83,7 @@ function AudiosPage() {
     const audio = audioRef.current;
     if (!audio) return;
     if (!ctxRef.current) {
-      type WindowWithWebkit = Window & { webkitAudioContext?: typeof AudioContext };
-      const w = window as WindowWithWebkit;
+      const w = window as Window & { webkitAudioContext?: typeof AudioContext };
       const AC: typeof AudioContext = w.AudioContext ?? w.webkitAudioContext!;
       const ac = new AC();
       const analyser = ac.createAnalyser();
