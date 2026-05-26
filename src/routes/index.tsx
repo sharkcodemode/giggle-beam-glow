@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, Download, UserPlus, Calendar, Info } from "lucide-react";
+import { FileText, Download, UserPlus, Calendar, Info, Server } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
