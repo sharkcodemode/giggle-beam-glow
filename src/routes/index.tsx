@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { 
   FileText, Download, UserPlus, Calendar, Info, 
   Server, Cpu, Image as ImageIcon, Key, Terminal, 
-  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2 
+  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2, Utensils 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
