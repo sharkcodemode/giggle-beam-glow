@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
 function Index() {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 space-y-8">
       <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl border bg-card shadow-lg">
@@ -25,6 +28,28 @@ function Index() {
           Seu navegador não suporta o elemento de áudio.
         </audio>
       </div>
+
+      {/* Simulando o Painel do ZIP */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-4 right-4 z-50 rounded-full bg-green-500 px-4 py-3 font-bold text-green-950 shadow-2xl transition-transform hover:scale-105 active:scale-95"
+      >
+        Exportador Painel
+      </button>
+
+      {isOpen && (
+        <div className="fixed right-4 top-4 z-50 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-6 text-slate-100 shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold">Painel de Controle</h3>
+            <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+          </div>
+          <p className="text-sm text-slate-400">Extensão carregada com sucesso e pronta para uso.</p>
+          <div className="mt-4 space-y-2">
+            <button className="w-full rounded-lg bg-slate-800 py-2 text-sm hover:bg-slate-700">Exportar Dados</button>
+            <button className="w-full rounded-lg bg-slate-800 py-2 text-sm hover:bg-slate-700">Configurações</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
