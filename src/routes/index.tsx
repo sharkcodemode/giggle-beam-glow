@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { 
   FileText, Download, UserPlus, Calendar, Info, 
   Server, Cpu, Image as ImageIcon, Key, Terminal, 
-  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2, Utensils 
+  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2, Utensils, Music
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,9 +66,9 @@ function Index() {
             <span className="font-bold text-xl tracking-tighter text-white">PRO<span className="text-cyan-400">CORE</span></span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
-            <a href="#" className="hover:text-cyan-400 transition-colors">Dashboard</a>
+            <Link to="/" className="hover:text-cyan-400 transition-colors">Dashboard</Link>
+            <Link to="/audios" className="hover:text-cyan-400 transition-colors">Audio Vault</Link>
             <a href="#" className="hover:text-cyan-400 transition-colors">Resources</a>
-            <a href="#" className="hover:text-cyan-400 transition-colors">Network</a>
             <Button variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300">
               Console Access
             </Button>
@@ -253,6 +254,11 @@ function Index() {
                 <p className="text-[10px] text-center text-slate-500 font-mono italic">
                   ENCRYPTED_VOICE_MODULE_01.MP3
                 </p>
+                <Button variant="outline" className="w-full border-purple-500/30 text-purple-400 hover:bg-purple-500/10 gap-2" asChild>
+                  <Link to="/audios">
+                    <Music className="h-4 w-4" /> Open Audio Vault
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
 
