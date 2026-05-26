@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, Download, UserPlus, Calendar, Info, Server, Cpu, Image as ImageIcon } from "lucide-react";
+import { FileText, Download, UserPlus, Calendar, Info, Server, Cpu, Image as ImageIcon, Key } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -188,6 +188,39 @@ function Index() {
                 A imagem apresenta uma paisagem urbana futurista com luzes neon e uma estética cyberpunk vibrante.
               </p>
             </div>
+          </CardContent>
+        </Card>
+        
+        {/* Card do Arquivo de Chaves */}
+        <Card className="border-amber-500/20 shadow-xl overflow-hidden">
+          <CardHeader className="bg-amber-500/5 border-b border-amber-500/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500 rounded-lg">
+                <Key className="h-6 w-6 text-amber-950" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Chaves de Acesso</CardTitle>
+                <CardDescription>Arquivo de Texto (.txt)</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Lista de 500 chaves de acesso alfanuméricas para o sistema.
+            </p>
+            <div className="bg-muted p-3 rounded-md text-[10px] font-mono h-24 overflow-y-auto border">
+              ABG-007-NQN ABW-958-PDD AFI-892-QKZ AFN-016-OFP AHR-558-GJH AKL-724-UDA ALP-227-SLR AOC-929-OMY AQD-403-FIT ATI-988-VGU AUT-096-PAG AUX-614-IPQ AVC-878-TOG AVH-246-CWD AWD-121-RAA AYV-217-IIA AYW-830-WYC BCS-431-RCQ BEF-322-QHL BFQ-424-ULW...
+            </div>
+            <Button className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white" asChild>
+              <a 
+                href="https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/89dd8928-fc27-4768-b66e-9fc1d9ec8463?Expires=1779780172&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=Yik15u4DL%2BJEBx85V0cmmg%2B1s9Maqzl1oltgBIlK2mjxh0sAt7P0tlSdfOrDCZ9MWb27Zow%2FV9odXIONBDz0dXH%2FkmZn1emXsvEP1gBLgTaTtE%2Breik7ZFLVjvC1cafCuyqQeikgjNiI2OBAcUxDEh15U94bmVIrUty8FBzXRqy1xI%2FsUVIO7PNzVCeZi8aZNvUW5B9bYKfdCYx%2BOT7TDv9XPeuy2kslHPTEuMh9PnV8GHQrf6vIy10Uyt6ySmsk27JmWYlML%2FKEGKc1bctLM4bg2SuY2MtsHY0sLrJYbSPMzt%2FeymSHbLopVXAc%2Ba7OxsraDo0lnmPqRQhL9iYUCQ%3D%3D" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Download className="h-4 w-4" />
+                Baixar chaves_500.txt
+              </a>
+            </Button>
           </CardContent>
         </Card>
       </div>
