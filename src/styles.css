@@ -1,22 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400;500;700&display=swap");
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -59,6 +46,18 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-obsidian: var(--obsidian);
+  --color-obsidian-2: var(--obsidian-2);
+  --color-aurora-mint: var(--aurora-mint);
+  --color-aurora-cyan: var(--aurora-cyan);
+  --color-aurora-violet: var(--aurora-violet);
+  --color-aurora-plasma: var(--aurora-plasma);
+  --color-bone: var(--bone);
+
+  --font-display: "Instrument Serif", "Times New Roman", serif;
+  --font-grotesk: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
@@ -95,6 +94,15 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* OBSIDIAN AURORA palette */
+  --obsidian: oklch(0.12 0.012 260);
+  --obsidian-2: oklch(0.17 0.018 265);
+  --aurora-mint: oklch(0.86 0.21 158);
+  --aurora-cyan: oklch(0.84 0.16 210);
+  --aurora-violet: oklch(0.68 0.24 295);
+  --aurora-plasma: oklch(0.72 0.28 335);
+  --bone: oklch(0.96 0.01 90);
 }
 
 .dark {
@@ -136,9 +144,135 @@
   * {
     border-color: var(--color-border);
   }
-
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-grotesk);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
+}
+
+/* ─── OBSIDIAN AURORA — utilities ─────────────────────────────── */
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .font-grotesk { font-family: var(--font-grotesk); }
+  .font-mono    { font-family: var(--font-mono); }
+
+  .text-aurora {
+    background-image: linear-gradient(
+      105deg,
+      var(--aurora-mint) 0%,
+      var(--aurora-cyan) 35%,
+      var(--aurora-violet) 65%,
+      var(--aurora-plasma) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bg-aurora {
+    background-image: linear-gradient(
+      105deg,
+      var(--aurora-mint),
+      var(--aurora-cyan),
+      var(--aurora-violet),
+      var(--aurora-plasma)
+    );
+  }
+
+  .text-outline {
+    -webkit-text-stroke: 1px color-mix(in oklab, var(--bone) 35%, transparent);
+    color: transparent;
+  }
+
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.18;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  .scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      rgba(255, 255, 255, 0.025) 2px,
+      rgba(255, 255, 255, 0.025) 3px
+    );
+  }
+
+  .conic-border {
+    position: relative;
+    isolation: isolate;
+  }
+  .conic-border::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--angle, 0deg),
+      var(--aurora-mint),
+      var(--aurora-cyan),
+      var(--aurora-violet),
+      var(--aurora-plasma),
+      var(--aurora-mint)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0.55;
+    animation: spin-angle 8s linear infinite;
+    z-index: -1;
+  }
+
+  .marquee-track {
+    animation: marquee 38s linear infinite;
+  }
+
+  .floaty { animation: floaty 7s ease-in-out infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .conic-border::before,
+    .marquee-track,
+    .floaty { animation: none !important; }
+  }
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin-angle {
+  to { --angle: 360deg; }
+}
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -10px, 0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 50%; }
+  100% { background-position: -200% 50%; }
 }
