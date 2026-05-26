@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { 
   FileText, Download, UserPlus, Calendar, Info, 
   Server, Cpu, Image as ImageIcon, Key, Terminal, 
-  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2, Utensils 
+  Shield, Zap, Globe, Github, ChevronRight, X, Calculator, Plus, Trash2, Utensils, Music
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
