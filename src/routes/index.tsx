@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, Download, UserPlus, Calendar, Info, Server, Cpu } from "lucide-react";
+import { FileText, Download, UserPlus, Calendar, Info, Server, Cpu, Image as ImageIcon } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -147,6 +147,47 @@ function Index() {
                 Baixar Plutonium.exe
               </a>
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Novo Card de Imagem */}
+        <Card className="border-purple-500/20 shadow-xl overflow-hidden group">
+          <CardHeader className="bg-purple-500/5 border-b border-purple-500/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500 rounded-lg">
+                <ImageIcon className="h-6 w-6 text-purple-950" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Galeria Visual</CardTitle>
+                <CardDescription>Imagem de Alta Resolução</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0 relative group">
+            <div className="relative aspect-video overflow-hidden">
+              <img 
+                src="https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/ed47bbb2-8463-46a7-9ab8-11f44a977524?Expires=1779779106&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=3sRneXY1DcejASyNYgmy2A6bonouZ8FR%2Bh9%2F9JJOlF8lEi8W0O9kahEkWlKfxBJKM6dxGys4mhB5xE4VFaso%2FxL5N6anCmhASxkAjSctr1R2pCsG57ORHRPq%2FSLYijPuVDv2XWu25wmzDb9V7IDrvo%2BXPeZ1%2F8Cp%2FZTES2gX2%2FsEclXeSknflInlK83t2DlSKn%2B9NT7hXx%2BufMDfOeGI4%2BiqQ3vEuNW8xJSEa6z8%2FD36M1Iln%2Bi8qSRwVrD23bjEN2V0pKBjrtstsB%2BuaSzosXCPWFNRmzKZJH%2B7WplP%2FiEktdx5kTCLsAIzi33D3QNKsGUjSZZ1CKpEvejgR%2B0f9g%3D%3D"
+                alt="Contexto Visual"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Button variant="secondary" size="sm" className="gap-2" asChild>
+                  <a 
+                    href="https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/ed47bbb2-8463-46a7-9ab8-11f44a977524?Expires=1779779106&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=3sRneXY1DcejASyNYgmy2A6bonouZ8FR%2Bh9%2F9JJOlF8lEi8W0O9kahEkWlKfxBJKM6dxGys4mhB5xE4VFaso%2FxL5N6anCmhASxkAjSctr1R2pCsG57ORHRPq%2FSLYijPuVDv2XWu25wmzDb9V7IDrvo%2BXPeZ1%2F8Cp%2FZTES2gX2%2FsEclXeSknflInlK83t2DlSKn%2B9NT7hXx%2BufMDfOeGI4%2BiqQ3vEuNW8xJSEa6z8%2FD36M1Iln%2Bi8qSRwVrD23bjEN2V0pKBjrtstsB%2BuaSzosXCPWFNRmzKZJH%2B7WplP%2FiEktdx5kTCLsAIzi33D3QNKsGUjSZZ1CKpEvejgR%2B0f9g%3D%3D"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Download className="h-4 w-4" />
+                    Ver em tela cheia
+                  </a>
+                </Button>
+              </div>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                A imagem apresenta uma paisagem urbana futurista com luzes neon e uma estética cyberpunk vibrante.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
