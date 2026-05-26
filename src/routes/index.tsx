@@ -254,6 +254,11 @@ function Index() {
                 <p className="text-[10px] text-center text-slate-500 font-mono italic">
                   ENCRYPTED_VOICE_MODULE_01.MP3
                 </p>
+                <Button variant="outline" className="w-full border-purple-500/30 text-purple-400 hover:bg-purple-500/10 gap-2" asChild>
+                  <Link to="/audios">
+                    <Music className="h-4 w-4" /> Open Audio Vault
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
 
