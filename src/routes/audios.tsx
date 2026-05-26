@@ -83,8 +83,8 @@ function AudiosPage() {
     const audio = audioRef.current;
     if (!audio) return;
     if (!ctxRef.current) {
-      const w = window as Window & { webkitAudioContext?: typeof AudioContext };
-      const AC: typeof AudioContext = w.AudioContext ?? w.webkitAudioContext!;
+      const w = window as unknown as { webkitAudioContext?: typeof AudioContext };
+      const AC: typeof AudioContext = typeof AudioContext !== "undefined" ? AudioContext : w.webkitAudioContext!;
       const ac = new AC();
       const analyser = ac.createAnalyser();
       analyser.fftSize = 512;
