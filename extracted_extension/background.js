@@ -1176,6 +1176,16 @@ async function callActoEdge(action, params = {}, contextOverride = {}) {
     if (fileRefs.length) payload.file_refs = fileRefs;
     if (filesInline.length) payload.files_inline = filesInline;
     if (actionParams.context) payload.context = actionParams.context;
+
+    await publishNativeChatMask({
+      mode: "send_message",
+      promptText: payload.message,
+      fileCount: fileRefs.length + filesInline.length,
+      fileNames: extractNativeMaskFileNames(actionParams),
+      ts: Date.now(),
+    }).catch((error) => {
+      console.warn("[ACTO MASK] publish before send failed", error);
+    });
   }
 
   const response = await fetch(ACTO_V2_URL, {
