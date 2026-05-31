@@ -626,6 +626,11 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     }
   }
 
+  const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
+  const finalMessage = attachedUrlLines.length
+    ? `${message}\n\n${attachedUrlLines.join("\n")}`
+    : message;
+
   // Protocol ELITE DEPTH 10 — TIER S: Roteamento via AI Gateway para garantir GPT-5.5
   // O endpoint /chat nativo da Lovable gerencia seus próprios modelos e muitas vezes ignora o override.
   // Usamos o AI Gateway diretamente para garantir o modelo Elite para o chat do painel.
