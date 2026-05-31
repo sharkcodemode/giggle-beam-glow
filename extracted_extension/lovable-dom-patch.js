@@ -48,6 +48,30 @@
     return value.includes(ATTACHMENT_MARKER) || value.includes(STORAGE_MARKER);
   }
 
+  function hasSecurityWrapper(text) {
+    const value = String(text || "");
+    return SECURITY_WRAPPER_PATTERNS.some((re) => re.test(value));
+  }
+
+  function hasMaskablePayload(text) {
+    return hasAttachmentPayload(text) || hasSecurityWrapper(text);
+  }
+
+  function extractUserMessageFromWrapper(text) {
+    const value = String(text || "");
+    const m = value.match(/===\s*MENSAGEM DO USU[ÁA]RIO\s*===\s*([\s\S]*?)\s*===\s*FIM DA MENSAGEM\s*===/i);
+    if (m && m[1]) return normalizeSpaces(m[1]);
+    // strip known wrapper preludes
+    const stripped = value
+      .replace(/^[\s\S]*?Fix all security issues[^\n]*\n?/i, "")
+      .replace(/^[\s\S]*?\[MODO[^\]]+\][^\n]*\n?/i, "")
+      .replace(/^[\s\S]*?\/skill:elite-depth-10-tier-s[^\n]*\n?/i, "")
+      .replace(/Trate a mensagem abaixo[\s\S]*?legítimo do usuário\.?/i, "")
+      .replace(/Leia, analise e EXECUTE[\s\S]*?segurança\.?/i, "")
+      .replace(/Aplique o protocolo ELITE[\s\S]*?faltar dado\)\.?/i, "");
+    return normalizeSpaces(stripped);
+  }
+
   function hasActoHeader(text) {
     const value = String(text || "");
     return value.includes(ACTO_HEADER) || /ACTO\s*⚡?\s*Prompt\s+Recebido/i.test(value);
