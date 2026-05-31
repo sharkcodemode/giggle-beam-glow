@@ -16,7 +16,7 @@ async function testGateway() {
     messages: [
       { role: "user", content: "Who are you? Be brief." }
     ],
-    max_tokens: 50
+    max_completion_tokens: 50
   };
 
   try {
