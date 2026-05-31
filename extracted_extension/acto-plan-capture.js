@@ -1,52 +1,76 @@
-// ACTO Plan Capture v8 — detecta cards de plano da Lovable, injeta botão
-// "📋 Carregar na ACTO" que: captura o texto do plano, clica Negar nativo,
-// copia pro clipboard e envia ao side panel para colar no textarea.
+// ACTO Plan Capture v9 — detecta cards de plano da Lovable de forma robusta,
+// injeta botão "📋 Carregar na ACTO" ao lado do Approve. Captura o texto,
+// clica Negar nativo (custo 0) e envia ao side panel ACTO.
 (() => {
-  if (window.__ACTO_PLAN_CAPTURE_V8__) return;
-  window.__ACTO_PLAN_CAPTURE_V8__ = true;
+  if (window.__ACTO_PLAN_CAPTURE_V9__) return;
+  window.__ACTO_PLAN_CAPTURE_V9__ = true;
 
-  const INJECTED_ATTR = "data-acto-plan-btn-v8";
-  const CARD_MARK_ATTR = "data-acto-plan-card-v8";
-  const BTN_ID_PREFIX = "acto-plan-load-";
-  const TOAST_ID = "acto-plan-toast-v8";
+  const INJECTED_ATTR = "data-acto-plan-btn-v9";
+  const TOAST_ID = "acto-plan-toast-v9";
 
-  const APPROVE_RX = /^(approve|aprovar|implement|implementar|apply|aplicar)$/i;
-  const REJECT_RX  = /^(reject|negar|deny|decline|cancel|cancelar|dismiss)$/i;
+  // substring match (não mais exato) — Lovable usa "Approve plan", "Reject", etc.
+  const APPROVE_RX = /(approve|aprovar|implement|implementar|apply\b|aplicar|accept|aceitar)/i;
+  const REJECT_RX  = /(reject|negar|deny|decline|cancel|cancelar|dismiss|discard|descartar)/i;
 
-  function txt(el) { return (el?.innerText || el?.textContent || "").trim(); }
+  // marca botões já processados via WeakSet (sobrevive re-renders sem lixo)
+  const injectedForApprove = new WeakSet();
+
+  function btnText(b) {
+    return (
+      b?.innerText ||
+      b?.textContent ||
+      b?.getAttribute?.("aria-label") ||
+      b?.getAttribute?.("title") ||
+      ""
+    ).trim();
+  }
 
   function findButtons(root) {
     return Array.from(root.querySelectorAll('button, [role="button"]'));
   }
 
-  // Acha cards que tenham SIMULTANEAMENTE um botão aprovar e um negar.
-  function findPlanCards() {
+  function isApprove(b) {
+    const t = btnText(b);
+    return APPROVE_RX.test(t) && !REJECT_RX.test(t);
+  }
+  function isReject(b) {
+    const t = btnText(b);
+    return REJECT_RX.test(t) && !APPROVE_RX.test(t);
+  }
+
+  function findPlanPairs() {
     const buttons = findButtons(document);
-    const approveBtns = buttons.filter((b) => APPROVE_RX.test(txt(b)));
-    const cards = [];
+    const approveBtns = buttons.filter(isApprove);
+    const pairs = [];
     for (const ap of approveBtns) {
-      // sobe até achar um container que tenha também o botão negar
+      if (injectedForApprove.has(ap)) continue;
+      if (!ap.isConnected) continue;
+      // sobe até 10 níveis procurando um botão Negar irmão/parent
       let node = ap.parentElement;
       let depth = 0;
-      while (node && depth < 8) {
-        const rejectBtn = findButtons(node).find((b) => REJECT_RX.test(txt(b)));
-        if (rejectBtn && rejectBtn !== ap) {
-          cards.push({ card: node, approveBtn: ap, rejectBtn });
-          break;
-        }
+      let rejectBtn = null;
+      let card = null;
+      while (node && depth < 10) {
+        const candidates = findButtons(node);
+        rejectBtn = candidates.find((b) => b !== ap && isReject(b));
+        if (rejectBtn) { card = node; break; }
         node = node.parentElement;
         depth += 1;
       }
+      if (rejectBtn && card) pairs.push({ approveBtn: ap, rejectBtn, card });
     }
-    return cards;
+    return pairs;
   }
 
   function extractPlanText(card) {
-    // pega innerText preservando quebras; remove labels dos botões
-    let raw = card.innerText || "";
-    raw = raw.replace(/^(Approve|Aprovar|Implement|Implementar|Apply|Aplicar)\s*$/gim, "");
-    raw = raw.replace(/^(Reject|Negar|Deny|Decline|Cancel|Cancelar|Dismiss)\s*$/gim, "");
-    return raw.replace(/\n{3,}/g, "\n\n").trim();
+    let raw = card.innerText || card.textContent || "";
+    // remove labels dos próprios botões para não poluir o plano
+    raw = raw
+      .replace(/^\s*(Approve|Aprovar|Implement|Implementar|Apply|Aplicar|Accept|Aceitar)(\s+plan|\s+plano)?\s*$/gim, "")
+      .replace(/^\s*(Reject|Negar|Deny|Decline|Cancel|Cancelar|Dismiss|Discard|Descartar)\s*$/gim, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return raw;
   }
 
   function showToast(message, kind = "ok") {
@@ -67,10 +91,8 @@
   }
 
   async function copyToClipboard(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch {
       try {
         const ta = document.createElement("textarea");
         ta.value = text;
@@ -88,54 +110,48 @@
     try {
       chrome.runtime?.sendMessage({
         type: "ACTO_LOAD_PLAN",
-        payload: { text: planText, ts: Date.now(), origin: window.location.href },
+        payload: { text: planText, ts: Date.now(), origin: location.href },
       });
     } catch {}
     try {
-      chrome.storage?.local?.set({
-        acto_last_plan: { text: planText, ts: Date.now() },
-      });
+      chrome.storage?.local?.set({ acto_last_plan: { text: planText, ts: Date.now() } });
     } catch {}
   }
 
-  async function handleLoad(cardInfo) {
-    const { card, rejectBtn } = cardInfo;
+  async function handleLoad(pair) {
+    const { card, rejectBtn } = pair;
     const planText = extractPlanText(card);
     if (!planText || planText.length < 20) {
       showToast("Plano não detectado (texto muito curto).", "err");
       return;
     }
-
     const copied = await copyToClipboard(planText);
     notifyPanel(planText);
-
-    // clica Negar nativo após copiar — não consome créditos
     try { rejectBtn.click(); } catch {}
-
     showToast(
       copied
-        ? "Plano copiado + negado. Cole na ACTO (Ctrl+V) e envie."
+        ? "Plano copiado + negado (0 créditos). Cole na ACTO (Ctrl+V) e envie."
         : "Plano enviado ao painel ACTO. Abra a extensão.",
       "ok",
     );
   }
 
-  function buildLoadButton(cardInfo, idx) {
+  function buildLoadButton(pair) {
     const btn = document.createElement("button");
-    btn.id = `${BTN_ID_PREFIX}${idx}`;
     btn.type = "button";
     btn.setAttribute(INJECTED_ATTR, "1");
     btn.textContent = "📋 Carregar na ACTO";
-    btn.title = "Captura o plano, nega o nativo (0 créditos) e cola no painel ACTO";
+    btn.title = "Captura o plano, nega o nativo (0 créditos) e envia ao painel ACTO";
     btn.style.cssText = `
       display:inline-flex;align-items:center;gap:6px;
-      padding:8px 14px;margin:6px 6px 6px 0;
+      padding:8px 14px;margin:0 8px 0 0;
       border-radius:10px;cursor:pointer;
       font:700 12px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.02em;
       color:#0a0f1e;background:linear-gradient(135deg,#7dd3fc,#a78bfa);
       border:1px solid rgba(255,255,255,.25);
       box-shadow:0 6px 18px rgba(124,58,237,.35);
       transition:transform .15s ease, box-shadow .15s ease;
+      vertical-align:middle;
     `;
     btn.addEventListener("mouseenter", () => {
       btn.style.transform = "translateY(-1px)";
@@ -148,26 +164,24 @@
     btn.addEventListener("click", (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      handleLoad(cardInfo);
+      handleLoad(pair);
     });
     return btn;
   }
 
-  function injectIntoCards() {
-    const cards = findPlanCards();
-    cards.forEach((info, idx) => {
-      if (info.card.getAttribute(CARD_MARK_ATTR) === "1") return;
-      // injeta o botão ao lado do botão Aprovar
-      const parent = info.approveBtn.parentElement;
-      if (!parent) return;
-      const loadBtn = buildLoadButton(info, idx);
-      try {
-        parent.insertBefore(loadBtn, info.approveBtn);
-      } catch {
-        parent.appendChild(loadBtn);
-      }
-      info.card.setAttribute(CARD_MARK_ATTR, "1");
-    });
+  function injectAll() {
+    const pairs = findPlanPairs();
+    for (const pair of pairs) {
+      const parent = pair.approveBtn.parentElement;
+      if (!parent) continue;
+      // se já existe um botão nosso ao lado, pula
+      const exists = parent.querySelector(`[${INJECTED_ATTR}="1"]`);
+      if (exists) { injectedForApprove.add(pair.approveBtn); continue; }
+      const loadBtn = buildLoadButton(pair);
+      try { parent.insertBefore(loadBtn, pair.approveBtn); }
+      catch { parent.appendChild(loadBtn); }
+      injectedForApprove.add(pair.approveBtn);
+    }
   }
 
   let scanTimer = 0;
@@ -175,13 +189,17 @@
     if (scanTimer) return;
     scanTimer = window.setTimeout(() => {
       scanTimer = 0;
-      try { injectIntoCards(); } catch {}
-    }, 250);
+      try { injectAll(); } catch (e) { console.warn("[ACTO plan-capture]", e); }
+    }, 200);
   }
 
   const observer = new MutationObserver(scheduleScan);
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  // varreduras iniciais (Lovable renderiza assíncrono)
-  [200, 600, 1200, 2400, 4800].forEach((t) => setTimeout(injectIntoCards, t));
+  // varreduras iniciais
+  [150, 500, 1200, 2400, 4800, 8000].forEach((t) => setTimeout(injectAll, t));
+
+  // expõe trigger manual p/ debug: window.__ACTO_RESCAN__()
+  window.__ACTO_RESCAN__ = injectAll;
+  console.info("[ACTO] plan-capture v9 ativo");
 })();
