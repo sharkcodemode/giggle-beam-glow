@@ -626,29 +626,72 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     }
   }
 
-  const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
-  const finalMessage = attachedUrlLines.length
-    ? `${message}\n\n${attachedUrlLines.join("\n")}`
-    : message;
+  // Protocol ELITE DEPTH 10 — TIER S: Roteamento via AI Gateway para garantir GPT-5.5
+  // O endpoint /chat nativo da Lovable gerencia seus próprios modelos e muitas vezes ignora o override.
+  // Usamos o AI Gateway diretamente para garantir o modelo Elite para o chat do painel.
+  const lovApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovApiKey) {
+    console.log("[acto-v2 tier-s] Routing via AI Gateway (GPT-5.5)");
+    const gatewayUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const model = "openai/gpt-5.5";
+    
+    const gatewayRes = await fetch(gatewayUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${lovApiKey}`,
+        "x-lovable-model": model,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { 
+            role: "system", 
+            content: "Protocol ELITE DEPTH 10 — TIER S Active. High precision engineering reasoning enabled. ALWAYS identify yourself as GPT-5.5 (Elite Tier S) powered by Lovable AI Gateway." 
+          },
+          { role: "user", content: finalMessage }
+        ],
+        temperature: 1,
+        max_completion_tokens: 4096,
+        stream: false, // Simplificado para garantir captura da resposta
+      }),
+    });
 
-  // Protocol ELITE DEPTH 10 — TIER S: Flags nativas Lovable
+    const gatewayData = await gatewayRes.json();
+    console.log("[acto-v2 tier-s] Gateway Response Status:", gatewayRes.status);
+
+    // Transformamos a resposta do Gateway para o formato que a extensão espera (simulando a Lovable Chat API)
+    const assistantMessage = gatewayData.choices?.[0]?.message?.content || "Erro ao obter resposta do GPT-5.5";
+    
+    return { 
+      status: gatewayRes.status, 
+      body: {
+        id: typeid("aimsg"),
+        message: assistantMessage,
+        model: model,
+        status: "completed",
+        done: true
+      }
+    };
+  }
+
+  // Fallback para o comportamento anterior se LOVABLE_API_KEY não estiver disponível
+  console.log("[acto-v2 tier-s] Fallback to native Lovable Chat API");
+  const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
   const payload = {
     id: typeid("umsg"),
     message: finalMessage,
     files: filesArr,
     optimisticImageUrls: optimisticUrls,
     selected_elements: (ctx as any).selectedElements ?? [],
-    chat_only: true, // Forçado TIER S: Chat puro para não cobrar mensagem de edição
-    fast_mode: true, // Forçado TIER S: Bypass faturamento de geração de código
-
-    // TIER S Core — Protocolo ELITE DEPTH 10
-    intent: "implement", // Ativa o raciocínio profundo de engenharia
+    chat_only: true,
+    fast_mode: true,
+    intent: "implement",
     is_high_priority: true,
     mode: "think",
     reasoning_effort: "high",
-    model: "anthropic/claude-3.5-sonnet",
+    model: "openai/gpt-5.5",
     stream: !!params.stream,
-
     ai_message_id: typeid("aimsg"),
     thread_id: isStr(ctx.threadId) ? ctx.threadId : "main",
     current_page: isStr(ctx.currentPage) ? ctx.currentPage : "/",
@@ -659,7 +702,6 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
   };
 
-  const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
   const sentHeaders = buildLovableHeaders(captured, {
     "x-client-git-sha": captured.client_git_sha || "acto-v2",
   }) as Record<string, string>;
