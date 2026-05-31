@@ -655,7 +655,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
     model: null,
     client_logs: [],
-    network_requests: "",
+    network_requests: [],
     runtime_errors: [],
     integration_metadata: {
       browser: {
