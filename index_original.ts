@@ -32,7 +32,7 @@ const MAX_SKEW_MS = 5 * 60 * 1000;
 const UPLOAD_TICKET_TTL_MS = 10 * 60 * 1000; // 10 min — janela entre upload_init e upload_finalize
 const FILE_REF_TTL_MS = 30 * 60 * 1000; // 30 min — janela entre upload_finalize e send_message
 const MAX_FILES_PER_MESSAGE = 10;
-const ACTO_EDGE_VERSION = "upload-minimo-10-sem-bloqueio-mime-2026-05-26";
+const ACTO_EDGE_VERSION = "tier-s-elite-depth-10-2026-05-31";
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const MAX_FILE_NAME_LEN = 255;
 
@@ -44,6 +44,7 @@ const ALLOWED_ACTIONS = new Set([
   "sheets_append",
   "upload_init",
   "upload_finalize",
+  "gateway_chat",
 ]);
 
 // MIME types aceitos.
@@ -584,9 +585,6 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   if (!message) throw new Error("message ausente");
   if (!captured.auth_token) throw new Error("auth_token ausente");
 
-  // Duas vias:
-  //  (A) file_refs opacos (HMAC tickets) — fluxo upload_init/upload_finalize.
-  //  (B) files_inline — já resolvidos server-side pelo handler multipart.
   const filesArr: Array<{ file_id: string; file_name: string; type: "user_upload" }> = [];
   const optimisticUrls: string[] = [];
   const attachedUrlLines: string[] = [];
@@ -607,10 +605,9 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
       type: "user_upload",
     });
     if (isStr(fo.download_url)) {
-      // HAR nativo da Lovable também envia o signed URL em optimisticImageUrls mesmo para .exe/.pdf/etc.
       optimisticUrls.push(fo.download_url);
+      attachedUrlLines.push(`[${fo.file_name}]: ${fo.download_url}`);
     }
-    if (isStr(fo.download_url)) attachedUrlLines.push(`[${fo.file_name}]: ${fo.download_url}`);
   }
 
   const rawRefs = Array.isArray(params.file_refs) ? params.file_refs : [];
@@ -624,63 +621,53 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     if (fr.pid !== projectId) throw new Error("file_ref de outro project_id");
     filesArr.push({
       file_id: fr.fid,
-      file_name: fr.ofn, // o nome ORIGINAL do usuário aparece no chat
+      file_name: fr.ofn,
       type: "user_upload",
     });
-    if (fr.dl) optimisticUrls.push(fr.dl);
-    if (fr.dl) attachedUrlLines.push(`[${fr.ofn}]: ${fr.dl}`);
+    if (fr.dl) {
+      optimisticUrls.push(fr.dl);
+      attachedUrlLines.push(`[${fr.ofn}]: ${fr.dl}`);
+    }
   }
 
   const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
-  const selected = Array.isArray((ctx as any).selectedElements) ? (ctx as any).selectedElements : [];
-  const messageWithAttachmentContext = attachedUrlLines.length
-    ? `${message}⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈
-
-\n\n${attachedUrlLines.join("\n")}`
+  const finalMessage = attachedUrlLines.length
+    ? `${message}\n\n${attachedUrlLines.join("\n")}`
     : message;
+
+  // Protocol ELITE DEPTH 10 — TIER S: Flags nativas Lovable
   const payload = {
-  id: `umsg_${typeid()}`,
-  message: finalMessage,
-  files,
-  optimisticImageUrls,
-  selected_elements: ctx.selectedElements ?? [],
+    id: `umsg_${typeid("msg")}`,
+    message: finalMessage,
+    files: filesArr,
+    optimisticImageUrls: optimisticUrls,
+    selected_elements: (ctx as any).selectedElements ?? [],
+    chat_only: !!params.chat_only,
+    fast_mode: params.fast_mode !== undefined ? !!params.fast_mode : true,
+    
+    // TIER S Core
+    intent: isStr(params.intent) ? params.intent : "implement",
+    is_high_priority: params.is_high_priority !== undefined ? !!params.is_high_priority : true,
+    mode: isStr(params.mode) ? params.mode : "think", 
+    reasoning_effort: isStr(params.reasoning_effort) ? params.reasoning_effort : "high",
+    model: isStr(params.model) ? params.model : "openai/gpt-5.5-pro",
+    stream: !!params.stream,
 
-  // flags existentes
-  chat_only: false,
-  fast_mode: true,
-
-  // novos campos
-  intent: "implement",                 // top-level; default do backend é "implement"
-  is_high_priority: true,              // depende do plano da conta (Teams/Enterprise)
-  mode: "think",                       // só faz efeito com modelos GPT-5.x / reasoning
-  reasoning_effort: "high",            // "low" | "medium" | "high"
-  model: "openai/gpt-5.5-pro",         // slug exato; modelo inválido → 400
-  stream: false,                       // ver aviso crítico abaixo
-
-  ai_message_id: `aimsg_${typeid()}`,
-  thread_id: ctx.threadId ?? "main",
-  current_page: ctx.currentPage ?? "/",
-  current_viewport_width: ctx.currentViewportWidth ?? 1440,
-  current_viewport_height: ctx.currentViewportHeight ?? 900,
-  current_viewport_dpr: ctx.currentViewportDpr ?? 1,
-  view: ctx.view ?? "preview",
-  view_description: ctx.viewDescription ?? "The user is currently viewing the preview. ",
-};
+    ai_message_id: `aimsg_${typeid("msg")}`,
+    thread_id: isStr(ctx.threadId) ? ctx.threadId : "main",
+    current_page: isStr(ctx.currentPage) ? ctx.currentPage : "/",
+    current_viewport_width: typeof ctx.currentViewportWidth === "number" ? ctx.currentViewportWidth : 1440,
+    current_viewport_height: typeof ctx.currentViewportHeight === "number" ? ctx.currentViewportHeight : 900,
+    current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 1,
+    view: isStr(ctx.view) ? ctx.view : "preview",
+    view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
+  };
 
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
   const sentHeaders = buildLovableHeaders(captured, {
     "x-client-git-sha": captured.client_git_sha || "acto-v2",
   }) as Record<string, string>;
-  console.log(
-    "[acto-v2 send] →",
-    url,
-    "tokenLen=",
-    (captured.auth_token || "").length,
-    "files=",
-    filesArr.length,
-    "hdrKeys=",
-    Object.keys(sentHeaders),
-  );
+
   const res = await fetch(url, {
     method: "POST",
     headers: sentHeaders,
@@ -734,6 +721,52 @@ async function actionSheetsAppend(params: Record<string, unknown>) {
   } catch {
     /* keep text */
   }
+  return { status: res.status, body: parsed };
+}
+
+// ---------- AI Gateway Tier S ----------
+async function actionGatewayChat(params: Record<string, unknown>) {
+  const model = isStr(params.model) ? params.model : "openai/gpt-5.5-pro";
+  const messages = Array.isArray(params.messages) ? params.messages : [];
+  const temperature = typeof params.temperature === "number" ? params.temperature : 0.7;
+  const stream = !!params.stream;
+
+  const lovApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!lovApiKey) throw new Error("LOVABLE_API_KEY ausente na Edge");
+
+  const url = "https://ai.gateway.lovable.dev/v1/chat/completions";
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${lovApiKey}`,
+    "x-lovable-model": model,
+  };
+
+  const body = {
+    model,
+    messages,
+    temperature,
+    stream,
+    ...(params.reasoning && { reasoning: params.reasoning }),
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (stream) {
+    // For simplicity in the response envelope, we don't return a readable stream directly
+    // unless the entire Edge architecture is built for it.
+    throw new Error("streaming_not_implemented_in_gateway_action");
+  }
+
+  const text = await res.text();
+  let parsed: unknown = text;
+  try {
+    parsed = JSON.parse(text);
+  } catch { /* ignore */ }
+
   return { status: res.status, body: parsed };
 }
 
@@ -1116,6 +1149,9 @@ async function handle(req: Request): Promise<Response> {
         break;
       case "sheets_append":
         data = await actionSheetsAppend(pt.params);
+        break;
+      case "gateway_chat":
+        data = await actionGatewayChat(pt.params);
         break;
       default:
         throw new Error("action_não_implementada");
