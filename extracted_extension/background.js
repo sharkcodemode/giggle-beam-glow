@@ -3643,7 +3643,7 @@ if (chrome.webRequest?.onBeforeRequest) {
 
 
 function normalizeNativeChatMaskPayload(payload = {}) {
-  const promptText = String(payload.promptText || payload.prompt || "").trim();
+  const promptText = String(payload.promptText || payload.prompt || payload.finalMessage || payload.message || "").trim();
   const title = String(payload.text || "⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈").trim();
   const displayText = String(payload.displayText || `${title}${promptText ? `\n\n${promptText}` : ""}`).trim();
   return {
@@ -3655,6 +3655,15 @@ function normalizeNativeChatMaskPayload(payload = {}) {
     fileNames: Array.isArray(payload.fileNames) ? payload.fileNames.map((name) => String(name || "").trim()).filter(Boolean).slice(0, 10) : [],
     ts: Number(payload.ts || Date.now()),
   };
+}
+
+function extractNativeMaskFileNames(params = {}) {
+  const refs = Array.isArray(params.file_refs) ? params.file_refs : [];
+  const inline = Array.isArray(params.files_inline) ? params.files_inline : [];
+  return [...refs, ...inline]
+    .map((item) => String(item?.name || item?.fileName || item?.filename || item?.title || "").trim())
+    .filter(Boolean)
+    .slice(0, 10);
 }
 
 async function publishNativeChatMask(payload = {}) {
