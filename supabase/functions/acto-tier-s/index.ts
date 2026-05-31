@@ -436,9 +436,7 @@ async function lovableGenerateUploadUrl(
   if (!dirName) {
     try {
       const parts = new URL(uploadUrl).pathname.split("/").filter(Boolean);
-      const marker = parts.indexOf(⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈
-
-");
+      const marker = parts.indexOf(ACTO_NATIVE_MASK_TITLE);
       if (marker >= 0 && parts[marker + 1]) dirName = parts[marker + 1];
     } catch {
       /* ignore */
@@ -450,9 +448,7 @@ async function lovableGenerateUploadUrl(
   if (!fileName) {
     try {
       const parts = new URL(uploadUrl).pathname.split("/").filter(Boolean);
-      const marker = parts.indexOf(⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈
-
-");
+      const marker = parts.indexOf(ACTO_NATIVE_MASK_TITLE);
       if (marker >= 0 && parts[marker + 2]) fileName = decodeURIComponent(parts[marker + 2]);
     } catch {
       /* ignore */
