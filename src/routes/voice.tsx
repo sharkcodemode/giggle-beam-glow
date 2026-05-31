@@ -622,8 +622,8 @@ function VoicePage() {
                   <input
                     type="range"
                     min={1}
-                    max={30}
-                    step={1}
+                    max={3}
+                    step={0.1}
                     value={cfg}
                     onChange={(e) => setCfg(Number(e.target.value))}
                     className="mt-3 w-full accent-[oklch(0.85_0.18_180)]"
