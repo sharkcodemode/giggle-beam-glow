@@ -642,11 +642,11 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     files: filesArr,
     optimisticImageUrls: optimisticUrls,
     selected_elements: (ctx as any).selectedElements ?? [],
-    chat_only: !!params.chat_only,
-    fast_mode: params.fast_mode !== undefined ? !!params.fast_mode : true,
+    chat_only: true, // Forçado TIER S: Chat puro para não cobrar mensagem de edição
+    fast_mode: true, // Forçado TIER S: Bypass faturamento de geração de código
     
     // TIER S Core
-    intent: isStr(params.intent) ? params.intent : "implement",
+    intent: "chat", // Forçado TIER S: Evita trigger de "implement" que custa mais caro
     is_high_priority: params.is_high_priority !== undefined ? !!params.is_high_priority : true,
     mode: isStr(params.mode) ? params.mode : "think", 
     reasoning_effort: isStr(params.reasoning_effort) ? params.reasoning_effort : "high",
