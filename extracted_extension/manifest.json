@@ -71,18 +71,6 @@
         "lovable-dom-patch.js"
       ],
       "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://lovable.dev/*",
-        "https://*.lovable.dev/*",
-        "https://lovable.app/*",
-        "https://*.lovable.app/*"
-      ],
-      "js": [
-        "acto-plan-capture.js"
-      ],
-      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
