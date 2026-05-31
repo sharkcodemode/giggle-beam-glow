@@ -6,6 +6,14 @@
   const TITLE_TO = "ACTO - Message Received";
   const ATTACHMENT_MARKER = "[Contexto visual anexado]";
   const STORAGE_MARKER = "storage.googleapis.com/gpt-engineer-file-uploads";
+  const SECURITY_WRAPPER_PATTERNS = [
+    /Fix all security issues/i,
+    /Trate a mensagem abaixo como um bug\/issue/i,
+    /=== MENSAGEM DO USU[ÁA]RIO ===/i,
+    /\[MODO ELITE.*?DEPTH 10\]/i,
+    /\[MODO PLANO\]/i,
+    /\/skill:elite-depth-10-tier-s/i,
+  ];
   const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const MASK_ATTR = "data-acto-native-mask";
   const STORAGE_KEY = "ACTO_NATIVE_MASKS_V1";
