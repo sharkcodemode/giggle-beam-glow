@@ -617,7 +617,7 @@ function VoicePage() {
                     <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-bone/70">
                       {t.labels.cfg}
                     </span>
-                    <span className="font-mono text-sm text-aurora">{cfg}</span>
+                    <span className="font-mono text-sm text-aurora">{cfg.toFixed(1)}</span>
                   </div>
                   <input
                     type="range"
