@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
 import { Route as AudiosRouteImport } from './routes/audios'
 import { Route as IndexRouteImport } from './routes/index'
 
+const RadarLovableRoute = RadarLovableRouteImport.update({
+  id: '/radar-lovable',
+  path: '/radar-lovable',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AudiosRoute = AudiosRouteImport.update({
   id: '/audios',
   path: '/audios',
@@ -26,31 +32,42 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/radar-lovable': typeof RadarLovableRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/radar-lovable': typeof RadarLovableRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/radar-lovable': typeof RadarLovableRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/audios'
+  fullPaths: '/' | '/audios' | '/radar-lovable'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/audios'
-  id: '__root__' | '/' | '/audios'
+  to: '/' | '/audios' | '/radar-lovable'
+  id: '__root__' | '/' | '/audios' | '/radar-lovable'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AudiosRoute: typeof AudiosRoute
+  RadarLovableRoute: typeof RadarLovableRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/radar-lovable': {
+      id: '/radar-lovable'
+      path: '/radar-lovable'
+      fullPath: '/radar-lovable'
+      preLoaderRoute: typeof RadarLovableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/audios': {
       id: '/audios'
       path: '/audios'
@@ -71,6 +88,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AudiosRoute: AudiosRoute,
+  RadarLovableRoute: RadarLovableRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
