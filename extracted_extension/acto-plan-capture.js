@@ -121,8 +121,8 @@
   }
 
   function cleanPlanText(raw) {
-    return String(raw || "")
-      .replace(/\r/g, "")
+    const region = extractPlanRegion(String(raw || "").replace(/\r/g, ""));
+    return region
       .replace(/^\s*(Approve|Aprovar|Implement|Implementar|Apply|Aplicar|Accept|Aceitar)(\s+plan|\s+plano)?\s*$/gim, "")
       .replace(/^\s*(Reject|Negar|Deny|Decline|Cancel|Cancelar|Dismiss|Discard|Descartar)\s*$/gim, "")
       .replace(/\n{3,}/g, "\n\n")
