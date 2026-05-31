@@ -1,6 +1,6 @@
 (() => {
-  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V8__) return;
-  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V8__ = true;
+  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V9__) return;
+  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V9__ = true;
 
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
