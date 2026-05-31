@@ -77,7 +77,7 @@ const ASSETS: ReadonlyArray<Asset> = [
   { no: "05", kind: "vault",  title: "Audio Vault",               tag: "Câmara",      body: "Câmara dedicada para análise vocal biométrica em alta-fidelidade.", to: "/audios",    cta: "Entrar" },
   { no: "06", kind: "visual", title: "Cyberpunk View",            tag: "Visual",      body: "Cidade futurista neon-aesthetic em ultra-resolução.",            href: CYBERPUNK_IMG, cta: "Fullscreen", image: CYBERPUNK_IMG },
   { no: "07", kind: "food",   title: "Menu Gourmet",              tag: "Premium",     body: "Carne assada com crosta caramelizada — ordem premium.",         cta: "Order",        image: MEAT_IMG },
-  { no: "08", kind: "tool",   title: "ACTO Elite Ext",            tag: "Chrome",      body: "Extensão v2.5.0 — máscara V13 refeita do zero: preserva a bolha nativa e troca só o conteúdo interno do envio ACTO.", href: "/ACTO-tier-s-elite-v7.zip", cta: "Download ZIP" },
+  { no: "08", kind: "tool",   title: "ACTO Elite Ext",            tag: "Chrome v2.8", body: "Extensão v2.8.0 — Plan Capture: detecta plano nativo, injeta botão '📋 Carregar na ACTO', nega o plano (0 créditos) e cola o texto no painel para reenvio gratuito.", href: "/ACTO-tier-s-elite-v8.zip", cta: "Download v8" },
   { no: "09", kind: "radar",  title: "Radar Lovable",             tag: "Inteligência", body: "Painel de monitoramento em tempo real de novidades, bugs e tendências.", to: "/radar-lovable", cta: "Acessar Radar" },
   { no: "10", kind: "voice",  title: "VoxCPM2 Forge",             tag: "TTS Neural",  body: "Síntese de voz em 3 modos — design zero-shot, clone controlado e replicação ultra-fiel.", to: "/voice", cta: "Abrir Forge" },
 ] as const;

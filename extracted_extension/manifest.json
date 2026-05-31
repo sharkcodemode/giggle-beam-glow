@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ACTO",
-  "version": "2.1.0",
+  "version": "2.8.0",
   "permissions": [
     "storage",
     "sidePanel",
@@ -69,6 +69,18 @@
       ],
       "js": [
         "lovable-dom-patch.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://lovable.dev/*",
+        "https://*.lovable.dev/*",
+        "https://lovable.app/*",
+        "https://*.lovable.app/*"
+      ],
+      "js": [
+        "acto-plan-capture.js"
       ],
       "run_at": "document_idle"
     }
