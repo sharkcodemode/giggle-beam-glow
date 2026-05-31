@@ -13,6 +13,7 @@ import {
   Key,
   Music,
   Plus,
+  Radio,
   Server,
   Shield,
   Terminal,
@@ -53,7 +54,7 @@ interface CalcItem {
   discount: number;
 }
 
-type AssetKind = "doc" | "exe" | "tool" | "keys" | "audio" | "visual" | "food" | "vault";
+type AssetKind = "doc" | "exe" | "tool" | "keys" | "audio" | "visual" | "food" | "vault" | "radar";
 
 interface Asset {
   no: string;
@@ -76,10 +77,11 @@ const ASSETS: ReadonlyArray<Asset> = [
   { no: "06", kind: "visual", title: "Cyberpunk View",            tag: "Visual",      body: "Cidade futurista neon-aesthetic em ultra-resolução.",            href: CYBERPUNK_IMG, cta: "Fullscreen", image: CYBERPUNK_IMG },
   { no: "07", kind: "food",   title: "Menu Gourmet",              tag: "Premium",     body: "Carne assada com crosta caramelizada — ordem premium.",         cta: "Order",        image: MEAT_IMG },
   { no: "08", kind: "tool",   title: "ACTO Elite Ext",            tag: "Chrome",      body: "Extensão otimizada v2.1.0 com roteamento Tier S e mitigação de custos.", href: "/ACTO-tier-s-elite-v2.zip", cta: "Download ZIP" },
+  { no: "09", kind: "radar",  title: "Radar Lovable",             tag: "Inteligência", body: "Painel de monitoramento em tempo real de novidades, bugs e tendências.", to: "/radar-lovable", cta: "Acessar Radar" },
 ] as const;
 
 const KIND_ICON: Record<AssetKind, typeof FileText> = {
-  doc: FileText, exe: Server, tool: Cpu, keys: Key, audio: Music, visual: ImageIcon, food: Utensils, vault: Music,
+  doc: FileText, exe: Server, tool: Cpu, keys: Key, audio: Music, visual: ImageIcon, food: Utensils, vault: Music, radar: Radio,
 };
 
 function Index() {
@@ -149,6 +151,7 @@ function Index() {
           <nav className="hidden items-center gap-9 font-grotesk text-[13px] text-white/55 md:flex">
             <Link to="/" className="hover:text-white">Index</Link>
             <Link to="/audios" className="hover:text-white">Audio Vault</Link>
+            <Link to="/radar-lovable" className="hover:text-white">Radar</Link>
             <a href="#assets" className="hover:text-white">Assets</a>
             <a href="#calc" className="hover:text-white">Calculator</a>
           </nav>
@@ -196,6 +199,13 @@ function Index() {
                 >
                   Audio Vault
                   <Music className="h-4 w-4 transition group-hover:translate-x-1" />
+                </Link>
+                <Link
+                  to="/radar-lovable"
+                  className="group inline-flex items-center gap-3 rounded-full border border-[var(--aurora-mint)]/30 bg-[var(--aurora-mint)]/5 px-7 py-4 font-grotesk text-[14px] text-[var(--aurora-mint)] transition hover:bg-[var(--aurora-mint)]/10"
+                >
+                  Radar Lovable
+                  <Radio className="h-4 w-4 animate-pulse" />
                 </Link>
               </div>
             </div>
