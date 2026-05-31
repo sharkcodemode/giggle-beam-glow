@@ -119,7 +119,11 @@
   }
 
   function cleanPrompt(text) {
-    const before = normalizeSpaces(cutBeforeAttachmentBlock(text).replace(/\bShow\s+(more|less)\b/gi, ""));
+    let source = String(text || "");
+    if (hasSecurityWrapper(source)) {
+      source = extractUserMessageFromWrapper(source) || source;
+    }
+    const before = normalizeSpaces(cutBeforeAttachmentBlock(source).replace(/\bShow\s+(more|less)\b/gi, ""));
     const lines = before.split("\n").map((line) => stripNumberPrefix(line)).filter(Boolean);
     const clean = [];
     for (const line of lines) {
