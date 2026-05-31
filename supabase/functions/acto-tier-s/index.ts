@@ -641,12 +641,12 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     chat_only: true, // Forçado TIER S: Chat puro para não cobrar mensagem de edição
     fast_mode: true, // Forçado TIER S: Bypass faturamento de geração de código
     
-    // TIER S Core
-    intent: "chat", // Forçado TIER S: Evita trigger de "implement" que custa mais caro
-    is_high_priority: params.is_high_priority !== undefined ? !!params.is_high_priority : true,
-    mode: isStr(params.mode) ? params.mode : "think", 
-    reasoning_effort: isStr(params.reasoning_effort) ? params.reasoning_effort : "high",
-    model: isStr(params.model) ? params.model : "openai/gpt-5.5-pro",
+    // TIER S Core — Protocolo ELITE DEPTH 10
+    intent: "implement", // Ativa o raciocínio profundo de engenharia
+    is_high_priority: true,
+    mode: "think", 
+    reasoning_effort: "high",
+    model: "openai/gpt-5.5-pro",
     stream: !!params.stream,
 
     ai_message_id: `aimsg_${typeid("msg")}`,
@@ -936,6 +936,7 @@ function isPlainExtensionPayload(x: unknown): x is { action: string; license: st
 
 // ---------- handler ----------
 async function handle(req: Request): Promise<Response> {
+  console.log(`[acto-v2] ${req.method} ${req.url} - ${req.headers.get("content-type")}`);
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
   if (req.method !== "POST") {
