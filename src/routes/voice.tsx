@@ -247,6 +247,32 @@ interface GenerateResult {
   filename: string;
 }
 
+function serializeError(err: unknown): string {
+  if (err == null) return "Unknown error";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message || err.name || "Error";
+  if (typeof err === "object") {
+    const obj = err as Record<string, unknown>;
+    const candidate =
+      obj.message ?? obj.error ?? obj.detail ?? obj.details ?? obj.reason ?? obj.statusText;
+    if (typeof candidate === "string" && candidate.trim()) return candidate;
+    if (candidate && typeof candidate === "object") {
+      try {
+        return JSON.stringify(candidate);
+      } catch {
+        /* noop */
+      }
+    }
+    try {
+      const json = JSON.stringify(err);
+      if (json && json !== "{}") return json;
+    } catch {
+      /* noop */
+    }
+  }
+  return String(err);
+}
+
 function detectInitialLang(): Lang {
   if (typeof navigator === "undefined") return "pt";
   return navigator.language?.toLowerCase().startsWith("pt") ? "pt" : "en";
@@ -386,7 +412,8 @@ function VoicePage() {
       const filename: string = audio?.orig_name ?? "voxcpm2-output.wav";
       setResult({ url, filename });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = serializeError(err);
+      console.error("[voice] generate failed:", err);
       setError(message.toLowerCase().includes("queue") ? t.errors.queueFull : message);
     } finally {
       setLoading(false);
