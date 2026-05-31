@@ -653,7 +653,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
     view: isStr(ctx.view) ? ctx.view : "preview",
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
-    model: null,
+    model: "openai/gpt-5.5",
     client_logs: [],
     network_requests: [],
     runtime_errors: [],
@@ -728,7 +728,7 @@ async function actionSheetsAppend(params: Record<string, unknown>) {
 
 // ---------- AI Gateway Tier S ----------
 async function actionGatewayChat(params: Record<string, unknown>) {
-  const model = isStr(params.model) ? params.model : "anthropic/claude-3.5-sonnet";
+  const model = isStr(params.model) ? params.model : "openai/gpt-5.5";
   const messages = Array.isArray(params.messages) ? params.messages : [];
   const temperature = typeof params.temperature === "number" ? params.temperature : 1;
   const stream = !!params.stream;
