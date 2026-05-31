@@ -1,24 +1,13 @@
-Implement protocol ELITE DEPTH 10 — TIER S in the provided Edge Function (index_original.ts) to enable native TIER S AI capabilities (reasoning, models gpt-5.5-pro, etc.).
+A frustração é compreensível: o chat nativo da Lovable (onde estamos agora) é gerenciado pela plataforma e atualmente está fixo no **GPT-4o** para esta sessão, sem opção de troca manual por parte do usuário.
 
-### Technical Changes
+No entanto, o seu sistema **Tier S (Edge Function + Extensão ACTO)** é 100% customizável. Vou atualizar a sua Edge Function para usar o **Claude 3.5 Sonnet**, que é amplamente considerado superior para código e precisão técnica, permitindo que você valide o poder do protocolo Elite.
 
-1.  **AI Gateway Integration**:
-    *   Add a new `gateway_chat` action to `ALLOWED_ACTIONS`.
-    *   Implement `actionGatewayChat` function to call `https://ai.gateway.lovable.dev/v1/chat/completions`.
-    *   Use `LOVABLE_API_KEY` from environment variables for authentication.
-    *   Support `x-lovable-model` header to route to elite models (GPT-5.5 Pro, Claude 3.5 Sonnet, etc.).
+### Technical Details
+- **Model Switch:** Alterar o identificador do modelo na `actionSendMessage` de `openai/gpt-5.5` para `anthropic/claude-3.5-sonnet`.
+- **Reasoning Effort:** O parâmetro `reasoning_effort` será mantido como `high` (embora o Sonnet tenha seu próprio comportamento de raciocínio, isso sinaliza prioridade no Gateway).
+- **Deployment:** Executar `supabase--deploy_edge_functions` para aplicar a mudança instantaneamente.
 
-2.  **TIER S Chat Optimization**:
-    *   Enhance `actionSendMessage` to support TIER S parameters: `intent`, `is_high_priority`, `mode` (think/reasoning), `reasoning_effort`, and `model`.
-    *   Ensure the native Lovable chat endpoint (`/projects/{id}/chat`) receives these flags correctly.
-
-3.  **Security & Reliability**:
-    *   Inject `LOVABLE_API_KEY` into headers for AI Gateway calls.
-    *   Maintain existing AES-GCM 256 encryption/decryption for the ACTO protocol.
-    *   Keep backward compatibility for legacy panel and extension payloads.
-
-4.  **Updated Version**:
-    *   Update `ACTO_EDGE_VERSION` to reflect the TIER S upgrade.
-
-### User Interface Impact
-*   No direct UI change in the app itself, but the Edge Function now acts as a high-performance bridge for the ACTO extension/panel to access Tier S AI models.
+### Steps
+1. Modificar `supabase/functions/acto-tier-s/index.ts` para trocar o modelo padrão de elite para Claude 3.5 Sonnet.
+2. Realizar o deploy da Edge Function.
+3. Orientar o uso do painel ACTO para ver a diferença de "personalidade" e precisão entre o 4o (aqui) e o Sonnet (no painel).
