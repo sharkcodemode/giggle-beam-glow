@@ -633,23 +633,23 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
 
   // Protocol ELITE DEPTH 10 — TIER S: Flags nativas Lovable
   const payload = {
-    id: `umsg_${typeid("msg")}`,
+    id: typeid("umsg"),
     message: finalMessage,
     files: filesArr,
     optimisticImageUrls: optimisticUrls,
     selected_elements: (ctx as any).selectedElements ?? [],
     chat_only: true, // Forçado TIER S: Chat puro para não cobrar mensagem de edição
     fast_mode: true, // Forçado TIER S: Bypass faturamento de geração de código
-    
+
     // TIER S Core — Protocolo ELITE DEPTH 10
     intent: "implement", // Ativa o raciocínio profundo de engenharia
     is_high_priority: true,
-    mode: "think", 
+    mode: "think",
     reasoning_effort: "high",
     model: "openai/gpt-5.5-pro",
     stream: !!params.stream,
 
-    ai_message_id: `aimsg_${typeid("msg")}`,
+    ai_message_id: typeid("aimsg"),
     thread_id: isStr(ctx.threadId) ? ctx.threadId : "main",
     current_page: isStr(ctx.currentPage) ? ctx.currentPage : "/",
     current_viewport_width: typeof ctx.currentViewportWidth === "number" ? ctx.currentViewportWidth : 1440,
