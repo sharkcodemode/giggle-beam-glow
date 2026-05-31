@@ -296,7 +296,7 @@ function VoicePage() {
   const [control, setControl] = useState("");
   const [promptText, setPromptText] = useState("");
   const [refFile, setRefFile] = useState<File | null>(null);
-  const [cfg, setCfg] = useState(13);
+  const [cfg, setCfg] = useState(2);
   const [normalize, setNormalize] = useState(true);
   const [denoise, setDenoise] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -617,13 +617,13 @@ function VoicePage() {
                     <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-bone/70">
                       {t.labels.cfg}
                     </span>
-                    <span className="font-mono text-sm text-aurora">{cfg}</span>
+                    <span className="font-mono text-sm text-aurora">{cfg.toFixed(1)}</span>
                   </div>
                   <input
                     type="range"
                     min={1}
-                    max={30}
-                    step={1}
+                    max={3}
+                    step={0.1}
                     value={cfg}
                     onChange={(e) => setCfg(Number(e.target.value))}
                     className="mt-3 w-full accent-[oklch(0.85_0.18_180)]"
