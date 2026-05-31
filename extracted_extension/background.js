@@ -43,9 +43,9 @@ const CREATE_LOVABLE_PROJECT_MESSAGE_TYPE = "ACTO_CREATE_LOVABLE_PROJECT";
 const PUBLISH_LOVABLE_PROJECT_MESSAGE_TYPE = "ACTO_PUBLISH_LOVABLE_PROJECT";
 const GET_LOVABLE_SKILLS_MESSAGE_TYPE = "ACTO_GET_LOVABLE_SKILLS";
 const RESPOND_LOVABLE_TOOL_MESSAGE_TYPE = "ACTO_RESPOND_LOVABLE_TOOL";
-const ACTO_V2_URL = "https://euofwnzhoeabrdxcrwps.supabase.co/functions/v1/acto-v2";
+const ACTO_V2_URL = "https://bldjotvptyxnnxwvcufk.supabase.co/functions/v1/acto-tier-s";
 const ACTO_V2_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1b2Z3bnpob2VhYnJkeGNyd3BzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NjgzMDcsImV4cCI6MjA5NTI0NDMwN30.6U-PQURS8zMbdGdub5Zb55nmjiym6fHnowlYXhITg14";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGpvdHZwdHl4bm54d3ZjdWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMTkyOTgsImV4cCI6MjA5NTc5NTI5OH0.eWMbyGO6NdT8YUxaEK2F9k5-hFrQnkJOMK5xnjwTiCs";
 const ACTO_LICENSE_KEY = "license_key";
 const ACTO_DEVICE_ID_KEY = "device_id";
 const ACTO_SESSION_ID_KEY = "acto_session_id";
@@ -1189,7 +1189,7 @@ async function callActoEdge(action, params = {}, contextOverride = {}) {
   const ok = response.ok && data?.ok !== false && data?.sucesso !== false && status >= 200 && status < 300;
 
   if (!ok) {
-    console.error("[ACTO acto-v2] action failed", {
+    console.error("[ACTO acto-tier-s] action failed", {
       action,
       status: response.status,
       body: safeResponseBody(body),
