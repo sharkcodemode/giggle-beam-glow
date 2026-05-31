@@ -1,0 +1,103 @@
+{
+  "manifest_version": 3,
+  "name": "ACTO",
+  "version": "2.0.0",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "tabs",
+    "scripting",
+    "webRequest",
+    "windows"
+  ],
+  "host_permissions": [
+    "https://lovable.dev/*",
+    "https://api.lovable.dev/*",
+    "https://*.lovable.dev/*",
+    "https://lovable.app/*",
+    "https://*.lovable.app/*",
+    "https://*.supabase.co/*",
+    "https://www.googleapis.com/*",
+    "https://*.googleapis.com/*",
+    "https://*.storage.googleapis.com/*",
+    "https://www.youtube.com/*",
+    "https://youtube.com/*",
+    "https://youtu.be/*",
+    "https://www.youtube-nocookie.com/*",
+    "https://i.ytimg.com/*",
+    "https://script.google.com/*",
+    "https://script.googleusercontent.com/*",
+    "https://acto-lov.online/*",
+    "https://www.acto-lov.online/*",
+    "https://skillforge-acto.lovable.app/*",
+    "https://notas-lumen.lovable.app/*",
+    "https://www.sharkcodemode.online/*",
+    "https://sharkcodemode.online/*"
+  ],
+  "action": {
+    "default_title": "ACTO"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src 'self' https://www.acto-lov.online https://acto-lov.online https://skillforge-acto.lovable.app https://notas-lumen.lovable.app https://www.sharkcodemode.online https://sharkcodemode.online https://www.youtube.com https://www.youtube-nocookie.com;"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://lovable.dev/*",
+        "https://*.lovable.dev/*",
+        "https://lovable.app/*",
+        "https://*.lovable.app/*"
+      ],
+      "js": [
+        "content-script.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://lovable.dev/*",
+        "https://*.lovable.dev/*",
+        "https://lovable.app/*",
+        "https://*.lovable.app/*"
+      ],
+      "js": [
+        "lovable-dom-patch.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "lovable-token-hook.js",
+        "index.html",
+        "acto-config.js",
+        "acto-create-project-bridge.js",
+        "acto-publish-project-bridge.js",
+        "acto-paste-attachment-bridge.js",
+        "acto-youtube-music-bridge.js",
+        "acto-store-bridge.js",
+        "acto-notes-bridge.js",
+        "acto-i18n-bridge.js",
+        "acto-notes-page-modal.js",
+        "assets/*",
+        "ads/*.png",
+        "music-pip.html",
+        "music-pip.js"
+      ],
+      "matches": [
+        "https://lovable.dev/*",
+        "https://*.lovable.dev/*",
+        "https://lovable.app/*",
+        "https://*.lovable.app/*"
+      ]
+    }
+  ]
+}
