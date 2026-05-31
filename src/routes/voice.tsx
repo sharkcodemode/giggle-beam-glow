@@ -296,7 +296,7 @@ function VoicePage() {
   const [control, setControl] = useState("");
   const [promptText, setPromptText] = useState("");
   const [refFile, setRefFile] = useState<File | null>(null);
-  const [cfg, setCfg] = useState(13);
+  const [cfg, setCfg] = useState(2);
   const [normalize, setNormalize] = useState(true);
   const [denoise, setDenoise] = useState(true);
   const [loading, setLoading] = useState(false);
