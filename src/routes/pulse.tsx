@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,7 +79,6 @@ function hueOf(hash: number): number {
 
 // ─── página ────────────────────────────────────────────────────────
 function PulsePage() {
-  const router = useRouter();
   const [identity, setIdentity] = useState<AnonIdentity | null>(null);
   const [messages, setMessages] = useState<PulseMessage[]>([]);
   const [posts, setPosts] = useState<PulsePost[]>([]);
