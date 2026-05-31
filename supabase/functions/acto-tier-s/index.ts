@@ -936,6 +936,7 @@ function isPlainExtensionPayload(x: unknown): x is { action: string; license: st
 
 // ---------- handler ----------
 async function handle(req: Request): Promise<Response> {
+  console.log(`[acto-v2] ${req.method} ${req.url} - ${req.headers.get("content-type")}`);
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
   if (req.method !== "POST") {
