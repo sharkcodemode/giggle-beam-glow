@@ -1,76 +1,110 @@
-// ACTO Plan Capture v9 — detecta cards de plano da Lovable de forma robusta,
-// injeta botão "📋 Carregar na ACTO" ao lado do Approve. Captura o texto,
-// clica Negar nativo (custo 0) e envia ao side panel ACTO.
+// ACTO Plan Capture v10 — detecta plano da Lovable em DOIS modos:
+//  (A) Cards com botões Approve/Reject (modo implementação)
+//  (B) Bolhas de mensagem contendo um blueprint MODO PLANO (## 1..## 11, "PLANO TIER-S", etc.)
+// Injeta botão "📋 COPIAR PLANO" que copia o texto limpo e avisa o painel ACTO.
 (() => {
-  if (window.__ACTO_PLAN_CAPTURE_V9__) return;
-  window.__ACTO_PLAN_CAPTURE_V9__ = true;
+  if (window.__ACTO_PLAN_CAPTURE_V10__) return;
+  window.__ACTO_PLAN_CAPTURE_V10__ = true;
 
-  const INJECTED_ATTR = "data-acto-plan-btn-v9";
-  const TOAST_ID = "acto-plan-toast-v9";
+  const INJECTED_ATTR = "data-acto-plan-btn-v10";
+  const BUBBLE_FLAG_ATTR = "data-acto-plan-bubble-v10";
+  const TOAST_ID = "acto-plan-toast-v10";
 
-  // substring match (não mais exato) — Lovable usa "Approve plan", "Reject", etc.
   const APPROVE_RX = /(approve|aprovar|implement|implementar|apply\b|aplicar|accept|aceitar)/i;
   const REJECT_RX  = /(reject|negar|deny|decline|cancel|cancelar|dismiss|discard|descartar)/i;
 
-  // marca botões já processados via WeakSet (sobrevive re-renders sem lixo)
+  // Marcadores fortes de "isto é um plano"
+  const PLAN_SIGNATURES = [
+    /PLANO\s+TIER[\s-]?S/i,
+    /BLUEPRINT\s+FORGE/i,
+    /MODO\s+PLANO\s+ELITE/i,
+    /##\s*1\.\s*Objetivo/i,
+    /##\s*11\.\s*Resultado\s+esperado/i,
+  ];
+
   const injectedForApprove = new WeakSet();
+  const injectedForBubble = new WeakSet();
 
   function btnText(b) {
-    return (
-      b?.innerText ||
-      b?.textContent ||
-      b?.getAttribute?.("aria-label") ||
-      b?.getAttribute?.("title") ||
-      ""
-    ).trim();
+    return (b?.innerText || b?.textContent || b?.getAttribute?.("aria-label") || b?.getAttribute?.("title") || "").trim();
   }
-
-  function findButtons(root) {
-    return Array.from(root.querySelectorAll('button, [role="button"]'));
-  }
-
-  function isApprove(b) {
-    const t = btnText(b);
-    return APPROVE_RX.test(t) && !REJECT_RX.test(t);
-  }
-  function isReject(b) {
-    const t = btnText(b);
-    return REJECT_RX.test(t) && !APPROVE_RX.test(t);
-  }
+  function isApprove(b) { const t = btnText(b); return APPROVE_RX.test(t) && !REJECT_RX.test(t); }
+  function isReject(b)  { const t = btnText(b); return REJECT_RX.test(t)  && !APPROVE_RX.test(t); }
+  function findButtons(root) { return Array.from(root.querySelectorAll('button, [role="button"]')); }
 
   function findPlanPairs() {
-    const buttons = findButtons(document);
-    const approveBtns = buttons.filter(isApprove);
+    const approveBtns = findButtons(document).filter(isApprove);
     const pairs = [];
     for (const ap of approveBtns) {
-      if (injectedForApprove.has(ap)) continue;
-      if (!ap.isConnected) continue;
-      // sobe até 10 níveis procurando um botão Negar irmão/parent
-      let node = ap.parentElement;
-      let depth = 0;
-      let rejectBtn = null;
-      let card = null;
+      if (injectedForApprove.has(ap) || !ap.isConnected) continue;
+      let node = ap.parentElement, depth = 0, rejectBtn = null, card = null;
       while (node && depth < 10) {
-        const candidates = findButtons(node);
-        rejectBtn = candidates.find((b) => b !== ap && isReject(b));
+        const cs = findButtons(node);
+        rejectBtn = cs.find((b) => b !== ap && isReject(b));
         if (rejectBtn) { card = node; break; }
-        node = node.parentElement;
-        depth += 1;
+        node = node.parentElement; depth += 1;
       }
       if (rejectBtn && card) pairs.push({ approveBtn: ap, rejectBtn, card });
     }
     return pairs;
   }
 
-  function extractPlanText(card) {
-    let raw = card.innerText || card.textContent || "";
-    // remove labels dos próprios botões para não poluir o plano
-    raw = raw
+  // Heurística "isto parece um plano": >=2 marcadores fortes OU >=4 headings "## N."
+  function looksLikePlan(text) {
+    const t = String(text || "");
+    if (t.length < 200) return false;
+    const sig = PLAN_SIGNATURES.reduce((acc, rx) => acc + (rx.test(t) ? 1 : 0), 0);
+    if (sig >= 2) return true;
+    const headings = (t.match(/(^|\n)\s*##\s*\d+\.\s+/g) || []).length;
+    return headings >= 4;
+  }
+
+  function isChatBubbleCandidate(el) {
+    if (!el || el.nodeType !== 1) return false;
+    const tag = (el.tagName || "").toUpperCase();
+    if (["SCRIPT","STYLE","NOSCRIPT","TEXTAREA","INPUT","BUTTON","SVG","IMG","IFRAME","CANVAS"].includes(tag)) return false;
+    const r = el.getBoundingClientRect?.();
+    if (!r || r.width < 200 || r.height < 80) return false;
+    return true;
+  }
+
+  function findPlanBubbles() {
+    const out = [];
+    // Procura nós que contenham as assinaturas, sobe pra achar a bolha
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(n) {
+        const v = n.nodeValue || "";
+        if (v.length < 30) return NodeFilter.FILTER_REJECT;
+        return PLAN_SIGNATURES.some((rx) => rx.test(v)) || /##\s*\d+\.\s+/.test(v)
+          ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      },
+    });
+    const seen = new Set();
+    let tn;
+    while ((tn = walker.nextNode())) {
+      let node = tn.parentElement, depth = 0, best = null;
+      while (node && depth < 14) {
+        if (isChatBubbleCandidate(node)) {
+          const txt = node.innerText || node.textContent || "";
+          if (looksLikePlan(txt)) best = node;
+        }
+        node = node.parentElement; depth += 1;
+      }
+      if (best && !seen.has(best) && !injectedForBubble.has(best)) {
+        seen.add(best);
+        out.push(best);
+      }
+    }
+    return out;
+  }
+
+  function cleanPlanText(raw) {
+    return String(raw || "")
+      .replace(/\r/g, "")
       .replace(/^\s*(Approve|Aprovar|Implement|Implementar|Apply|Aplicar|Accept|Aceitar)(\s+plan|\s+plano)?\s*$/gim, "")
       .replace(/^\s*(Reject|Negar|Deny|Decline|Cancel|Cancelar|Dismiss|Discard|Descartar)\s*$/gim, "")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
-    return raw;
   }
 
   function showToast(message, kind = "ok") {
@@ -95,13 +129,9 @@
     catch {
       try {
         const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.cssText = "position:fixed;opacity:0;left:-9999px;";
-        document.body.appendChild(ta);
-        ta.select();
-        const ok = document.execCommand("copy");
-        ta.remove();
-        return ok;
+        ta.value = text; ta.style.cssText = "position:fixed;opacity:0;left:-9999px;";
+        document.body.appendChild(ta); ta.select();
+        const ok = document.execCommand("copy"); ta.remove(); return ok;
       } catch { return false; }
     }
   }
@@ -113,40 +143,34 @@
         payload: { text: planText, ts: Date.now(), origin: location.href },
       });
     } catch {}
-    try {
-      chrome.storage?.local?.set({ acto_last_plan: { text: planText, ts: Date.now() } });
-    } catch {}
+    try { chrome.storage?.local?.set({ acto_last_plan: { text: planText, ts: Date.now() } }); } catch {}
   }
 
-  async function handleLoad(pair) {
-    const { card, rejectBtn } = pair;
-    const planText = extractPlanText(card);
-    if (!planText || planText.length < 20) {
-      showToast("Plano não detectado (texto muito curto).", "err");
-      return;
-    }
+  async function handleCopy({ card, rejectBtn }) {
+    const planText = cleanPlanText(card.innerText || card.textContent || "");
+    if (!planText || planText.length < 40) { showToast("Plano não detectado (texto muito curto).", "err"); return; }
     const copied = await copyToClipboard(planText);
     notifyPanel(planText);
-    try { rejectBtn.click(); } catch {}
+    if (rejectBtn) { try { rejectBtn.click(); } catch {} }
     showToast(
       copied
-        ? "Plano copiado + negado (0 créditos). Cole na ACTO (Ctrl+V) e envie."
+        ? (rejectBtn ? "Plano copiado + negado (0 créditos). Cole na ACTO (Ctrl+V)." : "Plano copiado. Cole na ACTO (Ctrl+V).")
         : "Plano enviado ao painel ACTO. Abra a extensão.",
       "ok",
     );
   }
 
-  function buildLoadButton(pair) {
+  function buildButton(label = "📋 COPIAR PLANO") {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.setAttribute(INJECTED_ATTR, "1");
-    btn.textContent = "📋 Carregar na ACTO";
-    btn.title = "Captura o plano, nega o nativo (0 créditos) e envia ao painel ACTO";
+    btn.textContent = label;
+    btn.title = "Captura o plano e envia ao painel ACTO (0 créditos)";
     btn.style.cssText = `
       display:inline-flex;align-items:center;gap:6px;
-      padding:8px 14px;margin:0 8px 0 0;
+      padding:8px 14px;margin:6px 8px 6px 0;
       border-radius:10px;cursor:pointer;
-      font:700 12px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.02em;
+      font:700 12px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.04em;
       color:#0a0f1e;background:linear-gradient(135deg,#7dd3fc,#a78bfa);
       border:1px solid rgba(255,255,255,.25);
       box-shadow:0 6px 18px rgba(124,58,237,.35);
@@ -161,45 +185,53 @@
       btn.style.transform = "";
       btn.style.boxShadow = "0 6px 18px rgba(124,58,237,.35)";
     });
-    btn.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      handleLoad(pair);
-    });
     return btn;
   }
 
-  function injectAll() {
-    const pairs = findPlanPairs();
-    for (const pair of pairs) {
+  function injectModeA() {
+    for (const pair of findPlanPairs()) {
       const parent = pair.approveBtn.parentElement;
       if (!parent) continue;
-      // se já existe um botão nosso ao lado, pula
-      const exists = parent.querySelector(`[${INJECTED_ATTR}="1"]`);
-      if (exists) { injectedForApprove.add(pair.approveBtn); continue; }
-      const loadBtn = buildLoadButton(pair);
-      try { parent.insertBefore(loadBtn, pair.approveBtn); }
-      catch { parent.appendChild(loadBtn); }
+      if (parent.querySelector(`[${INJECTED_ATTR}="1"]`)) { injectedForApprove.add(pair.approveBtn); continue; }
+      const btn = buildButton("📋 COPIAR PLANO");
+      btn.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); handleCopy(pair); });
+      try { parent.insertBefore(btn, pair.approveBtn); } catch { parent.appendChild(btn); }
       injectedForApprove.add(pair.approveBtn);
     }
+  }
+
+  function injectModeB() {
+    for (const bubble of findPlanBubbles()) {
+      if (bubble.querySelector(`[${INJECTED_ATTR}="1"]`)) { injectedForBubble.add(bubble); continue; }
+      const btn = buildButton("📋 COPIAR PLANO");
+      btn.style.margin = "10px 0 4px";
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        handleCopy({ card: bubble, rejectBtn: null });
+      });
+      // tenta fixar como primeiro filho visível pra ficar no topo da bolha
+      try { bubble.insertBefore(btn, bubble.firstChild); }
+      catch { bubble.appendChild(btn); }
+      bubble.setAttribute(BUBBLE_FLAG_ATTR, "1");
+      injectedForBubble.add(bubble);
+    }
+  }
+
+  function injectAll() {
+    try { injectModeA(); } catch (e) { console.warn("[ACTO plan-capture A]", e); }
+    try { injectModeB(); } catch (e) { console.warn("[ACTO plan-capture B]", e); }
   }
 
   let scanTimer = 0;
   function scheduleScan() {
     if (scanTimer) return;
-    scanTimer = window.setTimeout(() => {
-      scanTimer = 0;
-      try { injectAll(); } catch (e) { console.warn("[ACTO plan-capture]", e); }
-    }, 200);
+    scanTimer = window.setTimeout(() => { scanTimer = 0; injectAll(); }, 220);
   }
 
   const observer = new MutationObserver(scheduleScan);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
 
-  // varreduras iniciais
-  [150, 500, 1200, 2400, 4800, 8000].forEach((t) => setTimeout(injectAll, t));
-
-  // expõe trigger manual p/ debug: window.__ACTO_RESCAN__()
+  [150, 500, 1200, 2400, 4800, 8000, 14000].forEach((t) => setTimeout(injectAll, t));
   window.__ACTO_RESCAN__ = injectAll;
-  console.info("[ACTO] plan-capture v9 ativo");
+  console.info("[ACTO] plan-capture v10 ativo (modo A: approve/reject, modo B: bolha de plano)");
 })();
