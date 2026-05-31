@@ -49,14 +49,33 @@
     return pairs;
   }
 
-  // Heurística "isto parece um plano": >=2 marcadores fortes OU >=4 headings "## N."
+  // Heurística RIGOROSA: precisa ter '## 1.' E ('## 11.' OU >=6 headings) OU 2+ assinaturas fortes
   function looksLikePlan(text) {
     const t = String(text || "");
-    if (t.length < 200) return false;
-    const sig = PLAN_SIGNATURES.reduce((acc, rx) => acc + (rx.test(t) ? 1 : 0), 0);
-    if (sig >= 2) return true;
+    if (t.length < 400) return false;
     const headings = (t.match(/(^|\n)\s*##\s*\d+\.\s+/g) || []).length;
-    return headings >= 4;
+    const hasStart = /(^|\n)\s*##\s*1\.\s+/.test(t);
+    const hasEnd = /(^|\n)\s*##\s*11\.\s+/.test(t);
+    if (hasStart && hasEnd) return true;
+    if (hasStart && headings >= 6) return true;
+    const sig = PLAN_SIGNATURES.reduce((acc, rx) => acc + (rx.test(t) ? 1 : 0), 0);
+    return sig >= 2 && headings >= 4;
+  }
+
+  // Extrai apenas a região do plano: do primeiro '## 1.' até o fim do '## 11.' (ou EOF)
+  function extractPlanRegion(text) {
+    const t = String(text || "");
+    const startMatch = t.match(/(^|\n)\s*##\s*1\.\s+/);
+    if (!startMatch) return t.trim();
+    const startIdx = startMatch.index + (startMatch[1] ? startMatch[1].length : 0);
+    const rest = t.slice(startIdx);
+    // tenta cortar depois da seção 11
+    const sec11 = rest.match(/(^|\n)\s*##\s*11\.\s+[^\n]*\n([\s\S]*?)(?=\n\s*##\s+\d+\.|\n\s*(?:Approve|Aprovar|Reject|Negar)\b|$)/i);
+    if (sec11) {
+      const endIdx = sec11.index + sec11[0].length;
+      return rest.slice(0, endIdx).trim();
+    }
+    return rest.trim();
   }
 
   function isChatBubbleCandidate(el) {
