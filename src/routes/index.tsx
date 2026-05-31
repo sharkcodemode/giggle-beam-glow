@@ -11,6 +11,7 @@ import {
   Globe,
   Image as ImageIcon,
   Key,
+  Mic2,
   Music,
   Plus,
   Radio,
