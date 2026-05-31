@@ -1,0 +1,4 @@
+project_id = "bldjotvptyxnnxwvcufk"
+
+[functions.acto-tier-s]
+verify_jwt = false
