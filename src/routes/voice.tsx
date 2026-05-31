@@ -386,7 +386,8 @@ function VoicePage() {
       const filename: string = audio?.orig_name ?? "voxcpm2-output.wav";
       setResult({ url, filename });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = serializeError(err);
+      console.error("[voice] generate failed:", err);
       setError(message.toLowerCase().includes("queue") ? t.errors.queueFull : message);
     } finally {
       setLoading(false);
