@@ -89,27 +89,30 @@
 
   function findPlanBubbles() {
     const out = [];
-    // Procura nós que contenham as assinaturas, sobe pra achar a bolha
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
         const v = n.nodeValue || "";
         if (v.length < 30) return NodeFilter.FILTER_REJECT;
-        return PLAN_SIGNATURES.some((rx) => rx.test(v)) || /##\s*\d+\.\s+/.test(v)
+        return /##\s*11\.\s+/.test(v) || PLAN_SIGNATURES.some((rx) => rx.test(v))
           ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       },
     });
     const seen = new Set();
     let tn;
     while ((tn = walker.nextNode())) {
+      // Sobe procurando o MENOR container que satisfaz looksLikePlan (a bolha real, não o chat inteiro)
       let node = tn.parentElement, depth = 0, best = null;
-      while (node && depth < 14) {
+      while (node && depth < 16) {
         if (isChatBubbleCandidate(node)) {
           const txt = node.innerText || node.textContent || "";
-          if (looksLikePlan(txt)) best = node;
+          if (looksLikePlan(txt)) { best = node; break; } // primeiro match = menor container
         }
         node = node.parentElement; depth += 1;
       }
       if (best && !seen.has(best) && !injectedForBubble.has(best)) {
+        // guarda: não injeta em containers gigantes (chat inteiro)
+        const r = best.getBoundingClientRect();
+        if (r.height > window.innerHeight * 3) continue;
         seen.add(best);
         out.push(best);
       }
