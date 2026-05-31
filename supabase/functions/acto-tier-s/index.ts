@@ -534,18 +534,7 @@ async function actionLovableProxy(captured: Captured, params: Record<string, unk
   } catch {
     /* keep text */
   }
-  const nativeChatMask = attachedUrlLines.length
-    ? {
-        text: ACTO_NATIVE_MASK_TITLE,
-        mode: "basic",
-        promptText: message,
-        displayText: `${ACTO_NATIVE_MASK_TITLE}\n\n${message}`,
-        fileCount: filesArr.length,
-        fileNames: filesArr.map((f) => f.file_name),
-        ts: Date.now(),
-      }
-    : undefined;
-  return { status: res.status, body: parsed, nativeChatMask };
+  return { status: res.status, body: parsed };
 }
 
 function uuid4(): string {
@@ -625,6 +614,11 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
       attachedUrlLines.push(`[${fr.ofn}]: ${fr.dl}`);
     }
   }
+
+  const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
+  const finalMessage = attachedUrlLines.length
+    ? `${message}\n\n${attachedUrlLines.join("\n")}`
+    : message;
 
   // Protocol ELITE DEPTH 10 — TIER S: Roteamento via AI Gateway para garantir GPT-5.5
   // O endpoint /chat nativo da Lovable gerencia seus próprios modelos e muitas vezes ignora o override.
