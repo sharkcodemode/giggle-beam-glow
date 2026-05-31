@@ -1,16 +1,36 @@
 (() => {
-  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V13__) return;
-  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V13__ = true;
+  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V14__) return;
+  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V14__ = true;
 
+  const VERSION = "v14";
   const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
-  const MASK_ATTR = "data-acto-native-mask-v13";
+  const MASK_ATTR = "data-acto-native-mask-v14";
   const MASK_CONTENT_ATTR = "data-acto-native-mask-content";
-  const STORAGE_KEY = "ACTO_NATIVE_MASKS_V2";
-  const LEGACY_STORAGE_KEYS = ["ACTO_NATIVE_MASKS_V1"];
+  const MASK_PROJECT_ATTR = "data-acto-mask-project";
+
+  // V14: por-aba via sessionStorage + chave composta projectId:messageId
+  function detectProjectId() {
+    try {
+      const match = String(location.pathname || "").match(/\/projects\/([0-9a-f-]{8,})/i);
+      return match?.[1] || "global";
+    } catch { return "global"; }
+  }
+  let PROJECT_ID = detectProjectId();
+  const SESSION_KEY = () => `ACTO_NATIVE_MASKS_V14::${PROJECT_ID}`;
   const CHROME_NATIVE_MASK_KEY = "acto_native_chat_mask";
   const NATIVE_MASK_MESSAGE_TYPE = "ACTO_NATIVE_CHAT_MASK";
+
+  const LEGACY_LOCAL_KEYS = [
+    "ACTO_NATIVE_MASKS_V1",
+    "ACTO_NATIVE_MASKS_V2",
+  ];
+  // Limpa storage global vazado de versões antigas (causa do bug entre abas).
+  for (const key of LEGACY_LOCAL_KEYS) {
+    try { localStorage.removeItem(key); } catch {}
+  }
+
   const ATTACHMENT_MARKER = "[Contexto visual anexado]";
   const STORAGE_MARKER = "storage.googleapis.com/gpt-engineer-file-uploads";
   const MAX_SCAN_TEXT = 20000;
@@ -85,17 +105,6 @@
     return normalizeSpaces(line).replace(/^\s*\d+[.)]\s*/g, "").replace(/^[-–—•]\s*/g, "").trim();
   }
 
-  function extractFileNames(text) {
-    const names = [];
-    const re = /\[([^\]\n]{1,260})\]:\s*https?:\/\/\S+/gi;
-    let match;
-    while ((match = re.exec(String(text || "")))) {
-      const name = normalizeSpaces(match[1]);
-      if (name && !names.includes(name)) names.push(name);
-    }
-    return names.slice(0, 10);
-  }
-
   function removeAttachmentBlocks(text) {
     let value = String(text || "");
     const markerIndexes = [value.indexOf(ATTACHMENT_MARKER), value.indexOf(STORAGE_MARKER)].filter((index) => index >= 0);
@@ -144,34 +153,43 @@
       fileCount: Number(raw.fileCount || fileNames.length || 0) || 0,
       fileNames,
       ts: Number(raw.ts || Date.now()),
+      projectId: normalizeSpaces(raw.projectId || PROJECT_ID) || PROJECT_ID,
+      messageId: normalizeSpaces(raw.messageId || ""),
     };
   }
 
   function persistLatestMask(mask) {
-    latestMask = normalizeNativeMaskPayload(mask);
+    const normalized = normalizeNativeMaskPayload(mask);
+    // V14: descarta máscaras de outro projeto (isolamento entre abas).
+    if (normalized.projectId && normalized.projectId !== "global" && normalized.projectId !== PROJECT_ID) {
+      return latestMask;
+    }
+    latestMask = normalized;
     try { window.__ACTO_LAST_NATIVE_CHAT_MASK__ = latestMask; } catch {}
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ latest: latestMask, updatedAt: Date.now() }));
+      sessionStorage.setItem(SESSION_KEY(), JSON.stringify({ latest: latestMask, updatedAt: Date.now() }));
     } catch {}
     scheduleScans("mask-published");
     return latestMask;
   }
 
-  function loadLocalLatestMask() {
+  function loadSessionLatestMask() {
     try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      const parsed = JSON.parse(sessionStorage.getItem(SESSION_KEY()) || "null");
       if (parsed?.latest) latestMask = normalizeNativeMaskPayload(parsed.latest);
     } catch {}
-    for (const key of LEGACY_STORAGE_KEYS) {
-      try { localStorage.removeItem(key); } catch {}
-    }
   }
 
   function loadChromeNativeMask() {
     try {
       if (!chrome?.storage?.local?.get) return;
       chrome.storage.local.get([CHROME_NATIVE_MASK_KEY], (items) => {
-        if (items?.[CHROME_NATIVE_MASK_KEY]) persistLatestMask(items[CHROME_NATIVE_MASK_KEY]);
+        const payload = items?.[CHROME_NATIVE_MASK_KEY];
+        if (!payload) return;
+        // V14: só aceita se for do mesmo projeto OU sem projectId definido (legado)
+        const pid = String(payload?.projectId || "");
+        if (pid && pid !== PROJECT_ID) return;
+        persistLatestMask(payload);
       });
     } catch {}
   }
@@ -283,12 +301,17 @@
 
   function applyMask(root) {
     if (!root) return false;
+    const ownerProject = root.getAttribute(MASK_PROJECT_ATTR);
+    // V14: nunca re-escreve uma máscara cravada por outro projeto.
+    if (ownerProject && ownerProject !== PROJECT_ID) return false;
+
     const originalText = safeText(root);
     if (!isMaskTriggerText(originalText)) return false;
     const maskText = buildMaskText(originalText);
     const existing = root.querySelector?.(`[${MASK_CONTENT_ATTR}="1"]`);
     if (existing) {
       if (existing.textContent !== maskText) existing.textContent = maskText;
+      root.setAttribute(MASK_PROJECT_ATTR, PROJECT_ID);
       return true;
     }
 
@@ -304,8 +327,9 @@
 
     root.replaceChildren(mask);
     root.setAttribute(MASK_ATTR, "1");
-    root.dataset.actoNativeMask = "v13";
-    root.dataset.actoMaskHash = simpleHash(maskText);
+    root.setAttribute(MASK_PROJECT_ATTR, PROJECT_ID);
+    root.dataset.actoNativeMask = VERSION;
+    root.dataset.actoMaskHash = simpleHash(`${PROJECT_ID}:${maskText}`);
     root.style.whiteSpace = "pre-wrap";
     root.style.minHeight = root.style.minHeight || "1.45em";
     return true;
@@ -323,6 +347,16 @@
   }
 
   function runPatch() {
+    // V14: re-checa projectId (pode mudar via SPA nav).
+    const currentProject = detectProjectId();
+    if (currentProject !== PROJECT_ID) {
+      PROJECT_ID = currentProject;
+      latestMask = null;
+      loadSessionLatestMask();
+    }
+    // V14: só atua quando a aba está visível, evita reescrever bolhas em abas em background.
+    if (document.visibilityState === "hidden") return;
+
     replaceLovableNativeChatTitle();
     const roots = [];
     for (const textNode of collectTriggerTextNodes()) {
@@ -333,18 +367,25 @@
     for (const root of roots) {
       if (applyMask(root)) applied += 1;
     }
-    if (applied) console.info("[ACTO MASK v13] applied", { count: applied, hasStoredPrompt: Boolean(latestMask?.promptText) });
+    if (applied) console.info(`[ACTO MASK ${VERSION}] applied`, { count: applied, projectId: PROJECT_ID, hasStoredPrompt: Boolean(latestMask?.promptText) });
   }
 
   function scheduleScans(reason) {
     SCAN_DELAYS.forEach((delay) => setTimeout(() => { try { runPatch(); } catch {} }, delay));
-    if (reason) console.info("[ACTO MASK v13] scheduled", reason);
+    if (reason) console.info(`[ACTO MASK ${VERSION}] scheduled`, reason);
   }
 
   try {
     chrome?.runtime?.onMessage?.addListener?.((message, _sender, sendResponse) => {
       if (message?.type !== NATIVE_MASK_MESSAGE_TYPE) return false;
-      persistLatestMask(message.payload || message.nativeChatMask || {});
+      const payload = message.payload || message.nativeChatMask || {};
+      const pid = String(payload?.projectId || "");
+      // V14: ignora mensagens vindas de outra aba/projeto.
+      if (pid && pid !== PROJECT_ID) {
+        sendResponse?.({ ok: false, reason: "project-mismatch" });
+        return false;
+      }
+      persistLatestMask(payload);
       sendResponse?.({ ok: true });
       return false;
     });
@@ -354,7 +395,11 @@
     chrome?.storage?.onChanged?.addListener?.((changes, areaName) => {
       if (areaName !== "local") return;
       const changed = changes?.[CHROME_NATIVE_MASK_KEY];
-      if (changed?.newValue) persistLatestMask(changed.newValue);
+      const value = changed?.newValue;
+      if (!value) return;
+      const pid = String(value?.projectId || "");
+      if (pid && pid !== PROJECT_ID) return;
+      persistLatestMask(value);
     });
   } catch {}
 
@@ -368,7 +413,14 @@
     return true;
   }
 
-  loadLocalLatestMask();
+  // V14: ao voltar para a aba, força re-scan (caso DOM tenha sido alterado em background).
+  try {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") scheduleScans("visibility");
+    });
+  } catch {}
+
+  loadSessionLatestMask();
   loadChromeNativeMask();
   runPatch();
   scheduleScans("init");
