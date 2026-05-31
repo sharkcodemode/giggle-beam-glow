@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VoiceRouteImport } from './routes/voice'
 import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
 import { Route as AudiosRouteImport } from './routes/audios'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VoiceRoute = VoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RadarLovableRoute = RadarLovableRouteImport.update({
   id: '/radar-lovable',
   path: '/radar-lovable',
@@ -33,34 +39,45 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
   '/radar-lovable': typeof RadarLovableRoute
+  '/voice': typeof VoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
   '/radar-lovable': typeof RadarLovableRoute
+  '/voice': typeof VoiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
   '/radar-lovable': typeof RadarLovableRoute
+  '/voice': typeof VoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/audios' | '/radar-lovable'
+  fullPaths: '/' | '/audios' | '/radar-lovable' | '/voice'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/audios' | '/radar-lovable'
-  id: '__root__' | '/' | '/audios' | '/radar-lovable'
+  to: '/' | '/audios' | '/radar-lovable' | '/voice'
+  id: '__root__' | '/' | '/audios' | '/radar-lovable' | '/voice'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AudiosRoute: typeof AudiosRoute
   RadarLovableRoute: typeof RadarLovableRoute
+  VoiceRoute: typeof VoiceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/voice': {
+      id: '/voice'
+      path: '/voice'
+      fullPath: '/voice'
+      preLoaderRoute: typeof VoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/radar-lovable': {
       id: '/radar-lovable'
       path: '/radar-lovable'
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AudiosRoute: AudiosRoute,
   RadarLovableRoute: RadarLovableRoute,
+  VoiceRoute: VoiceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
