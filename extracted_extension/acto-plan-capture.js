@@ -49,14 +49,33 @@
     return pairs;
   }
 
-  // Heurística "isto parece um plano": >=2 marcadores fortes OU >=4 headings "## N."
+  // Heurística RIGOROSA: precisa ter '## 1.' E ('## 11.' OU >=6 headings) OU 2+ assinaturas fortes
   function looksLikePlan(text) {
     const t = String(text || "");
-    if (t.length < 200) return false;
-    const sig = PLAN_SIGNATURES.reduce((acc, rx) => acc + (rx.test(t) ? 1 : 0), 0);
-    if (sig >= 2) return true;
+    if (t.length < 400) return false;
     const headings = (t.match(/(^|\n)\s*##\s*\d+\.\s+/g) || []).length;
-    return headings >= 4;
+    const hasStart = /(^|\n)\s*##\s*1\.\s+/.test(t);
+    const hasEnd = /(^|\n)\s*##\s*11\.\s+/.test(t);
+    if (hasStart && hasEnd) return true;
+    if (hasStart && headings >= 6) return true;
+    const sig = PLAN_SIGNATURES.reduce((acc, rx) => acc + (rx.test(t) ? 1 : 0), 0);
+    return sig >= 2 && headings >= 4;
+  }
+
+  // Extrai apenas a região do plano: do primeiro '## 1.' até o fim do '## 11.' (ou EOF)
+  function extractPlanRegion(text) {
+    const t = String(text || "");
+    const startMatch = t.match(/(^|\n)\s*##\s*1\.\s+/);
+    if (!startMatch) return t.trim();
+    const startIdx = startMatch.index + (startMatch[1] ? startMatch[1].length : 0);
+    const rest = t.slice(startIdx);
+    // tenta cortar depois da seção 11
+    const sec11 = rest.match(/(^|\n)\s*##\s*11\.\s+[^\n]*\n([\s\S]*?)(?=\n\s*##\s+\d+\.|\n\s*(?:Approve|Aprovar|Reject|Negar)\b|$)/i);
+    if (sec11) {
+      const endIdx = sec11.index + sec11[0].length;
+      return rest.slice(0, endIdx).trim();
+    }
+    return rest.trim();
   }
 
   function isChatBubbleCandidate(el) {
@@ -70,27 +89,30 @@
 
   function findPlanBubbles() {
     const out = [];
-    // Procura nós que contenham as assinaturas, sobe pra achar a bolha
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
         const v = n.nodeValue || "";
         if (v.length < 30) return NodeFilter.FILTER_REJECT;
-        return PLAN_SIGNATURES.some((rx) => rx.test(v)) || /##\s*\d+\.\s+/.test(v)
+        return /##\s*11\.\s+/.test(v) || PLAN_SIGNATURES.some((rx) => rx.test(v))
           ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       },
     });
     const seen = new Set();
     let tn;
     while ((tn = walker.nextNode())) {
+      // Sobe procurando o MENOR container que satisfaz looksLikePlan (a bolha real, não o chat inteiro)
       let node = tn.parentElement, depth = 0, best = null;
-      while (node && depth < 14) {
+      while (node && depth < 16) {
         if (isChatBubbleCandidate(node)) {
           const txt = node.innerText || node.textContent || "";
-          if (looksLikePlan(txt)) best = node;
+          if (looksLikePlan(txt)) { best = node; break; } // primeiro match = menor container
         }
         node = node.parentElement; depth += 1;
       }
       if (best && !seen.has(best) && !injectedForBubble.has(best)) {
+        // guarda: não injeta em containers gigantes (chat inteiro)
+        const r = best.getBoundingClientRect();
+        if (r.height > window.innerHeight * 3) continue;
         seen.add(best);
         out.push(best);
       }
@@ -99,8 +121,8 @@
   }
 
   function cleanPlanText(raw) {
-    return String(raw || "")
-      .replace(/\r/g, "")
+    const region = extractPlanRegion(String(raw || "").replace(/\r/g, ""));
+    return region
       .replace(/^\s*(Approve|Aprovar|Implement|Implementar|Apply|Aplicar|Accept|Aceitar)(\s+plan|\s+plano)?\s*$/gim, "")
       .replace(/^\s*(Reject|Negar|Deny|Decline|Cancel|Cancelar|Dismiss|Discard|Descartar)\s*$/gim, "")
       .replace(/\n{3,}/g, "\n\n")
