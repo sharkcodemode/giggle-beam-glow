@@ -14,13 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      pulse_messages: {
+        Row: {
+          body: string
+          client_id: string
+          color_hash: number
+          created_at: string
+          handle: string
+          id: string
+        }
+        Insert: {
+          body: string
+          client_id: string
+          color_hash: number
+          created_at?: string
+          handle: string
+          id?: string
+        }
+        Update: {
+          body?: string
+          client_id?: string
+          color_hash?: number
+          created_at?: string
+          handle?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      pulse_posts: {
+        Row: {
+          body: string
+          client_id: string
+          color_hash: number
+          created_at: string
+          handle: string
+          id: string
+          reactions: Json
+        }
+        Insert: {
+          body: string
+          client_id: string
+          color_hash: number
+          created_at?: string
+          handle: string
+          id?: string
+          reactions?: Json
+        }
+        Update: {
+          body?: string
+          client_id?: string
+          color_hash?: number
+          created_at?: string
+          handle?: string
+          id?: string
+          reactions?: Json
+        }
+        Relationships: []
+      }
+      pulse_rate_limits: {
+        Row: {
+          action: string
+          client_id: string
+          last_at: string
+        }
+        Insert: {
+          action: string
+          client_id: string
+          last_at?: string
+        }
+        Update: {
+          action?: string
+          client_id?: string
+          last_at?: string
+        }
+        Relationships: []
+      }
+      pulse_reactions: {
+        Row: {
+          client_id: string
+          created_at: string
+          emoji: string
+          post_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          emoji: string
+          post_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          emoji?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pulse_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "pulse_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      pulse_check_rate_limit: {
+        Args: {
+          p_action: string
+          p_client_id: string
+          p_interval_seconds: number
+        }
+        Returns: boolean
+      }
+      pulse_toggle_reaction: {
+        Args: { p_client_id: string; p_emoji: string; p_post_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

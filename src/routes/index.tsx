@@ -55,7 +55,7 @@ interface CalcItem {
   discount: number;
 }
 
-type AssetKind = "doc" | "exe" | "tool" | "keys" | "audio" | "visual" | "food" | "vault" | "radar" | "voice";
+type AssetKind = "doc" | "exe" | "tool" | "keys" | "audio" | "visual" | "food" | "vault" | "radar" | "voice" | "pulse";
 
 interface Asset {
   no: string;
@@ -80,10 +80,11 @@ const ASSETS: ReadonlyArray<Asset> = [
   { no: "08", kind: "tool",   title: "ACTO Elite Ext",            tag: "Chrome v2.8", body: "Extensão v2.8.0 — Plan Capture: detecta plano nativo, injeta botão '📋 Carregar na ACTO', nega o plano (0 créditos) e cola o texto no painel para reenvio gratuito.", href: "/ACTO-tier-s-elite-v8.zip", cta: "Download v8" },
   { no: "09", kind: "radar",  title: "Radar Lovable",             tag: "Inteligência", body: "Painel de monitoramento em tempo real de novidades, bugs e tendências.", to: "/radar-lovable", cta: "Acessar Radar" },
   { no: "10", kind: "voice",  title: "VoxCPM2 Forge",             tag: "TTS Neural",  body: "Síntese de voz em 3 modos — design zero-shot, clone controlado e replicação ultra-fiel.", to: "/voice", cta: "Abrir Forge" },
+  { no: "11", kind: "pulse",  title: "Pulse — Batimento",         tag: "Realtime",    body: "Chat global ao vivo + mural público de manifestos. Identidade anônima, texto e emoji. Sem login, sem rastro.", to: "/pulse", cta: "Entrar no Stream" },
 ] as const;
 
 const KIND_ICON: Record<AssetKind, typeof FileText> = {
-  doc: FileText, exe: Server, tool: Cpu, keys: Key, audio: Music, visual: ImageIcon, food: Utensils, vault: Music, radar: Radio, voice: Mic2,
+  doc: FileText, exe: Server, tool: Cpu, keys: Key, audio: Music, visual: ImageIcon, food: Utensils, vault: Music, radar: Radio, voice: Mic2, pulse: Zap,
 };
 
 function Index() {
