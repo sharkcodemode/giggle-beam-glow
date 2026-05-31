@@ -285,7 +285,7 @@
 
   function hasPromptBeforeMarker(el) {
     const text = el.textContent || "";
-    if (!hasAttachmentPayload(text)) return false;
+    if (!hasMaskablePayload(text)) return false;
     return !!cleanPrompt(text);
   }
 
@@ -295,7 +295,7 @@
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         const value = node.nodeValue || "";
-        if (value.includes(ATTACHMENT_MARKER) || value.includes(STORAGE_MARKER)) return NodeFilter.FILTER_ACCEPT;
+        if (hasMaskablePayload(value)) return NodeFilter.FILTER_ACCEPT;
         return NodeFilter.FILTER_REJECT;
       },
     });
@@ -311,7 +311,7 @@
       steps += 1;
       if (isIgnoredElement(node) || isForbiddenRoot(node)) break;
       const text = node.textContent || "";
-      if (!hasAttachmentPayload(text)) break;
+      if (!hasMaskablePayload(text)) break;
       if (node.getAttribute?.(MASK_ATTR) === "1") return null;
       if (hasReasonableRect(node) && hasPromptBeforeMarker(node)) {
         candidates.push(node);
@@ -320,8 +320,6 @@
     }
     if (!candidates.length) return null;
 
-    // Prefer the actual visual bubble: enough context to contain prompt + link,
-    // but not the whole message group/card. If scores tie, pick the smaller/deeper element.
     candidates.sort((a, b) => {
       const scoreDiff = bubbleScore(b) - bubbleScore(a);
       if (scoreDiff) return scoreDiff;
@@ -337,7 +335,7 @@
     const promptFromDom = cleanPrompt(originalText);
     const promptFromRunner = runnerNativeMask?.promptText || "";
     const prompt = promptFromDom || promptFromRunner;
-    if (!prompt && !hasAttachmentPayload(originalText)) return false;
+    if (!prompt && !hasMaskablePayload(originalText)) return false;
     const maskText = prompt ? `${ACTO_HEADER}\n\n${prompt}` : ACTO_HEADER;
 
     const mask = document.createElement("div");
@@ -369,7 +367,7 @@
     let applied = 0;
     for (const root of roots) {
       const originalText = root.textContent || "";
-      if (!hasAttachmentPayload(originalText)) continue;
+      if (!hasMaskablePayload(originalText)) continue;
       if (applyMask(root, originalText, runnerNativeMask ? (runnerNativeMask.mode || "runner") : "runtime")) applied += 1;
     }
     if (applied) console.info("[ACTO MASK] applied", { count: applied });
