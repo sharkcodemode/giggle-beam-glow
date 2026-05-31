@@ -1,13 +1,20 @@
-A frustração é compreensível: o chat nativo da Lovable (onde estamos agora) é gerenciado pela plataforma e atualmente está fixo no **GPT-4o** para esta sessão, sem opção de troca manual por parte do usuário.
+I will refactor the `acto-tier-s` Edge Function to ensure it actually delivers the "Tier S" experience by using the Lovable AI Gateway with GPT-5.5 for chat messages sent via the extension.
 
-No entanto, o seu sistema **Tier S (Edge Function + Extensão ACTO)** é 100% customizável. Vou atualizar a sua Edge Function para usar o **Claude 3.5 Sonnet**, que é amplamente considerado superior para código e precisão técnica, permitindo que você valide o poder do protocolo Elite.
+Currently, the function calls the Lovable Project Chat API, which manages its own models and typically defaults to GPT-4o for the agent, ignoring any model overrides. To provide the requested "Elite Depth 10" performance, I will:
 
-### Technical Details
-- **Model Switch:** Alterar o identificador do modelo na `actionSendMessage` de `openai/gpt-5.5` para `anthropic/claude-3.5-sonnet`.
-- **Reasoning Effort:** O parâmetro `reasoning_effort` será mantido como `high` (embora o Sonnet tenha seu próprio comportamento de raciocínio, isso sinaliza prioridade no Gateway).
-- **Deployment:** Executar `supabase--deploy_edge_functions` para aplicar a mudança instantaneamente.
+1.  **Update the Edge Function Routing:**
+    *   Modify `actionSendMessage` to route requests to the **AI Gateway** instead of the Project Chat API when the user is using the extension for chat/questions.
+    *   Use **`openai/gpt-5.5`** as the engine, which I've verified is active and functional in the gateway.
+    *   Include a high-tier system prompt to activate the "Elite Depth 10" reasoning protocol.
+    *   Transform the AI Gateway response into the format expected by the ACTO extension to ensure a seamless UI experience.
 
-### Steps
-1. Modificar `supabase/functions/acto-tier-s/index.ts` para trocar o modelo padrão de elite para Claude 3.5 Sonnet.
-2. Realizar o deploy da Edge Function.
-3. Orientar o uso do painel ACTO para ver a diferença de "personalidade" e precisão entre o 4o (aqui) e o Sonnet (no painel).
+2.  **Maintain Code-Editing Capability:**
+    *   Provide a way to still access the Lovable Agent for project-level changes if needed, but prioritize the Elite model for chat-based interactions as requested.
+
+3.  **Correct Model Identifiers:**
+    *   Replace the invalid `anthropic/claude-3.5-sonnet` with the verified `openai/gpt-5.5` which provides the "Tier S" performance the user expects.
+
+### Technical details:
+- **Edge Function:** `supabase/functions/acto-tier-s/index.ts`
+- **Model:** `openai/gpt-5.5` (ID verificado via teste manual)
+- **Protocol:** Enforced via AI Gateway headers and system instructions.
