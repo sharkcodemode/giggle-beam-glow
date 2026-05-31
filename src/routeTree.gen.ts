@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoiceRouteImport } from './routes/voice'
 import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
+import { Route as PulseRouteImport } from './routes/pulse'
 import { Route as AudiosRouteImport } from './routes/audios'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const VoiceRoute = VoiceRouteImport.update({
 const RadarLovableRoute = RadarLovableRouteImport.update({
   id: '/radar-lovable',
   path: '/radar-lovable',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PulseRoute = PulseRouteImport.update({
+  id: '/pulse',
+  path: '/pulse',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AudiosRoute = AudiosRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
   '/voice': typeof VoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
   '/voice': typeof VoiceRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
   '/voice': typeof VoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/audios' | '/radar-lovable' | '/voice'
+  fullPaths: '/' | '/audios' | '/pulse' | '/radar-lovable' | '/voice'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/audios' | '/radar-lovable' | '/voice'
-  id: '__root__' | '/' | '/audios' | '/radar-lovable' | '/voice'
+  to: '/' | '/audios' | '/pulse' | '/radar-lovable' | '/voice'
+  id: '__root__' | '/' | '/audios' | '/pulse' | '/radar-lovable' | '/voice'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AudiosRoute: typeof AudiosRoute
+  PulseRoute: typeof PulseRoute
   RadarLovableRoute: typeof RadarLovableRoute
   VoiceRoute: typeof VoiceRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/radar-lovable'
       fullPath: '/radar-lovable'
       preLoaderRoute: typeof RadarLovableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pulse': {
+      id: '/pulse'
+      path: '/pulse'
+      fullPath: '/pulse'
+      preLoaderRoute: typeof PulseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audios': {
@@ -105,9 +122,20 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AudiosRoute: AudiosRoute,
+  PulseRoute: PulseRoute,
   RadarLovableRoute: RadarLovableRoute,
   VoiceRoute: VoiceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
