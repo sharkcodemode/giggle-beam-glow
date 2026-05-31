@@ -3,7 +3,7 @@ const lovApiKey = process.env.LOVABLE_API_KEY;
 
 async function testGateway() {
   const url = "https://ai.gateway.lovable.dev/v1/chat/completions";
-  const model = "anthropic/claude-3.5-sonnet";
+  const model = "openai/gpt-5.5-pro";
   
   const headers = {
     "Content-Type": "application/json",
