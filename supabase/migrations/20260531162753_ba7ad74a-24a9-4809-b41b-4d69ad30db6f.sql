@@ -1,0 +1,2 @@
+-- The function will be deployed separately, but we register its existence if needed.
+-- Since it's an Edge Function, it's managed via file-based deployment.
