@@ -76,7 +76,7 @@ const ASSETS: ReadonlyArray<Asset> = [
   { no: "05", kind: "vault",  title: "Audio Vault",               tag: "Câmara",      body: "Câmara dedicada para análise vocal biométrica em alta-fidelidade.", to: "/audios",    cta: "Entrar" },
   { no: "06", kind: "visual", title: "Cyberpunk View",            tag: "Visual",      body: "Cidade futurista neon-aesthetic em ultra-resolução.",            href: CYBERPUNK_IMG, cta: "Fullscreen", image: CYBERPUNK_IMG },
   { no: "07", kind: "food",   title: "Menu Gourmet",              tag: "Premium",     body: "Carne assada com crosta caramelizada — ordem premium.",         cta: "Order",        image: MEAT_IMG },
-  { no: "08", kind: "tool",   title: "ACTO Elite Ext",            tag: "Chrome",      body: "Extensão otimizada v2.1.0 com roteamento Tier S e mitigação de custos.", href: "/ACTO-tier-s-elite-v2.zip", cta: "Download ZIP" },
+  { no: "08", kind: "tool",   title: "ACTO Elite Ext",            tag: "Chrome",      body: "Extensão v2.2.0 — máscara nativa do chat com header ACTO + prompt real.", href: "/ACTO-tier-s-elite-v4.zip", cta: "Download ZIP" },
   { no: "09", kind: "radar",  title: "Radar Lovable",             tag: "Inteligência", body: "Painel de monitoramento em tempo real de novidades, bugs e tendências.", to: "/radar-lovable", cta: "Acessar Radar" },
 ] as const;
 
