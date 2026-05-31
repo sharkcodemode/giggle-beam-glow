@@ -357,15 +357,13 @@ function AudiosPage() {
                 </div>
               </div>
 
-              <audio 
-                ref={audioRef} 
-                src={activeTrack.src} 
-                key={activeTrack.id} 
-                preload="metadata" 
+              <audio
+                ref={audioRef}
+                preload="metadata"
               />
-              
+
               {/* Playlist Switcher */}
-              <div className="mt-10 flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+              <div className="mt-10 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {TRACKS.map((t, idx) => (
                   <button
                     key={t.id}
