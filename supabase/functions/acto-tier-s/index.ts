@@ -534,18 +534,7 @@ async function actionLovableProxy(captured: Captured, params: Record<string, unk
   } catch {
     /* keep text */
   }
-  const nativeChatMask = attachedUrlLines.length
-    ? {
-        text: ACTO_NATIVE_MASK_TITLE,
-        mode: "basic",
-        promptText: message,
-        displayText: `${ACTO_NATIVE_MASK_TITLE}\n\n${message}`,
-        fileCount: filesArr.length,
-        fileNames: filesArr.map((f) => f.file_name),
-        ts: Date.now(),
-      }
-    : undefined;
-  return { status: res.status, body: parsed, nativeChatMask };
+  return { status: res.status, body: parsed };
 }
 
 function uuid4(): string {
