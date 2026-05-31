@@ -127,34 +127,62 @@ function AudiosPage() {
     }
   }, [ensureAudioGraph]);
 
+  // Attach listeners once (audio element is stable, never re-keyed).
   useEffect(() => {
-    setIsPlaying(false);
-    setCurrent(0);
-    setDuration(0);
     const audio = audioRef.current;
     if (!audio) return;
     const onTime  = () => setCurrent(audio.currentTime);
-    const onMeta  = () => setDuration(audio.duration);
-    const onPlay  = () => { setIsPlaying(true);  if (!rafRef.current) rafRef.current = requestAnimationFrame(draw); };
-    const onPause = () => { setIsPlaying(false); if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } };
+    const onMeta  = () => setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+    const onPlay  = () => {
+      setIsPlaying(true);
+      if (!rafRef.current) rafRef.current = requestAnimationFrame(draw);
+    };
+    const onPause = () => {
+      setIsPlaying(false);
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    };
     const onEnded = onPause;
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onMeta);
+    audio.addEventListener("durationchange", onMeta);
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("ended", onEnded);
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onMeta);
+      audio.removeEventListener("durationchange", onMeta);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("ended", onEnded);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      sourceRef.current?.disconnect();
-      analyserRef.current?.disconnect();
-      void ctxRef.current?.close();
     };
   }, [draw]);
+
+  // Tear down audio graph only on unmount.
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      try { sourceRef.current?.disconnect(); } catch { /* noop */ }
+      try { analyserRef.current?.disconnect(); } catch { /* noop */ }
+      const ac = ctxRef.current;
+      if (ac && ac.state !== "closed") void ac.close().catch(() => { /* noop */ });
+    };
+  }, []);
+
+  // Swap source on track change without remounting the <audio> element.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const wasPlaying = !audio.paused;
+    audio.pause();
+    audio.src = activeTrack.src;
+    audio.load();
+    setCurrent(0);
+    setDuration(0);
+    if (wasPlaying) {
+      void audio.play().catch(() => { /* user gesture required */ });
+    }
+  }, [activeTrack.src]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
