@@ -646,7 +646,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     is_high_priority: true,
     mode: "think",
     reasoning_effort: "high",
-    model: "openai/gpt-5.5",
+    model: "anthropic/claude-3.5-sonnet",
     stream: !!params.stream,
 
     ai_message_id: typeid("aimsg"),
@@ -722,7 +722,7 @@ async function actionSheetsAppend(params: Record<string, unknown>) {
 
 // ---------- AI Gateway Tier S ----------
 async function actionGatewayChat(params: Record<string, unknown>) {
-  const model = isStr(params.model) ? params.model : "openai/gpt-5.5";
+  const model = isStr(params.model) ? params.model : "anthropic/claude-3.5-sonnet";
   const messages = Array.isArray(params.messages) ? params.messages : [];
   const temperature = typeof params.temperature === "number" ? params.temperature : 1;
   const stream = !!params.stream;
