@@ -990,7 +990,15 @@ async function handleLegacy(
   const ctxErr = validateLicenseContext(licenseCtx);
   if (ctxErr) {
     return new Response(
-      JSON.stringify({ ok: false, error: "license_invalid", code: ctxErr.code, message: ctxErr.message }),
+      JSON.stringify({
+        ok: false,
+        error: "license_invalid",
+        code: ctxErr.code,
+        message: ctxErr.message,
+        license_code: ctxErr.code,
+        license_error: ctxErr.code,
+        license_message: ctxErr.message,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
@@ -1000,6 +1008,7 @@ async function handleLegacy(
     const lic = await checkLicense(licenseCtx);
     licenseRaw = lic.raw;
     if (!lic.valid) {
+      const rawObj = (lic.raw && typeof lic.raw === "object") ? (lic.raw as Record<string, unknown>) : {};
       return new Response(
         JSON.stringify({
           ok: false,
@@ -1007,6 +1016,9 @@ async function handleLegacy(
           code: lic.code,
           message: lic.message,
           license: lic.raw,
+          license_code: lic.code ?? (rawObj.code as string | undefined),
+          license_error: rawObj.erro as string | undefined,
+          license_message: (rawObj.mensagem as string | undefined) ?? lic.message,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
