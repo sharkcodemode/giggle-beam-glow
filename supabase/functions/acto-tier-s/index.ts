@@ -1299,6 +1299,9 @@ async function handle(req: Request): Promise<Response> {
         error: "license_invalid",
         code: ctxErr.code,
         message: ctxErr.message,
+        license_code: ctxErr.code,
+        license_error: ctxErr.code,
+        license_message: ctxErr.message,
       });
       return new Response(JSON.stringify(out), {
         status: 200,
@@ -1307,14 +1310,18 @@ async function handle(req: Request): Promise<Response> {
     }
     try {
       const lic = await checkLicense(licenseCtx);
-      
+
       if (!lic.valid) {
+        const rawObj = (lic.raw && typeof lic.raw === "object") ? (lic.raw as Record<string, unknown>) : {};
         const out = await encryptEnvelope(envelope.license_id, {
           ok: false,
           error: "license_invalid",
           code: lic.code,
           message: lic.message,
           license: lic.raw,
+          license_code: lic.code ?? (rawObj.code as string | undefined),
+          license_error: rawObj.erro as string | undefined,
+          license_message: (rawObj.mensagem as string | undefined) ?? lic.message,
         });
         return new Response(JSON.stringify(out), {
           status: 200,
