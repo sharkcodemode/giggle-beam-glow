@@ -1031,7 +1031,10 @@ async function handleLegacy(
     project_id: projectId,
     client_git_sha: clientGitSha,
     browser_session_id: browserSessionId,
-    device_id: deviceId,
+    device_id: licenseCtx.deviceId,
+    license_email: licenseCtx.email,
+    session_id: licenseCtx.sessionId,
+    extension_version: licenseCtx.extensionVersion,
   };
   try {
     const data = await actionSendMessage(
