@@ -307,6 +307,15 @@ async function callAppsScript(
     sessionId: ctx.sessionId,
   };
   if (ctx.extensionVersion) payload.extensionVersion = ctx.extensionVersion;
+  // DEBUG TEMPORÁRIO — sanitizado (não loga key/url completos)
+  console.info("[ACTO][APPS SCRIPT REQUEST]", {
+    action,
+    hasChave: Boolean(ctx.chave),
+    hasEmail: Boolean(ctx.email),
+    hasDeviceId: Boolean(ctx.deviceId),
+    hasSessionId: Boolean(ctx.sessionId),
+    hasExtensionVersion: Boolean(ctx.extensionVersion),
+  });
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -320,6 +329,15 @@ async function callAppsScript(
   } catch {
     /* keep text */
   }
+  // DEBUG TEMPORÁRIO — resposta sanitizada
+  console.info("[ACTO][APPS SCRIPT RESPONSE]", {
+    ok: raw && typeof raw === "object" ? raw.ok : undefined,
+    sucesso: raw && typeof raw === "object" ? raw.sucesso : undefined,
+    code: raw && typeof raw === "object" ? raw.code : undefined,
+    erro: raw && typeof raw === "object" ? raw.erro : undefined,
+    mensagem: raw && typeof raw === "object" ? raw.mensagem : undefined,
+    httpStatus: res.status,
+  });
   console.log(
     `[acto-v2 license] action=${action} key=${maskKey(ctx.chave)} status=${res.status} ok=${
       raw && typeof raw === "object" ? !!(raw.sucesso === true || raw.ok === true) : "?"
