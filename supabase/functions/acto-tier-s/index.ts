@@ -209,6 +209,9 @@ interface Captured {
   browser_session_id?: string;
   next_action?: string;
   device_id?: string;
+  license_email?: string;
+  session_id?: string;
+  extension_version?: string;
 }
 interface Plaintext {
   action: string;
