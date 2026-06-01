@@ -8,13 +8,23 @@
 //   5. Dispatcha action -> resposta cifrada com novo salt+iv.
 //
 // Ações expostas:
-//   - license_check
+//   - license_login        (proxy → Apps Script {action:"login"})
+//   - license_heartbeat    (proxy → Apps Script {action:"heartbeat"})
+//   - license_logout       (proxy → Apps Script {action:"logout"})
+//   - license_unlink_device(proxy → Apps Script {action:"unlink_device"})
 //   - lovable_proxy        (replay genérico com headers capturados)
 //   - send_message         (POST chat; aceita file_refs opacos)
 //   - list_projects        (atalho: GET /api/projects)
 //   - sheets_append        (POST Apps Script {action:"append", sheet, row})
 //   - upload_init          (gera signed URL Lovable; retorna upload_ticket HMAC opaco)
 //   - upload_finalize      (resolve download_url; retorna file_ref HMAC opaco)
+//
+// Regra de licença: a Edge NÃO decide validade, TTL, contadores ou sessão única.
+// Toda decisão é do Apps Script. A Edge apenas:
+//   - normaliza payload (chave/email/deviceId/sessionId/extensionVersion)
+//   - faz proxy fino das ações de licença
+//   - em cada request protegido, renova sessão com {action:"heartbeat"}
+//   - bloqueia o request quando o Apps Script responde sucesso/ok false
 
 // deno-lint-ignore-file no-explicit-any
 
