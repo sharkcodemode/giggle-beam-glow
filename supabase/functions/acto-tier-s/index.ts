@@ -234,27 +234,125 @@ function asPlaintext(x: unknown): Plaintext {
 }
 
 // ---------- license ----------
-// Contrato Apps Script: { action:"license_check", chave, deviceId }
-async function checkLicense(licenseId: string, deviceId: string): Promise<{ valid: boolean; raw: unknown }> {
+// Toda a inteligência de licença vive no Apps Script. A Edge é proxy fino.
+
+interface LicenseContext {
+  chave: string;
+  email: string;
+  deviceId: string;
+  sessionId: string;
+  extensionVersion?: string;
+}
+
+function maskKey(k: string): string {
+  if (!k) return "";
+  if (k.length <= 8) return "***";
+  return `${k.slice(0, 4)}...${k.slice(-4)}`;
+}
+
+// Normaliza nomes (snake_case e camelCase) vindos da extensão/body/captured.
+function pickStr(...vals: unknown[]): string {
+  for (const v of vals) if (isStr(v)) return v;
+  return "";
+}
+
+function extractLicenseContext(
+  src: Record<string, unknown>,
+  captured?: Captured,
+  licenseIdFallback?: string,
+): LicenseContext {
+  const c = captured ?? {};
+  return {
+    chave: pickStr(src.chave, src.license_id, src.licenseId, src.license, c.write_key, licenseIdFallback),
+    email: pickStr(src.email, src.license_email, src.licenseEmail, c.license_email),
+    deviceId: pickStr(src.deviceId, src.device_id, c.device_id),
+    sessionId: pickStr(src.sessionId, src.session_id, c.session_id),
+    extensionVersion: pickStr(
+      src.extensionVersion,
+      src.extension_version,
+      c.extension_version,
+    ) || undefined,
+  };
+}
+
+// Erros de validação de contexto da licença ANTES de chamar Apps Script.
+// Devolve null se ok, ou {code, message} para bloquear.
+function validateLicenseContext(
+  ctx: LicenseContext,
+  opts: { requireEmail?: boolean; requireSession?: boolean } = { requireEmail: true, requireSession: true },
+): { code: string; message: string } | null {
+  if (!ctx.chave) return { code: "KEY_NOT_FOUND", message: BLOCKING_LICENSE_CODES.KEY_NOT_FOUND };
+  if (!ctx.deviceId) return { code: "DEVICE_REQUIRED", message: BLOCKING_LICENSE_CODES.DEVICE_REQUIRED };
+  if (opts.requireEmail !== false && !ctx.email) {
+    return { code: "EMAIL_REQUIRED", message: BLOCKING_LICENSE_CODES.EMAIL_REQUIRED };
+  }
+  if (opts.requireSession !== false && !ctx.sessionId) {
+    return { code: "SESSION_REQUIRED", message: BLOCKING_LICENSE_CODES.SESSION_REQUIRED };
+  }
+  return null;
+}
+
+// Envia para o Apps Script a action normalizada com payload padronizado.
+async function callAppsScript(
+  action: "login" | "heartbeat" | "logout" | "unlink_device",
+  ctx: LicenseContext,
+): Promise<{ status: number; raw: any }> {
   const url = Deno.env.get("ACTO_APPS_SCRIPT_URL");
   if (!url) throw new Error("ACTO_APPS_SCRIPT_URL ausente");
-  if (!deviceId) throw new Error("device_id ausente");
+  const payload: Record<string, unknown> = {
+    action,
+    chave: ctx.chave,
+    email: ctx.email,
+    deviceId: ctx.deviceId,
+    sessionId: ctx.sessionId,
+  };
+  if (ctx.extensionVersion) payload.extensionVersion = ctx.extensionVersion;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "license_check", chave: licenseId, deviceId }),
+    body: JSON.stringify(payload),
     redirect: "follow",
   });
   const text = await res.text();
-  let raw: unknown = text;
+  let raw: any = text;
   try {
     raw = JSON.parse(text);
   } catch {
-    /* ignore */
+    /* keep text */
   }
-  // Apps Script Acto responde { sucesso: true } em caso válido.
-  const valid = !!(raw && typeof raw === "object" && ((raw as any).sucesso === true || (raw as any).valid === true));
-  return { valid, raw };
+  console.log(
+    `[acto-v2 license] action=${action} key=${maskKey(ctx.chave)} status=${res.status} ok=${
+      raw && typeof raw === "object" ? !!(raw.sucesso === true || raw.ok === true) : "?"
+    }`,
+  );
+  return { status: res.status, raw };
+}
+
+// Interpreta a resposta do Apps Script. Considera válido quando sucesso/ok true.
+function interpretLicenseResponse(raw: any): {
+  valid: boolean;
+  code?: string;
+  message?: string;
+} {
+  if (!raw || typeof raw !== "object") {
+    return { valid: false, code: "KEY_NOT_FOUND", message: "Resposta inválida do servidor de licença." };
+  }
+  const ok = raw.sucesso === true || raw.ok === true;
+  if (ok) return { valid: true };
+  const code = isStr(raw.code) ? (raw.code as string) : "";
+  const mapped = code && BLOCKING_LICENSE_CODES[code];
+  const message =
+    mapped || (isStr(raw.mensagem) ? raw.mensagem : isStr(raw.erro) ? raw.erro : "Licença inválida.");
+  return { valid: false, code: code || undefined, message };
+}
+
+// Gate principal: roda heartbeat e devolve resultado interpretado.
+async function checkLicense(
+  ctx: LicenseContext,
+): Promise<{ valid: boolean; code?: string; message?: string; raw: unknown }> {
+  const { raw } = await callAppsScript("heartbeat", ctx);
+  const r = interpretLicenseResponse(raw);
+  return { ...r, raw };
 }
 
 // ---------- dispatch ----------
