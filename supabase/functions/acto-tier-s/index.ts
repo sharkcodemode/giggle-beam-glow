@@ -47,7 +47,10 @@ const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const MAX_FILE_NAME_LEN = 255;
 
 const ALLOWED_ACTIONS = new Set([
-  "license_check",
+  "license_login",
+  "license_heartbeat",
+  "license_logout",
+  "license_unlink_device",
   "lovable_proxy",
   "send_message",
   "list_projects",
@@ -56,6 +59,28 @@ const ALLOWED_ACTIONS = new Set([
   "upload_finalize",
   "gateway_chat",
 ]);
+
+// Actions que NÃO passam pelo gate de heartbeat (são elas próprias o gate).
+const LICENSE_ACTIONS = new Set([
+  "license_login",
+  "license_heartbeat",
+  "license_logout",
+  "license_unlink_device",
+]);
+
+// Mapeamento de códigos do Apps Script → mensagem amigável para a extensão.
+// Qualquer um destes códigos bloqueia o request.
+const BLOCKING_LICENSE_CODES: Record<string, string> = {
+  KEY_IN_USE: "Essa key já está em uso em outro dispositivo. Feche a outra sessão ou aguarde até 3 minutos.",
+  SESSION_REPLACED: "Sua sessão foi substituída por outro login.",
+  KEY_EXPIRED: "Sua key expirou.",
+  EMAIL_MISMATCH: "O e-mail informado não corresponde ao e-mail cadastrado nesta key.",
+  KEY_INACTIVE: "Sua key está inativa.",
+  KEY_NOT_FOUND: "Key não encontrada.",
+  DEVICE_REQUIRED: "Device ID ausente. Atualize a extensão e tente novamente.",
+  EMAIL_REQUIRED: "E-mail obrigatório.",
+  SESSION_REQUIRED: "Session ID obrigatório.",
+};
 
 // MIME types aceitos.
 // Payload mínimo estilo Shark: a extensão pode enviar qualquer File bruto,
