@@ -1277,7 +1277,7 @@ async function handle(req: Request): Promise<Response> {
     }
     try {
       const lic = await checkLicense(licenseCtx);
-      licenseRaw = lic.raw;
+      
       if (!lic.valid) {
         const out = await encryptEnvelope(envelope.license_id, {
           ok: false,
