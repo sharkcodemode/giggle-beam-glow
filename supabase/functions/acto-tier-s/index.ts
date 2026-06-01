@@ -1260,8 +1260,8 @@ async function handle(req: Request): Promise<Response> {
 
   // Gate de licença: para actions de licença (login/logout/heartbeat/unlink) o gate
   // é a própria action; para o resto, faz heartbeat ANTES de despachar.
-  let licenseRaw: unknown = null;
   if (!LICENSE_ACTIONS.has(pt.action)) {
+    // (consumido logo abaixo; gate só roda para actions não-licença)
     const ctxErr = validateLicenseContext(licenseCtx);
     if (ctxErr) {
       const out = await encryptEnvelope(envelope.license_id, {
