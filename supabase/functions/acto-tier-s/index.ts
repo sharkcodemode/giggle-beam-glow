@@ -909,15 +909,6 @@ async function actionGatewayChat(params: Record<string, unknown>) {
 }
 
 // ---------- legacy v1 (painel direto) ----------
-async function deviceIdFromLicense(license: string): Promise<string> {
-  const h = await crypto.subtle.digest("SHA-256", enc.encode(`acto-device|${license}`));
-  const b = new Uint8Array(h);
-  const hex = Array.from(b.slice(0, 16))
-    .map((x) => x.toString(16).padStart(2, "0"))
-    .join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
-
 async function handleLegacy(
   req: Request,
   license: string,
@@ -926,7 +917,7 @@ async function handleLegacy(
 ): Promise<Response> {
   // Aceita os dois shapes:
   //   (A) legado painel:  { projectId, message, authToken, lovableToken, clientGitSha, browserSessionId, context }
-  //   (B) extensão acto:  { action, license, device_id, project_id, message, tokens:{ auth_token, lovable_token, client_git_sha, browser_session_id } }
+  //   (B) extensão acto:  { action, license, device_id, project_id, message, tokens:{...}, license_email|email, session_id|sessionId, extension_version|extensionVersion }
   const body = jsonBody && typeof jsonBody === "object" ? (jsonBody as Record<string, unknown>) : {};
   const tokens = body.tokens && typeof body.tokens === "object" ? (body.tokens as Record<string, unknown>) : {};
 
@@ -953,9 +944,9 @@ async function handleLegacy(
       ? (tokens.browser_session_id as string)
       : undefined;
 
-  // device_id: usa o que vier no body, senão deriva do license (compat legado).
-  const deviceId =
-    isStr(body.device_id) && body.device_id ? (body.device_id as string) : await deviceIdFromLicense(license);
+  // Novos campos de licença: deviceId real, email, sessionId, extensionVersion.
+  // Sem fallback derivado da key — se faltar device, retorna DEVICE_REQUIRED.
+  const licenseCtx = extractLicenseContext(body, undefined, license);
 
   console.log(
     "[acto-v2 legacy] keys=",
@@ -968,19 +959,39 @@ async function handleLegacy(
     authToken.length,
     "lovableLen=",
     lovableToken.length,
-    "deviceId=",
-    deviceId ? "set" : "missing",
+    "key=",
+    maskKey(licenseCtx.chave),
+    "device=",
+    licenseCtx.deviceId ? "set" : "missing",
+    "session=",
+    licenseCtx.sessionId ? "set" : "missing",
+    "email=",
+    licenseCtx.email ? "set" : "missing",
   );
+
+  const ctxErr = validateLicenseContext(licenseCtx);
+  if (ctxErr) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "license_invalid", code: ctxErr.code, message: ctxErr.message }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
 
   let licenseRaw: unknown = null;
   try {
-    const lic = await checkLicense(license, deviceId);
+    const lic = await checkLicense(licenseCtx);
     licenseRaw = lic.raw;
     if (!lic.valid) {
-      return new Response(JSON.stringify({ ok: false, error: "license_invalid", license: lic.raw }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "license_invalid",
+          code: lic.code,
+          message: lic.message,
+          license: lic.raw,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
   } catch (e) {
     console.error("[acto-v2 legacy] license", e instanceof Error ? e.message : String(e));
@@ -989,6 +1000,8 @@ async function handleLegacy(
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+
 
   if (!projectId || !message) {
     return new Response(
