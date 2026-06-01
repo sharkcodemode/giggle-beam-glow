@@ -1255,38 +1255,82 @@ async function handle(req: Request): Promise<Response> {
     });
   }
 
-  // Licença: gate obrigatório (license_check também passa pra ele saber se está válido).
+  // Extrai contexto de licença (params primeiro, depois captured) e normaliza.
+  const licenseCtx = extractLicenseContext(pt.params, pt.captured, envelope.license_id);
+
+  // Gate de licença: para actions de licença (login/logout/heartbeat/unlink) o gate
+  // é a própria action; para o resto, faz heartbeat ANTES de despachar.
   let licenseRaw: unknown = null;
-  try {
-    const lic = await checkLicense(envelope.license_id, pt.captured.device_id ?? "");
-    licenseRaw = lic.raw;
-    if (!lic.valid && pt.action !== "license_check") {
+  if (!LICENSE_ACTIONS.has(pt.action)) {
+    const ctxErr = validateLicenseContext(licenseCtx);
+    if (ctxErr) {
       const out = await encryptEnvelope(envelope.license_id, {
         ok: false,
         error: "license_invalid",
-        license: lic.raw,
+        code: ctxErr.code,
+        message: ctxErr.message,
       });
       return new Response(JSON.stringify(out), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "license_error";
-    console.error("[acto-v2] license", msg);
-    const out = await encryptEnvelope(envelope.license_id, { ok: false, error: "license_unreachable" });
-    return new Response(JSON.stringify(out), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    try {
+      const lic = await checkLicense(licenseCtx);
+      licenseRaw = lic.raw;
+      if (!lic.valid) {
+        const out = await encryptEnvelope(envelope.license_id, {
+          ok: false,
+          error: "license_invalid",
+          code: lic.code,
+          message: lic.message,
+          license: lic.raw,
+        });
+        return new Response(JSON.stringify(out), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "license_error";
+      console.error("[acto-v2] license", msg);
+      const out = await encryptEnvelope(envelope.license_id, { ok: false, error: "license_unreachable" });
+      return new Response(JSON.stringify(out), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 
   try {
     let data: unknown;
     switch (pt.action) {
-      case "license_check":
-        data = { license: licenseRaw };
+      case "license_login":
+      case "license_heartbeat":
+      case "license_logout":
+      case "license_unlink_device": {
+        const map: Record<string, "login" | "heartbeat" | "logout" | "unlink_device"> = {
+          license_login: "login",
+          license_heartbeat: "heartbeat",
+          license_logout: "logout",
+          license_unlink_device: "unlink_device",
+        };
+        const normalized = map[pt.action];
+        // login/heartbeat exigem email+session; logout/unlink exigem session.
+        const ctxErr = validateLicenseContext(licenseCtx, {
+          requireEmail: normalized === "login" || normalized === "heartbeat",
+          requireSession: true,
+        });
+        if (ctxErr) {
+          data = { ok: false, sucesso: false, code: ctxErr.code, message: ctxErr.message };
+          break;
+        }
+        const { raw } = await callAppsScript(normalized, licenseCtx);
+        // Repassa resposta crua do Apps Script (sucesso, ok, code, erro, mensagem,
+        // validade, sessionTimeoutSeconds, heartbeatEverySeconds, ...).
+        data = raw;
         break;
+      }
       case "lovable_proxy":
         data = await actionLovableProxy(pt.captured, pt.params);
         break;
