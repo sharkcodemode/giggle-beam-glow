@@ -417,7 +417,90 @@
     mo.observe(document.body, { childList: true, subtree: true });
   };
 
-  // ───── fetch interception ────────────────────────────────────────────────
+  // ───── capture: DOM (composer) ───────────────────────────────────────────
+  // Necessário porque o side-panel envia para acto-tier-s com payload AES-GCM
+  // criptografado — extrair prompt do body do fetch é impossível.
+  // Estratégia: escutar Enter no textarea + click em botão de enviar, em
+  // capture-phase, e ler o valor do textarea antes do React limpar.
+  let lastCapture = { text: "", at: 0 };
+  const DEDUP_WINDOW_MS = 2000;
+
+  const captureText = (text) => {
+    const t = String(text || "").trim();
+    if (!t) return;
+    const now = Date.now();
+    if (t === lastCapture.text && now - lastCapture.at < DEDUP_WINDOW_MS) return;
+    lastCapture = { text: t, at: now };
+    mount();
+    const id = addMessage(t);
+    // Sem resposta atrelada (payload cifrado): marca como enviado após pequeno
+    // delay, assim o ícone reflete o estado real do envio quando ele falha rápido.
+    setTimeout(() => updateMessage(id, { status: "sent" }), 350);
+    return id;
+  };
+
+  const findComposerTextarea = () => {
+    // O side-panel React tem 1 textarea de composição. Fallback: primeiro textarea visível.
+    const all = Array.from(document.querySelectorAll("textarea"));
+    return all.find((el) => el.offsetParent !== null) || all[0] || null;
+  };
+
+  const isSendButton = (btn) => {
+    if (!btn || btn.tagName !== "BUTTON") return false;
+    if (btn.disabled) return false;
+    const label = `${btn.getAttribute("aria-label") || ""} ${btn.title || ""} ${btn.textContent || ""}`.toLowerCase();
+    if (/send|enviar|submit|prompt|mensagem|message/.test(label)) return true;
+    // Ícone de seta — heurística por svg path/d ou data-attrs comuns
+    if (btn.querySelector('svg[data-icon*="send" i], svg[data-icon*="arrow" i]')) return true;
+    return false;
+  };
+
+  const wireDomCapture = () => {
+    if (window.__ACTO_CHAT_DOM_CAPTURE__) return;
+    window.__ACTO_CHAT_DOM_CAPTURE__ = true;
+
+    // Enter sem Shift dentro do textarea do composer
+    document.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+        const ta = e.target;
+        if (!(ta instanceof HTMLTextAreaElement)) return;
+        if (e.isComposing) return; // IME ativo
+        captureText(ta.value);
+      },
+      true,
+    );
+
+    // Click em botão de envio (mesmo form ou irmão do textarea)
+    document.addEventListener(
+      "click",
+      (e) => {
+        const btn = (e.target instanceof Element ? e.target.closest("button") : null);
+        if (!isSendButton(btn)) return;
+        const form = btn.closest("form");
+        const ta = (form?.querySelector("textarea")) || findComposerTextarea();
+        if (!ta) return;
+        captureText(ta.value);
+      },
+      true,
+    );
+
+    // Submit de formulário (fallback adicional)
+    document.addEventListener(
+      "submit",
+      (e) => {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        const ta = form.querySelector("textarea");
+        if (!ta) return;
+        captureText(ta.value);
+      },
+      true,
+    );
+  };
+
+  // ───── fetch interception (fallback p/ endpoints sem cifra) ─────────────
   const extractPromptFromBody = (body) => {
     if (!body) return null;
     try {
@@ -434,6 +517,8 @@
       else if (typeof body === "object" && body !== null) raw = JSON.stringify(body);
       if (typeof raw !== "string") return null;
       const parsed = JSON.parse(raw);
+      // Envelope cifrado acto-v2 — nada extraível, ignora silenciosamente.
+      if (parsed?.v === 1 && parsed?.license_id && parsed?.ct) return null;
       for (const k of ["prompt", "message", "text", "content", "input", "query"]) {
         if (typeof parsed?.[k] === "string" && parsed[k].trim()) return parsed[k];
       }
@@ -442,9 +527,20 @@
           if (typeof parsed.payload[k] === "string" && parsed.payload[k].trim()) return parsed.payload[k];
         }
       }
-      if (Array.isArray(parsed?.messages)) {
-        const last = parsed.messages[parsed.messages.length - 1];
-        if (typeof last?.content === "string" && last.content.trim()) return last.content;
+      // gateway_chat: { action, params: { messages: [...] } }
+      const msgList = Array.isArray(parsed?.messages)
+        ? parsed.messages
+        : Array.isArray(parsed?.params?.messages)
+          ? parsed.params.messages
+          : null;
+      if (msgList && msgList.length) {
+        const lastUser = [...msgList].reverse().find((m) => m?.role === "user") || msgList[msgList.length - 1];
+        const c = lastUser?.content;
+        if (typeof c === "string" && c.trim()) return c;
+        if (Array.isArray(c)) {
+          const t = c.find((part) => typeof part?.text === "string" && part.text.trim());
+          if (t) return t.text;
+        }
       }
       return null;
     } catch { return null; }
@@ -474,7 +570,15 @@
       let msgId = null;
       if (method === "POST" && url && matchesEndpoint(url)) {
         const prompt = extractPromptFromBody(body);
-        if (prompt) { mount(); msgId = addMessage(prompt); }
+        if (prompt) {
+          const now = Date.now();
+          // Evita duplicar com captura por DOM (mesma string, janela curta)
+          if (!(prompt.trim() === lastCapture.text && now - lastCapture.at < DEDUP_WINDOW_MS)) {
+            mount();
+            msgId = addMessage(prompt);
+            lastCapture = { text: prompt.trim(), at: now };
+          }
+        }
       }
 
       try {
@@ -488,11 +592,13 @@
     };
   };
 
+
   // ───── boot ──────────────────────────────────────────────────────────────
   const boot = async () => {
     messages = await loadSession();
     const wasOpen = await loadOpenState();
     wrapFetch();
+    wireDomCapture();
     if (document.body) mount();
     else document.addEventListener("DOMContentLoaded", () => mount(), { once: true });
     // restaurar estado de abertura após mount
