@@ -653,7 +653,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
     view: isStr(ctx.view) ? ctx.view : "preview",
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
-    model: "openai/gpt-5.5",
+    model: "openai/gpt-5.5-pro",
     client_logs: [],
     network_requests: [],
     runtime_errors: [],
@@ -727,8 +727,27 @@ async function actionSheetsAppend(params: Record<string, unknown>) {
 }
 
 // ---------- AI Gateway Tier S ----------
+// Política TIER S: modelo é forçado server-side. Cliente NÃO escolhe.
+//   Primário:  openai/gpt-5.5-pro
+//   Fallback:  anthropic/claude-3.5-sonnet  (só em 402/429/5xx do primário)
+//   NUNCA cai para Gemini silenciosamente.
+const TIER_S_PRIMARY = "openai/gpt-5.5-pro";
+const TIER_S_FALLBACK = "anthropic/claude-3.5-sonnet";
+const TIER_S_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+async function callTierSGateway(model: string, body: Record<string, unknown>, apiKey: string) {
+  return await fetch(TIER_S_GATEWAY_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "x-lovable-model": model,
+    },
+    body: JSON.stringify({ ...body, model }),
+  });
+}
+
 async function actionGatewayChat(params: Record<string, unknown>) {
-  const model = isStr(params.model) ? params.model : "openai/gpt-5.5";
   const messages = Array.isArray(params.messages) ? params.messages : [];
   const temperature = typeof params.temperature === "number" ? params.temperature : 1;
   const stream = !!params.stream;
@@ -736,31 +755,25 @@ async function actionGatewayChat(params: Record<string, unknown>) {
   const lovApiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!lovApiKey) throw new Error("LOVABLE_API_KEY ausente na Edge");
 
-  const url = "https://ai.gateway.lovable.dev/v1/chat/completions";
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${lovApiKey}`,
-    "x-lovable-model": model,
-  };
+  if (stream) {
+    throw new Error("streaming_not_implemented_in_gateway_action");
+  }
 
-  const body = {
-    model,
+  const baseBody: Record<string, unknown> = {
     messages,
     temperature,
-    stream,
     ...(params.reasoning && { reasoning: params.reasoning }),
   };
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
+  console.log(`[TIER S] gateway_chat tentando primário: ${TIER_S_PRIMARY}`);
+  let res = await callTierSGateway(TIER_S_PRIMARY, baseBody, lovApiKey);
+  let modelUsed = TIER_S_PRIMARY;
 
-  if (stream) {
-    // For simplicity in the response envelope, we don't return a readable stream directly
-    // unless the entire Edge architecture is built for it.
-    throw new Error("streaming_not_implemented_in_gateway_action");
+  if (!res.ok && [402, 429, 500, 502, 503, 504].includes(res.status)) {
+    console.warn(`[TIER S] primário falhou (${res.status}). Fallback ${TIER_S_FALLBACK}`);
+    try { await res.body?.cancel(); } catch { /* ignore */ }
+    res = await callTierSGateway(TIER_S_FALLBACK, baseBody, lovApiKey);
+    modelUsed = TIER_S_FALLBACK;
   }
 
   const text = await res.text();
@@ -769,7 +782,19 @@ async function actionGatewayChat(params: Record<string, unknown>) {
     parsed = JSON.parse(text);
   } catch { /* ignore */ }
 
-  return { status: res.status, body: parsed };
+  if (!res.ok) {
+    console.error(`[TIER S] ambos modelos falharam. status=${res.status}`);
+    return {
+      status: res.status,
+      body: {
+        error: `TIER S indisponível (status ${res.status}). Tente novamente em alguns segundos.`,
+        detail: typeof parsed === "string" ? parsed.slice(0, 400) : parsed,
+        model_attempted: [TIER_S_PRIMARY, TIER_S_FALLBACK],
+      },
+    };
+  }
+
+  return { status: res.status, body: parsed, model_used: modelUsed };
 }
 
 // ---------- legacy v1 (painel direto) ----------

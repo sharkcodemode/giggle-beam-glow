@@ -7,7 +7,27 @@ const corsHeaders = {
 };
 
 // Protocolo ELITE DEPTH 10 — TIER S
-// Esta Edge Function atua como gateway seguro entre a Extensão ACTO e o Lovable AI Gateway.
+// Gateway seguro entre a Extensão ACTO e o Lovable AI Gateway.
+// Política de modelo: força TIER S server-side. Cliente NÃO escolhe modelo.
+//   Primário:  openai/gpt-5.5-pro
+//   Fallback:  anthropic/claude-3.5-sonnet  (se primário 402/429/5xx)
+//   NUNCA cai para Gemini silenciosamente — erro explícito se ambos falharem.
+
+const PRIMARY_MODEL = "openai/gpt-5.5-pro";
+const FALLBACK_MODEL = "anthropic/claude-3.5-sonnet";
+const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+async function callGateway(model: string, payload: Record<string, unknown>, apiKey: string) {
+  return await fetch(GATEWAY_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "x-lovable-model": model,
+    },
+    body: JSON.stringify({ ...payload, model }),
+  });
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,39 +40,52 @@ serve(async (req) => {
       throw new Error("Segredo LOVABLE_API_KEY não configurado.");
     }
 
-    // O corpo da requisição da extensão chega criptografado no seu sistema original.
-    // Aqui implementamos a ponte direta para o Gateway da Lovable.
     const body = await req.json();
     const { action, params } = body;
 
     if (action === "gateway_chat") {
-      const { model, messages, temperature = 0.2, stream = false } = params;
+      const { messages, temperature = 1, stream = false, reasoning } = params ?? {};
 
-      // Mapeamento para garantir TIER S (Sonnet 3.5 ou GPT 5.5 Pro)
-      // Se o usuário não especificar, forçamos o melhor modelo de código.
-      const targetModel = model || "claude-3-5-sonnet";
+      const basePayload: Record<string, unknown> = {
+        messages,
+        temperature,
+        stream,
+        ...(reasoning ? { reasoning } : {}),
+      };
 
-      console.log(`[TIER S] Roteando para: ${targetModel}`);
+      // 1) Primário: GPT-5.5 Pro
+      console.log(`[TIER S] tentando primário: ${PRIMARY_MODEL}`);
+      let response = await callGateway(PRIMARY_MODEL, basePayload, LOVABLE_API_KEY);
 
-      const response = await fetch("https://api.lovable.app/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          "x-lovable-model": targetModel,
-        },
-        body: JSON.stringify({
-          messages,
-          temperature,
-          stream,
-        }),
-      });
+      // 2) Fallback apenas em indisponibilidade real (não em 4xx de input)
+      if (!response.ok && [402, 429, 500, 502, 503, 504].includes(response.status)) {
+        console.warn(`[TIER S] primário falhou (${response.status}). Caindo para ${FALLBACK_MODEL}`);
+        // Stream do primário não pode ser reaproveitado; consome para liberar.
+        try { await response.body?.cancel(); } catch { /* ignore */ }
+        response = await callGateway(FALLBACK_MODEL, basePayload, LOVABLE_API_KEY);
+      }
 
-      // Retorna a resposta da IA diretamente para a extensão
+      // 3) Se ainda falhou, surface o erro explícito — NÃO degrada para Gemini.
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`[TIER S] ambos modelos falharam. status=${response.status} body=${errText.slice(0, 400)}`);
+        return new Response(
+          JSON.stringify({
+            error: `TIER S indisponível (status ${response.status}). Tente novamente em alguns segundos.`,
+            detail: errText.slice(0, 400),
+          }),
+          {
+            status: response.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
       return new Response(response.body, {
         headers: {
           ...corsHeaders,
           "Content-Type": stream ? "text/event-stream" : "application/json",
+          "x-acto-model-used": response.headers.get("x-lovable-model") || "unknown",
         },
       });
     }
@@ -61,9 +94,9 @@ serve(async (req) => {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    const msg = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
