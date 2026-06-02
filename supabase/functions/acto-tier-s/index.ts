@@ -653,7 +653,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
     view: isStr(ctx.view) ? ctx.view : "preview",
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
-    model: "openai/gpt-5.5",
+    model: "openai/gpt-5.5-pro",
     client_logs: [],
     network_requests: [],
     runtime_errors: [],
