@@ -8,23 +8,13 @@
 //   5. Dispatcha action -> resposta cifrada com novo salt+iv.
 //
 // Ações expostas:
-//   - license_login        (proxy → Apps Script {action:"login"})
-//   - license_heartbeat    (proxy → Apps Script {action:"heartbeat"})
-//   - license_logout       (proxy → Apps Script {action:"logout"})
-//   - license_unlink_device(proxy → Apps Script {action:"unlink_device"})
+//   - license_check
 //   - lovable_proxy        (replay genérico com headers capturados)
 //   - send_message         (POST chat; aceita file_refs opacos)
 //   - list_projects        (atalho: GET /api/projects)
 //   - sheets_append        (POST Apps Script {action:"append", sheet, row})
 //   - upload_init          (gera signed URL Lovable; retorna upload_ticket HMAC opaco)
 //   - upload_finalize      (resolve download_url; retorna file_ref HMAC opaco)
-//
-// Regra de licença: a Edge NÃO decide validade, TTL, contadores ou sessão única.
-// Toda decisão é do Apps Script. A Edge apenas:
-//   - normaliza payload (chave/email/deviceId/sessionId/extensionVersion)
-//   - faz proxy fino das ações de licença
-//   - em cada request protegido, renova sessão com {action:"heartbeat"}
-//   - bloqueia o request quando o Apps Script responde sucesso/ok false
 
 // deno-lint-ignore-file no-explicit-any
 
@@ -47,10 +37,7 @@ const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const MAX_FILE_NAME_LEN = 255;
 
 const ALLOWED_ACTIONS = new Set([
-  "license_login",
-  "license_heartbeat",
-  "license_logout",
-  "license_unlink_device",
+  "license_check",
   "lovable_proxy",
   "send_message",
   "list_projects",
@@ -59,28 +46,6 @@ const ALLOWED_ACTIONS = new Set([
   "upload_finalize",
   "gateway_chat",
 ]);
-
-// Actions que NÃO passam pelo gate de heartbeat (são elas próprias o gate).
-const LICENSE_ACTIONS = new Set([
-  "license_login",
-  "license_heartbeat",
-  "license_logout",
-  "license_unlink_device",
-]);
-
-// Mapeamento de códigos do Apps Script → mensagem amigável para a extensão.
-// Qualquer um destes códigos bloqueia o request.
-const BLOCKING_LICENSE_CODES: Record<string, string> = {
-  KEY_IN_USE: "Essa key já está em uso em outro dispositivo. Feche a outra sessão ou aguarde até 3 minutos.",
-  SESSION_REPLACED: "Sua sessão foi substituída por outro login.",
-  KEY_EXPIRED: "Sua key expirou.",
-  EMAIL_MISMATCH: "O e-mail informado não corresponde ao e-mail cadastrado nesta key.",
-  KEY_INACTIVE: "Sua key está inativa.",
-  KEY_NOT_FOUND: "Key não encontrada.",
-  DEVICE_REQUIRED: "Device ID ausente. Atualize a extensão e tente novamente.",
-  EMAIL_REQUIRED: "E-mail obrigatório.",
-  SESSION_REQUIRED: "Session ID obrigatório.",
-};
 
 // MIME types aceitos.
 // Payload mínimo estilo Shark: a extensão pode enviar qualquer File bruto,
@@ -209,9 +174,6 @@ interface Captured {
   browser_session_id?: string;
   next_action?: string;
   device_id?: string;
-  license_email?: string;
-  session_id?: string;
-  extension_version?: string;
 }
 interface Plaintext {
   action: string;
@@ -234,143 +196,27 @@ function asPlaintext(x: unknown): Plaintext {
 }
 
 // ---------- license ----------
-// Toda a inteligência de licença vive no Apps Script. A Edge é proxy fino.
-
-interface LicenseContext {
-  chave: string;
-  email: string;
-  deviceId: string;
-  sessionId: string;
-  extensionVersion?: string;
-}
-
-function maskKey(k: string): string {
-  if (!k) return "";
-  if (k.length <= 8) return "***";
-  return `${k.slice(0, 4)}...${k.slice(-4)}`;
-}
-
-// Normaliza nomes (snake_case e camelCase) vindos da extensão/body/captured.
-function pickStr(...vals: unknown[]): string {
-  for (const v of vals) if (isStr(v)) return v;
-  return "";
-}
-
-function extractLicenseContext(
-  src: Record<string, unknown>,
-  captured?: Captured,
-  licenseIdFallback?: string,
-): LicenseContext {
-  const c = captured ?? {};
-  return {
-    chave: pickStr(src.chave, src.license_id, src.licenseId, src.license, c.write_key, licenseIdFallback),
-    email: pickStr(src.email, src.license_email, src.licenseEmail, c.license_email),
-    deviceId: pickStr(src.deviceId, src.device_id, c.device_id),
-    sessionId: pickStr(src.sessionId, src.session_id, c.session_id),
-    extensionVersion: pickStr(
-      src.extensionVersion,
-      src.extension_version,
-      c.extension_version,
-    ) || undefined,
-  };
-}
-
-// Erros de validação de contexto da licença ANTES de chamar Apps Script.
-// Devolve null se ok, ou {code, message} para bloquear.
-function validateLicenseContext(
-  ctx: LicenseContext,
-  opts: { requireEmail?: boolean; requireSession?: boolean } = { requireEmail: true, requireSession: true },
-): { code: string; message: string } | null {
-  if (!ctx.chave) return { code: "KEY_NOT_FOUND", message: BLOCKING_LICENSE_CODES.KEY_NOT_FOUND };
-  if (!ctx.deviceId) return { code: "DEVICE_REQUIRED", message: BLOCKING_LICENSE_CODES.DEVICE_REQUIRED };
-  if (opts.requireEmail !== false && !ctx.email) {
-    return { code: "EMAIL_REQUIRED", message: BLOCKING_LICENSE_CODES.EMAIL_REQUIRED };
-  }
-  if (opts.requireSession !== false && !ctx.sessionId) {
-    return { code: "SESSION_REQUIRED", message: BLOCKING_LICENSE_CODES.SESSION_REQUIRED };
-  }
-  return null;
-}
-
-// Envia para o Apps Script a action normalizada com payload padronizado.
-async function callAppsScript(
-  action: "login" | "heartbeat" | "logout" | "unlink_device",
-  ctx: LicenseContext,
-): Promise<{ status: number; raw: any }> {
+// Contrato Apps Script: { action:"license_check", chave, deviceId }
+async function checkLicense(licenseId: string, deviceId: string): Promise<{ valid: boolean; raw: unknown }> {
   const url = Deno.env.get("ACTO_APPS_SCRIPT_URL");
   if (!url) throw new Error("ACTO_APPS_SCRIPT_URL ausente");
-  const payload: Record<string, unknown> = {
-    action,
-    chave: ctx.chave,
-    email: ctx.email,
-    deviceId: ctx.deviceId,
-    sessionId: ctx.sessionId,
-  };
-  if (ctx.extensionVersion) payload.extensionVersion = ctx.extensionVersion;
-  // DEBUG TEMPORÁRIO — sanitizado (não loga key/url completos)
-  console.info("[ACTO][APPS SCRIPT REQUEST]", {
-    action,
-    hasChave: Boolean(ctx.chave),
-    hasEmail: Boolean(ctx.email),
-    hasDeviceId: Boolean(ctx.deviceId),
-    hasSessionId: Boolean(ctx.sessionId),
-    hasExtensionVersion: Boolean(ctx.extensionVersion),
-  });
+  if (!deviceId) throw new Error("device_id ausente");
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ action: "license_check", chave: licenseId, deviceId }),
     redirect: "follow",
   });
   const text = await res.text();
-  let raw: any = text;
+  let raw: unknown = text;
   try {
     raw = JSON.parse(text);
   } catch {
-    /* keep text */
+    /* ignore */
   }
-  // DEBUG TEMPORÁRIO — resposta sanitizada
-  console.info("[ACTO][APPS SCRIPT RESPONSE]", {
-    ok: raw && typeof raw === "object" ? raw.ok : undefined,
-    sucesso: raw && typeof raw === "object" ? raw.sucesso : undefined,
-    code: raw && typeof raw === "object" ? raw.code : undefined,
-    erro: raw && typeof raw === "object" ? raw.erro : undefined,
-    mensagem: raw && typeof raw === "object" ? raw.mensagem : undefined,
-    httpStatus: res.status,
-  });
-  console.log(
-    `[acto-v2 license] action=${action} key=${maskKey(ctx.chave)} status=${res.status} ok=${
-      raw && typeof raw === "object" ? !!(raw.sucesso === true || raw.ok === true) : "?"
-    }`,
-  );
-  return { status: res.status, raw };
-}
-
-// Interpreta a resposta do Apps Script. Considera válido quando sucesso/ok true.
-function interpretLicenseResponse(raw: any): {
-  valid: boolean;
-  code?: string;
-  message?: string;
-} {
-  if (!raw || typeof raw !== "object") {
-    return { valid: false, code: "KEY_NOT_FOUND", message: "Resposta inválida do servidor de licença." };
-  }
-  const ok = raw.sucesso === true || raw.ok === true;
-  if (ok) return { valid: true };
-  const code = isStr(raw.code) ? (raw.code as string) : "";
-  const mapped = code && BLOCKING_LICENSE_CODES[code];
-  const message =
-    mapped || (isStr(raw.mensagem) ? raw.mensagem : isStr(raw.erro) ? raw.erro : "Licença inválida.");
-  return { valid: false, code: code || undefined, message };
-}
-
-// Gate principal: roda heartbeat e devolve resultado interpretado.
-async function checkLicense(
-  ctx: LicenseContext,
-): Promise<{ valid: boolean; code?: string; message?: string; raw: unknown }> {
-  const { raw } = await callAppsScript("heartbeat", ctx);
-  const r = interpretLicenseResponse(raw);
-  return { ...r, raw };
+  // Apps Script Acto responde { sucesso: true } em caso válido.
+  const valid = !!(raw && typeof raw === "object" && ((raw as any).sucesso === true || (raw as any).valid === true));
+  return { valid, raw };
 }
 
 // ---------- dispatch ----------
@@ -927,6 +773,15 @@ async function actionGatewayChat(params: Record<string, unknown>) {
 }
 
 // ---------- legacy v1 (painel direto) ----------
+async function deviceIdFromLicense(license: string): Promise<string> {
+  const h = await crypto.subtle.digest("SHA-256", enc.encode(`acto-device|${license}`));
+  const b = new Uint8Array(h);
+  const hex = Array.from(b.slice(0, 16))
+    .map((x) => x.toString(16).padStart(2, "0"))
+    .join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
 async function handleLegacy(
   req: Request,
   license: string,
@@ -935,7 +790,7 @@ async function handleLegacy(
 ): Promise<Response> {
   // Aceita os dois shapes:
   //   (A) legado painel:  { projectId, message, authToken, lovableToken, clientGitSha, browserSessionId, context }
-  //   (B) extensão acto:  { action, license, device_id, project_id, message, tokens:{...}, license_email|email, session_id|sessionId, extension_version|extensionVersion }
+  //   (B) extensão acto:  { action, license, device_id, project_id, message, tokens:{ auth_token, lovable_token, client_git_sha, browser_session_id } }
   const body = jsonBody && typeof jsonBody === "object" ? (jsonBody as Record<string, unknown>) : {};
   const tokens = body.tokens && typeof body.tokens === "object" ? (body.tokens as Record<string, unknown>) : {};
 
@@ -962,9 +817,9 @@ async function handleLegacy(
       ? (tokens.browser_session_id as string)
       : undefined;
 
-  // Novos campos de licença: deviceId real, email, sessionId, extensionVersion.
-  // Sem fallback derivado da key — se faltar device, retorna DEVICE_REQUIRED.
-  const licenseCtx = extractLicenseContext(body, undefined, license);
+  // device_id: usa o que vier no body, senão deriva do license (compat legado).
+  const deviceId =
+    isStr(body.device_id) && body.device_id ? (body.device_id as string) : await deviceIdFromLicense(license);
 
   console.log(
     "[acto-v2 legacy] keys=",
@@ -977,51 +832,19 @@ async function handleLegacy(
     authToken.length,
     "lovableLen=",
     lovableToken.length,
-    "key=",
-    maskKey(licenseCtx.chave),
-    "device=",
-    licenseCtx.deviceId ? "set" : "missing",
-    "session=",
-    licenseCtx.sessionId ? "set" : "missing",
-    "email=",
-    licenseCtx.email ? "set" : "missing",
+    "deviceId=",
+    deviceId ? "set" : "missing",
   );
-
-  const ctxErr = validateLicenseContext(licenseCtx);
-  if (ctxErr) {
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: "license_invalid",
-        code: ctxErr.code,
-        message: ctxErr.message,
-        license_code: ctxErr.code,
-        license_error: ctxErr.code,
-        license_message: ctxErr.message,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  }
 
   let licenseRaw: unknown = null;
   try {
-    const lic = await checkLicense(licenseCtx);
+    const lic = await checkLicense(license, deviceId);
     licenseRaw = lic.raw;
     if (!lic.valid) {
-      const rawObj = (lic.raw && typeof lic.raw === "object") ? (lic.raw as Record<string, unknown>) : {};
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "license_invalid",
-          code: lic.code,
-          message: lic.message,
-          license: lic.raw,
-          license_code: lic.code ?? (rawObj.code as string | undefined),
-          license_error: rawObj.erro as string | undefined,
-          license_message: (rawObj.mensagem as string | undefined) ?? lic.message,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ ok: false, error: "license_invalid", license: lic.raw }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
   } catch (e) {
     console.error("[acto-v2 legacy] license", e instanceof Error ? e.message : String(e));
@@ -1030,8 +853,6 @@ async function handleLegacy(
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
-
 
   if (!projectId || !message) {
     return new Response(
@@ -1061,10 +882,7 @@ async function handleLegacy(
     project_id: projectId,
     client_git_sha: clientGitSha,
     browser_session_id: browserSessionId,
-    device_id: licenseCtx.deviceId,
-    license_email: licenseCtx.email,
-    session_id: licenseCtx.sessionId,
-    extension_version: licenseCtx.extensionVersion,
+    device_id: deviceId,
   };
   try {
     const data = await actionSendMessage(
@@ -1285,89 +1103,38 @@ async function handle(req: Request): Promise<Response> {
     });
   }
 
-  // Extrai contexto de licença (params primeiro, depois captured) e normaliza.
-  const licenseCtx = extractLicenseContext(pt.params, pt.captured, envelope.license_id);
-
-  // Gate de licença: para actions de licença (login/logout/heartbeat/unlink) o gate
-  // é a própria action; para o resto, faz heartbeat ANTES de despachar.
-  if (!LICENSE_ACTIONS.has(pt.action)) {
-    // (consumido logo abaixo; gate só roda para actions não-licença)
-    const ctxErr = validateLicenseContext(licenseCtx);
-    if (ctxErr) {
+  // Licença: gate obrigatório (license_check também passa pra ele saber se está válido).
+  let licenseRaw: unknown = null;
+  try {
+    const lic = await checkLicense(envelope.license_id, pt.captured.device_id ?? "");
+    licenseRaw = lic.raw;
+    if (!lic.valid && pt.action !== "license_check") {
       const out = await encryptEnvelope(envelope.license_id, {
         ok: false,
         error: "license_invalid",
-        code: ctxErr.code,
-        message: ctxErr.message,
-        license_code: ctxErr.code,
-        license_error: ctxErr.code,
-        license_message: ctxErr.message,
+        license: lic.raw,
       });
       return new Response(JSON.stringify(out), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    try {
-      const lic = await checkLicense(licenseCtx);
-
-      if (!lic.valid) {
-        const rawObj = (lic.raw && typeof lic.raw === "object") ? (lic.raw as Record<string, unknown>) : {};
-        const out = await encryptEnvelope(envelope.license_id, {
-          ok: false,
-          error: "license_invalid",
-          code: lic.code,
-          message: lic.message,
-          license: lic.raw,
-          license_code: lic.code ?? (rawObj.code as string | undefined),
-          license_error: rawObj.erro as string | undefined,
-          license_message: (rawObj.mensagem as string | undefined) ?? lic.message,
-        });
-        return new Response(JSON.stringify(out), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "license_error";
-      console.error("[acto-v2] license", msg);
-      const out = await encryptEnvelope(envelope.license_id, { ok: false, error: "license_unreachable" });
-      return new Response(JSON.stringify(out), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "license_error";
+    console.error("[acto-v2] license", msg);
+    const out = await encryptEnvelope(envelope.license_id, { ok: false, error: "license_unreachable" });
+    return new Response(JSON.stringify(out), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
     let data: unknown;
     switch (pt.action) {
-      case "license_login":
-      case "license_heartbeat":
-      case "license_logout":
-      case "license_unlink_device": {
-        const map: Record<string, "login" | "heartbeat" | "logout" | "unlink_device"> = {
-          license_login: "login",
-          license_heartbeat: "heartbeat",
-          license_logout: "logout",
-          license_unlink_device: "unlink_device",
-        };
-        const normalized = map[pt.action];
-        // login/heartbeat exigem email+session; logout/unlink exigem session.
-        const ctxErr = validateLicenseContext(licenseCtx, {
-          requireEmail: normalized === "login" || normalized === "heartbeat",
-          requireSession: true,
-        });
-        if (ctxErr) {
-          data = { ok: false, sucesso: false, code: ctxErr.code, message: ctxErr.message };
-          break;
-        }
-        const { raw } = await callAppsScript(normalized, licenseCtx);
-        // Repassa resposta crua do Apps Script (sucesso, ok, code, erro, mensagem,
-        // validade, sessionTimeoutSeconds, heartbeatEverySeconds, ...).
-        data = raw;
+      case "license_check":
+        data = { license: licenseRaw };
         break;
-      }
       case "lovable_proxy":
         data = await actionLovableProxy(pt.captured, pt.params);
         break;
