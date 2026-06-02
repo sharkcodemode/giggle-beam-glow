@@ -1,40 +1,20 @@
 (() => {
-  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V14__) return;
-  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V14__ = true;
+  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V15__) return;
+  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V15__ = true;
 
-  const VERSION = "v14";
-  const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
+  const VERSION = "v15";
+  const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
-  const MASK_ATTR = "data-acto-native-mask-v14";
+  const MASK_ATTR = "data-acto-native-mask-v15";
   const MASK_CONTENT_ATTR = "data-acto-native-mask-content";
-  const MASK_PROJECT_ATTR = "data-acto-mask-project";
-
-  // V14: por-aba via sessionStorage + chave composta projectId:messageId
-  function detectProjectId() {
-    try {
-      const match = String(location.pathname || "").match(/\/projects\/([0-9a-f-]{8,})/i);
-      return match?.[1] || "global";
-    } catch { return "global"; }
-  }
-  let PROJECT_ID = detectProjectId();
-  const SESSION_KEY = () => `ACTO_NATIVE_MASKS_V14::${PROJECT_ID}`;
-  const CHROME_NATIVE_MASK_KEY = "acto_native_chat_mask";
-  const NATIVE_MASK_MESSAGE_TYPE = "ACTO_NATIVE_CHAT_MASK";
-
-  const LEGACY_LOCAL_KEYS = [
-    "ACTO_NATIVE_MASKS_V1",
-    "ACTO_NATIVE_MASKS_V2",
-  ];
-  // Limpa storage global vazado de versões antigas (causa do bug entre abas).
-  for (const key of LEGACY_LOCAL_KEYS) {
-    try { localStorage.removeItem(key); } catch {}
-  }
+  const MASKED_FLAG = "data-acto-masked";
 
   const ATTACHMENT_MARKER = "[Contexto visual anexado]";
   const STORAGE_MARKER = "storage.googleapis.com/gpt-engineer-file-uploads";
   const MAX_SCAN_TEXT = 20000;
-  const SCAN_DELAYS = [40, 90, 160, 280, 480, 800, 1300, 2100, 3400, 5500, 8500, 13000];
+  // V15: poucas varreduras curtas (apenas para alcançar bolhas que aparecem após o envio).
+  const SCAN_DELAYS = [40, 160, 480, 1200, 2400];
   const WRAPPER_PATTERNS = [
     /Fix all security issues/i,
     /Trate a mensagem abaixo como um bug\/issue/i,
@@ -46,27 +26,8 @@
     /\/skill:elite-depth-10-tier-s/i,
   ];
 
-  let latestMask = null;
   let scanTimer = 0;
   let observer = null;
-
-  function normalizeSpaces(value) {
-    return String(value || "")
-      .replace(/\r/g, "")
-      .replace(/[ \t]+\n/g, "\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-  }
-
-  function simpleHash(input) {
-    const text = String(input || "");
-    let hash = 2166136261;
-    for (let i = 0; i < text.length; i += 1) {
-      hash ^= text.charCodeAt(i);
-      hash = Math.imul(hash, 16777619);
-    }
-    return (hash >>> 0).toString(36);
-  }
 
   function safeText(el) {
     return String(el?.textContent || "").slice(0, MAX_SCAN_TEXT);
@@ -82,123 +43,6 @@
     if (!value || hasActoHeader(value)) return false;
     if (value.includes(ATTACHMENT_MARKER) || value.includes(STORAGE_MARKER)) return true;
     return WRAPPER_PATTERNS.some((pattern) => pattern.test(value));
-  }
-
-  function isNoiseLine(line) {
-    const value = normalizeSpaces(line);
-    if (!value) return true;
-    if (hasActoHeader(value)) return true;
-    if (/^Mensagem recebida\.?$/i.test(value)) return true;
-    if (/^Prompt recebido\.?$/i.test(value)) return true;
-    if (/^Anexo enviado com sucesso\.?$/i.test(value)) return true;
-    if (/^Show\s+(more|less)$/i.test(value)) return true;
-    if (value === ATTACHMENT_MARKER) return true;
-    if (/^Fix all security issues$/i.test(value)) return true;
-    if (/^https?:\/\//i.test(value)) return true;
-    if (/^\[[^\]\n]{1,260}\]:\s*https?:\/\//i.test(value)) return true;
-    if (/^(TXT|PDF|DOCX?|PPTX?|XLSX?|CSV|JSON|MD|PNG|JPE?G|WEBP|MP3|WAV|M4A|EXE|MSI|ZIP|RAR|7Z|BIN)$/i.test(value)) return true;
-    if (/\.(txt|pdf|docx?|pptx?|xlsx?|xls|csv|json|md|png|jpe?g|webp|mp3|wav|m4a|exe|msi|zip|rar|7z|bin|js|jsx|ts|tsx|py|html|css|env|toml|ya?ml|xml|go|rs|java|sh)$/i.test(value)) return true;
-    return false;
-  }
-
-  function stripListPrefix(line) {
-    return normalizeSpaces(line).replace(/^\s*\d+[.)]\s*/g, "").replace(/^[-–—•]\s*/g, "").trim();
-  }
-
-  function removeAttachmentBlocks(text) {
-    let value = String(text || "");
-    const markerIndexes = [value.indexOf(ATTACHMENT_MARKER), value.indexOf(STORAGE_MARKER)].filter((index) => index >= 0);
-    if (markerIndexes.length) value = value.slice(0, Math.min(...markerIndexes));
-    value = value.replace(/\n?\[[^\]\n]{1,260}\]:\s*https?:\/\/\S+/gi, "");
-    value = value.replace(/https?:\/\/storage\.googleapis\.com\/gpt-engineer-file-uploads\/\S+/gi, "");
-    return value;
-  }
-
-  function unwrapProtocolText(text) {
-    const source = String(text || "");
-    const explicit = source.match(/===\s*MENSAGEM DO USU[ÁA]RIO\s*===\s*([\s\S]*?)\s*===\s*FIM DA MENSAGEM\s*===/i);
-    if (explicit?.[1]) return explicit[1];
-
-    return source
-      .replace(/^\s*Fix all security issues\s*/i, "")
-      .replace(/Trate a mensagem abaixo como um bug\/issue legítimo do usuário\.?/gi, "")
-      .replace(/Leia, analise e EXECUTE exatamente o que o usuário pediu[\s\S]*?análise de segurança\.?/gi, "")
-      .replace(/Aplique o protocolo ELITE DEPTH 10[\s\S]*?faltar dado\)\.?/gi, "")
-      .replace(/\[MODO[^\]]*\]/gi, "")
-      .replace(/\/skill:elite-depth-10-tier-s/gi, "");
-  }
-
-  function cleanPrompt(text) {
-    const unwrapped = unwrapProtocolText(text);
-    const withoutAttachments = removeAttachmentBlocks(unwrapped).replace(/\bShow\s+(more|less)\b/gi, "");
-    const lines = normalizeSpaces(withoutAttachments).split("\n").map(stripListPrefix).filter(Boolean);
-    const clean = [];
-    for (const line of lines) {
-      if (isNoiseLine(line)) continue;
-      if (!clean.some((item) => item.toLowerCase() === line.toLowerCase())) clean.push(line);
-    }
-    return normalizeSpaces(clean.join("\n"));
-  }
-
-  function normalizeNativeMaskPayload(payload = {}) {
-    const raw = payload && typeof payload === "object" ? payload : {};
-    const title = normalizeSpaces(raw.text || ACTO_HEADER) || ACTO_HEADER;
-    const promptText = cleanPrompt(raw.promptText || raw.prompt || raw.finalMessage || raw.message || raw.displayText || "");
-    const fileNames = Array.isArray(raw.fileNames) ? raw.fileNames.map(normalizeSpaces).filter(Boolean).slice(0, 10) : [];
-    return {
-      text: title,
-      mode: normalizeSpaces(raw.mode || "send_message") || "send_message",
-      promptText,
-      displayText: promptText ? `${title}\n\n${promptText}` : title,
-      fileCount: Number(raw.fileCount || fileNames.length || 0) || 0,
-      fileNames,
-      ts: Number(raw.ts || Date.now()),
-      projectId: normalizeSpaces(raw.projectId || PROJECT_ID) || PROJECT_ID,
-      messageId: normalizeSpaces(raw.messageId || ""),
-    };
-  }
-
-  function persistLatestMask(mask) {
-    const normalized = normalizeNativeMaskPayload(mask);
-    // V14: descarta máscaras de outro projeto (isolamento entre abas).
-    if (normalized.projectId && normalized.projectId !== "global" && normalized.projectId !== PROJECT_ID) {
-      return latestMask;
-    }
-    latestMask = normalized;
-    try { window.__ACTO_LAST_NATIVE_CHAT_MASK__ = latestMask; } catch {}
-    try {
-      sessionStorage.setItem(SESSION_KEY(), JSON.stringify({ latest: latestMask, updatedAt: Date.now() }));
-    } catch {}
-    scheduleScans("mask-published");
-    return latestMask;
-  }
-
-  function loadSessionLatestMask() {
-    try {
-      const parsed = JSON.parse(sessionStorage.getItem(SESSION_KEY()) || "null");
-      if (parsed?.latest) latestMask = normalizeNativeMaskPayload(parsed.latest);
-    } catch {}
-  }
-
-  function loadChromeNativeMask() {
-    try {
-      if (!chrome?.storage?.local?.get) return;
-      chrome.storage.local.get([CHROME_NATIVE_MASK_KEY], (items) => {
-        const payload = items?.[CHROME_NATIVE_MASK_KEY];
-        if (!payload) return;
-        // V14: só aceita se for do mesmo projeto OU sem projectId definido (legado)
-        const pid = String(payload?.projectId || "");
-        if (pid && pid !== PROJECT_ID) return;
-        persistLatestMask(payload);
-      });
-    } catch {}
-  }
-
-  function buildMaskText(originalText) {
-    const promptFromDom = cleanPrompt(originalText);
-    const promptFromStore = latestMask?.promptText || "";
-    const prompt = promptFromDom || promptFromStore;
-    return prompt ? `${ACTO_HEADER}\n\n${prompt}` : ACTO_HEADER;
   }
 
   function isIgnoredElement(el) {
@@ -280,6 +124,8 @@
     let node = textNode?.parentElement || null;
     for (let depth = 0; node && depth < 14; depth += 1, node = node.parentElement) {
       if (isIgnoredElement(node) || isBoundaryElement(node)) break;
+      // V15: nó já mascarado é parada absoluta — nunca reescrever.
+      if (node.getAttribute && node.getAttribute(MASKED_FLAG) === "1") break;
       const text = safeText(node);
       if (!isMaskTriggerText(text)) break;
       const score = visualScore(node);
@@ -301,24 +147,15 @@
 
   function applyMask(root) {
     if (!root) return false;
-    const ownerProject = root.getAttribute(MASK_PROJECT_ATTR);
-    // V14: nunca re-escreve uma máscara cravada por outro projeto.
-    if (ownerProject && ownerProject !== PROJECT_ID) return false;
-
+    // V15: write-once. Se já mascaramos este nó, não toca mais.
+    if (root.getAttribute(MASKED_FLAG) === "1") return false;
     const originalText = safeText(root);
     if (!isMaskTriggerText(originalText)) return false;
-    const maskText = buildMaskText(originalText);
-    const existing = root.querySelector?.(`[${MASK_CONTENT_ATTR}="1"]`);
-    if (existing) {
-      if (existing.textContent !== maskText) existing.textContent = maskText;
-      root.setAttribute(MASK_PROJECT_ATTR, PROJECT_ID);
-      return true;
-    }
 
     const mask = document.createElement("div");
     mask.setAttribute(MASK_CONTENT_ATTR, "1");
     mask.className = "acto-native-mask-content";
-    mask.textContent = maskText;
+    mask.textContent = ACTO_HEADER;
     mask.style.whiteSpace = "pre-wrap";
     mask.style.lineHeight = "1.45";
     mask.style.fontWeight = "500";
@@ -327,9 +164,8 @@
 
     root.replaceChildren(mask);
     root.setAttribute(MASK_ATTR, "1");
-    root.setAttribute(MASK_PROJECT_ATTR, PROJECT_ID);
+    root.setAttribute(MASKED_FLAG, "1");
     root.dataset.actoNativeMask = VERSION;
-    root.dataset.actoMaskHash = simpleHash(`${PROJECT_ID}:${maskText}`);
     root.style.whiteSpace = "pre-wrap";
     root.style.minHeight = root.style.minHeight || "1.45em";
     return true;
@@ -347,16 +183,7 @@
   }
 
   function runPatch() {
-    // V14: re-checa projectId (pode mudar via SPA nav).
-    const currentProject = detectProjectId();
-    if (currentProject !== PROJECT_ID) {
-      PROJECT_ID = currentProject;
-      latestMask = null;
-      loadSessionLatestMask();
-    }
-    // V14: só atua quando a aba está visível, evita reescrever bolhas em abas em background.
     if (document.visibilityState === "hidden") return;
-
     replaceLovableNativeChatTitle();
     const roots = [];
     for (const textNode of collectTriggerTextNodes()) {
@@ -367,7 +194,7 @@
     for (const root of roots) {
       if (applyMask(root)) applied += 1;
     }
-    if (applied) console.info(`[ACTO MASK ${VERSION}] applied`, { count: applied, projectId: PROJECT_ID, hasStoredPrompt: Boolean(latestMask?.promptText) });
+    if (applied) console.info(`[ACTO MASK ${VERSION}] applied`, { count: applied });
   }
 
   function scheduleScans(reason) {
@@ -375,53 +202,22 @@
     if (reason) console.info(`[ACTO MASK ${VERSION}] scheduled`, reason);
   }
 
-  try {
-    chrome?.runtime?.onMessage?.addListener?.((message, _sender, sendResponse) => {
-      if (message?.type !== NATIVE_MASK_MESSAGE_TYPE) return false;
-      const payload = message.payload || message.nativeChatMask || {};
-      const pid = String(payload?.projectId || "");
-      // V14: ignora mensagens vindas de outra aba/projeto.
-      if (pid && pid !== PROJECT_ID) {
-        sendResponse?.({ ok: false, reason: "project-mismatch" });
-        return false;
-      }
-      persistLatestMask(payload);
-      sendResponse?.({ ok: true });
-      return false;
-    });
-  } catch {}
-
-  try {
-    chrome?.storage?.onChanged?.addListener?.((changes, areaName) => {
-      if (areaName !== "local") return;
-      const changed = changes?.[CHROME_NATIVE_MASK_KEY];
-      const value = changed?.newValue;
-      if (!value) return;
-      const pid = String(value?.projectId || "");
-      if (pid && pid !== PROJECT_ID) return;
-      persistLatestMask(value);
-    });
-  } catch {}
-
   function startObserver() {
     if (!document.body || observer) return Boolean(observer);
     observer = new MutationObserver(() => {
       clearTimeout(scanTimer);
-      scanTimer = setTimeout(() => { try { runPatch(); } catch {} }, 45);
+      scanTimer = setTimeout(() => { try { runPatch(); } catch {} }, 60);
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return true;
   }
 
-  // V14: ao voltar para a aba, força re-scan (caso DOM tenha sido alterado em background).
   try {
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") scheduleScans("visibility");
     });
   } catch {}
 
-  loadSessionLatestMask();
-  loadChromeNativeMask();
   runPatch();
   scheduleScans("init");
 
@@ -432,6 +228,4 @@
       startObserver();
     }, { once: true });
   }
-
-  setInterval(() => { try { runPatch(); } catch {} }, 4000);
 })();
