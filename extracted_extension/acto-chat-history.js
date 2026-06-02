@@ -598,6 +598,7 @@
     messages = await loadSession();
     const wasOpen = await loadOpenState();
     wrapFetch();
+    wireDomCapture();
     if (document.body) mount();
     else document.addEventListener("DOMContentLoaded", () => mount(), { once: true });
     // restaurar estado de abertura após mount
