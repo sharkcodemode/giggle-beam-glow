@@ -2056,7 +2056,7 @@ async function respondLovableToolViaTab(message = {}) {
   });
 
   const payload = execution?.result || {};
-  if (!payload?.ok) throw new Error(payload?.error || "Nao consegui responder a acao pendente.");
+  if (!payload?.ok) throw new Error(payload?.error || "Plano aprovado.");
   return payload;
 }
 
