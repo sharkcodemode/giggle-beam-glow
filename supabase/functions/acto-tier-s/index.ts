@@ -645,7 +645,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     selected_elements: (ctx as any).selectedElements ?? [],
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
-    intent: "fix_error", // Voltando para fix_error conforme solicitado
+    intent: "security_fix_v1", // Testando a versão legada de segurança conforme solicitado
     contains_error: true,
     error_ids: [typeid("error")],
     error_source: "runtime_error_toast",
@@ -654,7 +654,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
         errors: [
           {
             error_type: "runtime",
-            error_message: "ACTO Mensagem Recebida: Processando alterações...",
+            error_message: "ACTO Mensagem Recebida: Testando v1...",
             error_id: typeid("error")
           }
         ]
@@ -674,8 +674,8 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     runtime_errors: [
       {
         id: typeid("error"),
-        message: "ACTO Mensagem Recebida",
-        stack: "Error: ACTO Mensagem Recebida\n    at Object.execute (acto-internal.js:1:1)"
+        message: "ACTO Teste v1",
+        stack: "Error: ACTO Teste v1\n    at Object.execute (acto-internal.js:1:1)"
       }
     ],
     integration_metadata: {
