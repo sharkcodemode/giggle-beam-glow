@@ -1,19 +1,22 @@
 (() => {
-  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V15__) return;
-  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V15__ = true;
+  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V16__) return;
+  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V16__ = true;
 
-  const VERSION = "v15";
+  const VERSION = "v16";
   const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
-  const MASK_ATTR = "data-acto-native-mask-v15";
+  const MASK_ATTR = "data-acto-native-mask-v16";
   const MASK_CONTENT_ATTR = "data-acto-native-mask-content";
   const MASKED_FLAG = "data-acto-masked";
 
   const ATTACHMENT_MARKER = "[Contexto visual anexado]";
   const STORAGE_MARKER = "storage.googleapis.com/gpt-engineer-file-uploads";
   const MAX_SCAN_TEXT = 20000;
-  // V15: poucas varreduras curtas (apenas para alcançar bolhas que aparecem após o envio).
+  // V16: subida MUITO conservadora — bolha individual, nunca container de chat.
+  const MAX_ASCENT_DEPTH = 6;
+  // V16: se o root tem >50% de texto extra além do trigger, é wrapper de chat → abortar.
+  const TEXT_OVERFLOW_RATIO = 1.5;
   const SCAN_DELAYS = [40, 160, 480, 1200, 2400];
   const WRAPPER_PATTERNS = [
     /Fix all security issues/i,
@@ -119,15 +122,56 @@
     return nodes;
   }
 
+  function isChatContainerLike(el) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+    const role = String(el.getAttribute?.("role") || "").toLowerCase();
+    if (["log", "list", "feed", "main", "region"].includes(role)) return true;
+    const tag = String(el.tagName || "").toUpperCase();
+    if (["UL", "OL", "MAIN", "SECTION"].includes(tag)) return true;
+    try {
+      const style = getComputedStyle(el);
+      if (["auto", "scroll", "overlay"].includes(style.overflowY)) return true;
+      if (["auto", "scroll", "overlay"].includes(style.overflow)) return true;
+    } catch {}
+    // V16: se contém outro nó já mascarado → é wrapper de várias mensagens.
+    if (el.querySelector && el.querySelector(`[${MASKED_FLAG}="1"]`)) return true;
+    return false;
+  }
+
+  function containsOtherTriggerNodes(el, currentTextNode) {
+    if (!el || !el.childNodes) return false;
+    let triggerCount = 0;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (node === currentTextNode) return NodeFilter.FILTER_REJECT;
+        const value = node.nodeValue || "";
+        return isMaskTriggerText(value) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      },
+    });
+    while (walker.nextNode()) {
+      triggerCount += 1;
+      if (triggerCount >= 1) return true;
+    }
+    return false;
+  }
+
   function candidateRootsFromTextNode(textNode) {
     const candidates = [];
+    const triggerLen = (textNode?.nodeValue || "").length;
+    if (!triggerLen) return candidates;
     let node = textNode?.parentElement || null;
-    for (let depth = 0; node && depth < 14; depth += 1, node = node.parentElement) {
+    for (let depth = 0; node && depth < MAX_ASCENT_DEPTH; depth += 1, node = node.parentElement) {
       if (isIgnoredElement(node) || isBoundaryElement(node)) break;
       // V15: nó já mascarado é parada absoluta — nunca reescrever.
       if (node.getAttribute && node.getAttribute(MASKED_FLAG) === "1") break;
+      // V16: parar AGRESSIVAMENTE em qualquer sinal de container de chat.
+      if (isChatContainerLike(node)) break;
       const text = safeText(node);
       if (!isMaskTriggerText(text)) break;
+      // V16: se o nó tem MUITO mais texto que o trigger, é wrapper que contém outras mensagens.
+      if (text.length > triggerLen * TEXT_OVERFLOW_RATIO) break;
+      // V16: se há OUTRO textNode trigger dentro, é wrapper → abortar subida.
+      if (containsOtherTriggerNodes(node, textNode)) break;
       const score = visualScore(node);
       if (score >= 0) candidates.push({ el: node, score, area: (rectOf(node)?.width || 0) * (rectOf(node)?.height || 0), depth });
     }
@@ -151,6 +195,10 @@
     if (root.getAttribute(MASKED_FLAG) === "1") return false;
     const originalText = safeText(root);
     if (!isMaskTriggerText(originalText)) return false;
+    // V16: guard final — nunca substituir um nó que contenha outras mensagens mascaradas
+    // ou um container de scroll (defesa em profundidade caso candidateRoots falhe).
+    if (isChatContainerLike(root)) return false;
+    if (root.querySelector && root.querySelector(`[${MASKED_FLAG}="1"]`)) return false;
 
     const mask = document.createElement("div");
     mask.setAttribute(MASK_CONTENT_ATTR, "1");
