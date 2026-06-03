@@ -18,6 +18,12 @@
   // V16: se o root tem >50% de texto extra além do trigger, é wrapper de chat → abortar.
   const TEXT_OVERFLOW_RATIO = 1.5;
   const SCAN_DELAYS = [40, 160, 480, 1200, 2400];
+  // V18: substrings literais — substituídas in-place dentro de qualquer textNode (case-insensitive).
+  // Não precisam que o nodeValue inteiro bata; pegam até "Fix all security issues" dentro de markdown.
+  const LITERAL_TRIGGERS = [
+    "Fix all security issues",
+    "[Contexto visual anexado]",
+  ];
   const WRAPPER_PATTERNS = [
     /Fix all security issues/i,
     /Trate a mensagem abaixo como um bug\/issue/i,
