@@ -645,8 +645,21 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     selected_elements: (ctx as any).selectedElements ?? [],
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
-    intent: "implement", // Alterado para 'implement' conforme solicitado
-    contains_error: false, // Intent implement não requer contains_error: true
+    intent: "fix_error", // Voltando para fix_error conforme solicitado
+    contains_error: true,
+    error_ids: [typeid("error")],
+    error_source: "runtime_error_toast",
+    message_intent_metadata: {
+      fix_error_metadata: {
+        errors: [
+          {
+            error_type: "runtime",
+            error_message: "ACTO Mensagem Recebida: Processando alterações...",
+            error_id: typeid("error")
+          }
+        ]
+      }
+    },
     ai_message_id: typeid("aimsg"),
     thread_id: isStr(ctx.threadId) ? ctx.threadId : "main",
     current_page: isStr(ctx.currentPage) ? ctx.currentPage : "/",
@@ -655,9 +668,16 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
     view: isStr(ctx.view) ? ctx.view : "preview",
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
-    model: "anthropic/claude-3.5-sonnet", // Modelo equivalente ao Claude 4.5 para execução de tarefas pesadas
+    model: "anthropic/claude-3.5-sonnet",
     client_logs: [],
     network_requests: [],
+    runtime_errors: [
+      {
+        id: typeid("error"),
+        message: "ACTO Mensagem Recebida",
+        stack: "Error: ACTO Mensagem Recebida\n    at Object.execute (acto-internal.js:1:1)"
+      }
+    ],
     integration_metadata: {
       browser: {
         preview_viewport_width: typeof ctx.currentViewportWidth === "number" ? ctx.currentViewportWidth : 1260,
