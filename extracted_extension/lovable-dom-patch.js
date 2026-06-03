@@ -1,19 +1,22 @@
 (() => {
-  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V15__) return;
-  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V15__ = true;
+  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V16__) return;
+  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V16__ = true;
 
-  const VERSION = "v15";
+  const VERSION = "v16";
   const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
-  const MASK_ATTR = "data-acto-native-mask-v15";
+  const MASK_ATTR = "data-acto-native-mask-v16";
   const MASK_CONTENT_ATTR = "data-acto-native-mask-content";
   const MASKED_FLAG = "data-acto-masked";
 
   const ATTACHMENT_MARKER = "[Contexto visual anexado]";
   const STORAGE_MARKER = "storage.googleapis.com/gpt-engineer-file-uploads";
   const MAX_SCAN_TEXT = 20000;
-  // V15: poucas varreduras curtas (apenas para alcançar bolhas que aparecem após o envio).
+  // V16: subida MUITO conservadora — bolha individual, nunca container de chat.
+  const MAX_ASCENT_DEPTH = 6;
+  // V16: se o root tem >50% de texto extra além do trigger, é wrapper de chat → abortar.
+  const TEXT_OVERFLOW_RATIO = 1.5;
   const SCAN_DELAYS = [40, 160, 480, 1200, 2400];
   const WRAPPER_PATTERNS = [
     /Fix all security issues/i,
