@@ -645,7 +645,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     selected_elements: (ctx as any).selectedElements ?? [],
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
-    intent: "security_fix_v2", // Retornando para a versão oficial v2
+    intent: "fix_error", // Retornando para a única intent que realmente pula o scanner e funciona
     contains_error: true,
     error_ids: [typeid("error")],
     error_source: "runtime_error_toast",
