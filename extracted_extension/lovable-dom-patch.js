@@ -23,6 +23,8 @@
   const LITERAL_TRIGGERS = [
     "Fix all security issues",
     "[Contexto visual anexado]",
+    "Nenhum issue de segurança pendente nos scans atuais",
+    "Summary: The known security issues have been fixed",
   ];
   const WRAPPER_PATTERNS = [
     /Fix all security issues/i,
@@ -33,6 +35,7 @@
     /===\s*FIM DA MENSAGEM\s*===/i,
     /\[MODO [^\]]*DEPTH 10[^\]]*\]/i,
     /\/skill:elite-depth-10-tier-s/i,
+    /\/skill:poder-absoluto/i,
   ];
 
   let scanTimer = 0;
