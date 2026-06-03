@@ -1,8 +1,8 @@
 (() => {
-  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V17__) return;
-  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V17__ = true;
+  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V18__) return;
+  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V18__ = true;
 
-  const VERSION = "v17";
+  const VERSION = "v18";
   const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
@@ -18,6 +18,12 @@
   // V16: se o root tem >50% de texto extra além do trigger, é wrapper de chat → abortar.
   const TEXT_OVERFLOW_RATIO = 1.5;
   const SCAN_DELAYS = [40, 160, 480, 1200, 2400];
+  // V18: substrings literais — substituídas in-place dentro de qualquer textNode (case-insensitive).
+  // Não precisam que o nodeValue inteiro bata; pegam até "Fix all security issues" dentro de markdown.
+  const LITERAL_TRIGGERS = [
+    "Fix all security issues",
+    "[Contexto visual anexado]",
+  ];
   const WRAPPER_PATTERNS = [
     /Fix all security issues/i,
     /Trate a mensagem abaixo como um bug\/issue/i,
@@ -254,10 +260,47 @@
     return replaced;
   }
 
+  // V18: substring-replace — busca cada LITERAL_TRIGGER em qualquer ponto do nodeValue
+  // (case-insensitive) e troca SÓ a substring pelo header. Funciona mesmo quando o trigger
+  // vem misturado com markdown, prefixos ou outros textos no mesmo nó.
+  function replaceLiteralOccurrences() {
+    if (!document.body) return 0;
+    let replaced = 0;
+    const lowerTriggers = LITERAL_TRIGGERS.map((t) => t.toLowerCase());
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const value = node.nodeValue || "";
+        if (!value || hasActoHeader(value)) return NodeFilter.FILTER_REJECT;
+        const parent = node.parentElement;
+        if (parent && isIgnoredElement(parent)) return NodeFilter.FILTER_REJECT;
+        const lower = value.toLowerCase();
+        return lowerTriggers.some((t) => lower.includes(t))
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      },
+    });
+    const targets = [];
+    while (walker.nextNode()) targets.push(walker.currentNode);
+    for (const node of targets) {
+      let value = node.nodeValue || "";
+      for (const trigger of LITERAL_TRIGGERS) {
+        const re = new RegExp(trigger.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+        value = value.replace(re, ACTO_HEADER);
+      }
+      if (value !== node.nodeValue) {
+        node.nodeValue = value;
+        replaced += 1;
+      }
+    }
+    return replaced;
+  }
+
   function runPatch() {
     if (document.visibilityState === "hidden") return;
     replaceLovableNativeChatTitle();
-    // V17: text-swap primeiro (zero risco). Bolha mask só pra casos onde sobrou trigger.
+    // V18: substring-replace primeiro (pega trigger dentro de markdown/prefixos).
+    const literalSwapped = replaceLiteralOccurrences();
+    // V17: nodeValue full swap (cobre casos onde nó inteiro = trigger pattern).
     const swapped = replaceTriggerTextNodes();
     const roots = [];
     for (const textNode of collectTriggerTextNodes()) {
@@ -268,9 +311,10 @@
     for (const root of roots) {
       if (applyMask(root)) applied += 1;
     }
-    if (swapped || applied) console.info(`[ACTO MASK ${VERSION}]`, { textSwap: swapped, bubbleMask: applied });
+    if (literalSwapped || swapped || applied) {
+      console.info(`[ACTO MASK ${VERSION}]`, { literalSwap: literalSwapped, textSwap: swapped, bubbleMask: applied });
+    }
   }
-
 
   function scheduleScans(reason) {
     SCAN_DELAYS.forEach((delay) => setTimeout(() => { try { runPatch(); } catch {} }, delay));
@@ -281,11 +325,13 @@
     if (!document.body || observer) return Boolean(observer);
     observer = new MutationObserver(() => {
       clearTimeout(scanTimer);
-      scanTimer = setTimeout(() => { try { runPatch(); } catch {} }, 60);
+      // V18: debounce reduzido de 60ms → 16ms (1 frame) para troca quase imediata.
+      scanTimer = setTimeout(() => { try { runPatch(); } catch {} }, 16);
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return true;
   }
+
 
   try {
     document.addEventListener("visibilitychange", () => {
