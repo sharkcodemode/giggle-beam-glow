@@ -1,8 +1,8 @@
 (() => {
-  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V16__) return;
-  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V16__ = true;
+  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V17__) return;
+  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V17__ = true;
 
-  const VERSION = "v16";
+  const VERSION = "v17";
   const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
@@ -230,9 +230,35 @@
     nodes.forEach((node) => { node.nodeValue = node.nodeValue.replaceAll(TITLE_FROM, TITLE_TO); });
   }
 
+  // V17: troca direta de nodeValue — sem DOM surgery, sem risco de destruir chat.
+  // Estratégia primária: se um textNode bate com qualquer trigger pattern, substitui o valor.
+  function replaceTriggerTextNodes() {
+    if (!document.body) return 0;
+    let replaced = 0;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const value = node.nodeValue || "";
+        if (!value || hasActoHeader(value)) return NodeFilter.FILTER_REJECT;
+        return isMaskTriggerText(value) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      },
+    });
+    const targets = [];
+    while (walker.nextNode()) targets.push(walker.currentNode);
+    for (const node of targets) {
+      // Guard: parent não pode ser input/textarea (não tem nodeValue editável visualmente do mesmo jeito).
+      const parent = node.parentElement;
+      if (parent && isIgnoredElement(parent)) continue;
+      node.nodeValue = ACTO_HEADER;
+      replaced += 1;
+    }
+    return replaced;
+  }
+
   function runPatch() {
     if (document.visibilityState === "hidden") return;
     replaceLovableNativeChatTitle();
+    // V17: text-swap primeiro (zero risco). Bolha mask só pra casos onde sobrou trigger.
+    const swapped = replaceTriggerTextNodes();
     const roots = [];
     for (const textNode of collectTriggerTextNodes()) {
       const root = chooseMaskRoot(textNode);
@@ -242,8 +268,9 @@
     for (const root of roots) {
       if (applyMask(root)) applied += 1;
     }
-    if (applied) console.info(`[ACTO MASK ${VERSION}] applied`, { count: applied });
+    if (swapped || applied) console.info(`[ACTO MASK ${VERSION}]`, { textSwap: swapped, bubbleMask: applied });
   }
+
 
   function scheduleScans(reason) {
     SCAN_DELAYS.forEach((delay) => setTimeout(() => { try { runPatch(); } catch {} }, delay));
