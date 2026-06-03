@@ -1,8 +1,8 @@
 (() => {
-  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V16__) return;
-  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V16__ = true;
+  if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V17__) return;
+  window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V17__ = true;
 
-  const VERSION = "v16";
+  const VERSION = "v17";
   const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
