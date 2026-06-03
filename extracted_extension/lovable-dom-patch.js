@@ -2,7 +2,7 @@
   if (window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V18__) return;
   window.__ACTO_LOVABLE_DOM_PATCH_NATIVE_MASK_V18__ = true;
 
-  const VERSION = "v18";
+  const VERSION = "v18.1";
   const ACTO_HEADER = "⚡ 𝖠𝖢𝖳𝖮 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
   const TITLE_FROM = "Fast Visual Edit";
   const TITLE_TO = "ACTO - Message Received";
