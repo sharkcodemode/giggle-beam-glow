@@ -13,6 +13,11 @@ interface AppsScriptRaw {
   data?: Record<string, unknown>;
   license?: Record<string, unknown>;
   licenca?: Record<string, unknown>;
+  ok?: unknown;
+  success?: unknown;
+  sucesso?: unknown;
+  valid?: unknown;
+  valido?: unknown;
   mensagem?: string;
   erro?: string;
   message?: string;
@@ -33,6 +38,24 @@ function pick(o: Record<string, unknown>, keys: string[]): string {
     if (s) return s;
   }
   return "";
+}
+
+function pickBoolean(o: Record<string, unknown>, keys: string[]): boolean | null {
+  for (const k of keys) {
+    const v = o[k];
+    if (typeof v === "boolean") return v;
+    if (typeof v === "string") {
+      const s = v.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (["true", "sim", "yes", "ok", "active", "ativo", "ativa", "valid", "valido", "valida"].includes(s)) return true;
+      if (["false", "nao", "no", "invalid", "invalido", "invalida"].includes(s)) return false;
+    }
+  }
+  return null;
+}
+
+function messageLooksLikeError(message: string): boolean {
+  const s = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return /(erro|error|falh|negad|invalid|inval|nao\s+encontrad|not[_ ]?found|inexistente|expir|vencid|revog|bloque|suspens|cancel)/.test(s);
 }
 
 function parseDate(s: string): Date | null {
@@ -106,7 +129,10 @@ Deno.serve(async (req) => {
     }
 
     const flat = flatten(raw);
-    const errorMsg = pick(raw as Record<string, unknown>, ["erro", "error", "mensagem", "message"]);
+    const rawRecord = raw as Record<string, unknown>;
+    const explicitErrorMsg = pick(rawRecord, ["erro", "error"]);
+    const infoMsg = pick(rawRecord, ["mensagem", "message"]);
+    const successFlag = pickBoolean(flat, ["ok", "success", "sucesso", "valid", "valido", "ativa", "active"]);
     const statusRaw = pick(flat, ["status", "Status"]);
     const validadeRaw = pick(flat, ["validade", "Validade", "validUntil", "expires_at", "expiresAt"]);
     const validade = parseDate(validadeRaw);
@@ -114,8 +140,15 @@ Deno.serve(async (req) => {
 
     let status = normalizeStatus(statusRaw);
 
-    // Error envelope from Apps Script = not_found (key unknown / unreadable)
-    if (!statusRaw && errorMsg) status = "not_found";
+    // Some Apps Script paths return only a success boolean/message plus validity.
+    // Treat that as active when the validity is still in the future.
+    if (status === "unknown" && successFlag === true && (!validade || validade.getTime() > now.getTime())) {
+      status = "active";
+    }
+
+    // Error envelope from Apps Script = not_found (key unknown / unreadable).
+    // Do not classify positive informational messages as errors.
+    if (status === "unknown" && (explicitErrorMsg || messageLooksLikeError(infoMsg))) status = "not_found";
 
     // SERVER-SIDE EXPIRATION OVERRIDE: validade <= now forces expired
     if (status === "active" && validade && validade.getTime() <= now.getTime()) {
@@ -134,7 +167,7 @@ Deno.serve(async (req) => {
     return json({
       status,
       expires_at: validade?.toISOString() ?? null,
-      reason: status === "active" ? null : (errorMsg || statusRaw || status),
+      reason: status === "active" ? null : (explicitErrorMsg || infoMsg || statusRaw || status),
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
