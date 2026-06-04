@@ -15,7 +15,8 @@
     "tabs",
     "scripting",
     "webRequest",
-    "windows"
+    "windows",
+    "alarms"
   ],
   "host_permissions": [
     "https://lovable.dev/*",
