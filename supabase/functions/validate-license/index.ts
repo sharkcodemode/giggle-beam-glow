@@ -5,6 +5,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 const APPS_SCRIPT_URL = Deno.env.get("ACTO_APPS_SCRIPT_URL") ?? "";
 const LICENSE_REGEX = /^[A-Z]{2,5}(-[A-Z0-9]{3}){2,3}$/;
 const EXT_VERSION = "2.19.0";
+const VALIDATOR_VERSION = "2026-06-04-trial-date-fallback-v2";
 
 type Status = "active" | "expired" | "revoked" | "not_found";
 
@@ -197,6 +198,7 @@ Deno.serve(async (req) => {
       return json({
         status: "unknown",
         reason: "unrecognized_status",
+        validator_version: VALIDATOR_VERSION,
         upstream_status: statusRaw || null,
         expires_at: validade?.toISOString() ?? null,
       });
@@ -206,6 +208,7 @@ Deno.serve(async (req) => {
       status,
       expires_at: validade?.toISOString() ?? null,
       reason: status === "active" ? null : (explicitErrorMsg || infoMsg || statusRaw || status),
+      validator_version: VALIDATOR_VERSION,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
