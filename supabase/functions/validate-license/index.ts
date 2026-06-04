@@ -4,7 +4,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 const APPS_SCRIPT_URL = Deno.env.get("ACTO_APPS_SCRIPT_URL") ?? "";
 const LICENSE_REGEX = /^[A-Z]{2,5}(-[A-Z0-9]{3}){2,3}$/;
-const EXT_VERSION = "2.18.0";
+const EXT_VERSION = "2.19.0";
 
 type Status = "active" | "expired" | "revoked" | "not_found";
 
@@ -56,6 +56,11 @@ function pickBoolean(o: Record<string, unknown>, keys: string[]): boolean | null
 function messageLooksLikeError(message: string): boolean {
   const s = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return /(erro|error|falh|negad|invalid|inval|nao\s+encontrad|not[_ ]?found|inexistente|expir|vencid|revog|bloque|suspens|cancel)/.test(s);
+}
+
+function messageLooksLikeSuccess(message: string): boolean {
+  const s = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return /(sucesso|success|ativad|active|valid|valida|ok|liberad|autorizad)/.test(s);
 }
 
 function parseDate(s: string): Date | null {
@@ -142,7 +147,11 @@ Deno.serve(async (req) => {
 
     // Some Apps Script paths return only a success boolean/message plus validity.
     // Treat that as active when the validity is still in the future.
-    if (status === "unknown" && successFlag === true && (!validade || validade.getTime() > now.getTime())) {
+    if (
+      status === "unknown" &&
+      (successFlag === true || messageLooksLikeSuccess(infoMsg)) &&
+      (!validade || validade.getTime() > now.getTime())
+    ) {
       status = "active";
     }
 
