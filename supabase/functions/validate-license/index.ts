@@ -152,6 +152,9 @@ Deno.serve(async (req) => {
     const rawRecord = raw as Record<string, unknown>;
     const explicitErrorMsg = pick(rawRecord, ["erro", "error"]);
     const infoMsg = pick(rawRecord, ["mensagem", "message"]);
+    const upstreamMessage = explicitErrorMsg || infoMsg;
+    const upstreamMessageIsError = messageLooksLikeError(upstreamMessage);
+    const upstreamMessageIsSuccess = messageLooksLikeSuccess(upstreamMessage);
     const successFlag = pickBoolean(flat, ["ok", "success", "sucesso", "valid", "valido", "ativa", "active"]);
     const statusRaw = pick(flat, ["status", "Status"]);
     const validadeRaw = pick(flat, ["validade", "Validade", "validUntil", "expires_at", "expiresAt"]);
@@ -159,7 +162,7 @@ Deno.serve(async (req) => {
     const now = new Date();
 
     let status = normalizeStatus(statusRaw);
-    const hasPositiveSignal = successFlag === true || messageLooksLikeSuccess(infoMsg) || status === "active";
+    const hasPositiveSignal = successFlag === true || upstreamMessageIsSuccess || status === "active";
     const swappedBrazilValidade = parseBrazilianIsoSwapDate(validadeRaw);
     const swappedWindowMs = swappedBrazilValidade ? swappedBrazilValidade.getTime() - now.getTime() : 0;
     const shouldUseBrazilianDateFallback = Boolean(
@@ -168,8 +171,7 @@ Deno.serve(async (req) => {
       swappedBrazilValidade &&
       swappedBrazilValidade.getTime() > now.getTime() &&
       (hasPositiveSignal || (key.startsWith("TRIAL-") && swappedWindowMs <= 7 * 24 * 60 * 60 * 1000)) &&
-      !explicitErrorMsg &&
-      !messageLooksLikeError(infoMsg),
+      !upstreamMessageIsError,
     );
     const validade = shouldUseBrazilianDateFallback ? swappedBrazilValidade : parsedValidade;
 
@@ -177,9 +179,8 @@ Deno.serve(async (req) => {
     // Treat that as active when the validity is still in the future.
     if (
       status === "unknown" &&
-      (successFlag === true || validade || messageLooksLikeSuccess(infoMsg)) &&
-      !explicitErrorMsg &&
-      !messageLooksLikeError(infoMsg) &&
+      (successFlag === true || validade || upstreamMessageIsSuccess) &&
+      !upstreamMessageIsError &&
       (!validade || validade.getTime() > now.getTime())
     ) {
       status = "active";
@@ -187,7 +188,7 @@ Deno.serve(async (req) => {
 
     // Error envelope from Apps Script = not_found (key unknown / unreadable).
     // Do not classify positive informational messages as errors.
-    if (status === "unknown" && (explicitErrorMsg || messageLooksLikeError(infoMsg))) status = "not_found";
+    if (status === "unknown" && upstreamMessageIsError) status = "not_found";
 
     // SERVER-SIDE EXPIRATION OVERRIDE: validade <= now forces expired
     if (status === "active" && validade && validade.getTime() <= now.getTime()) {
@@ -207,7 +208,7 @@ Deno.serve(async (req) => {
     return json({
       status,
       expires_at: validade?.toISOString() ?? null,
-      reason: status === "active" ? null : (explicitErrorMsg || infoMsg || statusRaw || status),
+      reason: status === "active" ? null : (upstreamMessage || statusRaw || status),
       validator_version: VALIDATOR_VERSION,
     });
   } catch (error) {
