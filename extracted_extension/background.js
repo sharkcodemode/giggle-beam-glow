@@ -3937,7 +3937,8 @@ chrome.action.onClicked.addListener(async (tab) => {
 // ============================================================
 // ACTO License Validation (MV3 alarms, dual-format key support)
 // ============================================================
-const ACTO_LICENSE_API_BASE = "https://myapocsfpjngycwqyguj.supabase.co/functions/v1";
+const ACTO_LICENSE_API_BASE = "https://bldjotvptyxnnxwvcufk.supabase.co/functions/v1";
+const ACTO_LICENSE_TERMINAL_STATUSES = new Set(["expired", "revoked", "not_found"]);
 const ACTO_LICENSE_VALIDATE_ENDPOINT = `${ACTO_LICENSE_API_BASE}/validate-license`;
 const ACTO_LICENSE_STATUS_KEY = "license_status";
 const ACTO_LICENSE_EXPIRES_KEY = "license_expires_at";
@@ -3975,7 +3976,7 @@ async function validateActoLicense() {
       [ACTO_LICENSE_LAST_CHECK_KEY]: Date.now(),
     });
 
-    if (data.status && data.status !== "active") {
+    if (ACTO_LICENSE_TERMINAL_STATUSES.has(data.status)) {
       await forceActoLogout(data.reason || data.status);
     }
     return data;
