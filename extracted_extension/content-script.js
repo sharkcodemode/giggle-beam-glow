@@ -2,6 +2,44 @@
   if (window.__ACTO_LOVABLE_CONTEXT_CAPTURED__) return;
   window.__ACTO_LOVABLE_CONTEXT_CAPTURED__ = true;
 
+  // ---- License gate (dual-format, MV3-safe) ----
+  window.__ACTO_LICENSE_OK__ = false;
+  async function actoCheckLicense() {
+    try {
+      const stored = await new Promise((resolve) =>
+        chrome.storage.local.get(["license_status"], (v) => resolve(v || {}))
+      );
+      window.__ACTO_LICENSE_OK__ = stored.license_status === "active";
+      return window.__ACTO_LICENSE_OK__;
+    } catch {
+      window.__ACTO_LICENSE_OK__ = false;
+      return false;
+    }
+  }
+  window.__actoEnsureLicense = async function (action) {
+    const ok = await actoCheckLicense();
+    if (!ok) {
+      try {
+        const t = document.createElement("div");
+        t.textContent = "ACTO: Licença expirada ou inválida.";
+        t.style.cssText = "position:fixed;top:16px;right:16px;z-index:2147483647;background:#111;color:#fff;padding:10px 14px;border-radius:8px;font:600 13px/1.2 system-ui;box-shadow:0 4px 16px rgba(0,0,0,.4)";
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+      } catch {}
+      console.warn("[ACTO] Aborting action — license not active:", action || "");
+    }
+    return ok;
+  };
+  actoCheckLicense();
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.license_status) {
+        window.__ACTO_LICENSE_OK__ = changes.license_status.newValue === "active";
+      }
+    });
+  } catch {}
+
+
   const MESSAGE_TYPE = "ACTO_LOVABLE_CONTEXT_CAPTURE";
   const SHOW_FLOATING_ICON_MESSAGE_TYPE = "ACTO_SHOW_FLOATING_ICON";
   const HIDE_FLOATING_ICON_MESSAGE_TYPE = "ACTO_HIDE_FLOATING_ICON";

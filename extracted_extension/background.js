@@ -3933,3 +3933,109 @@ chrome.action.onClicked.addListener(async (tab) => {
     console.warn("Unable to open ACTO side panel", error);
   }
 });
+
+// ============================================================
+// ACTO License Validation (MV3 alarms, dual-format key support)
+// ============================================================
+const ACTO_LICENSE_API_BASE = "https://myapocsfpjngycwqyguj.supabase.co/functions/v1";
+const ACTO_LICENSE_VALIDATE_ENDPOINT = `${ACTO_LICENSE_API_BASE}/validate-license`;
+const ACTO_LICENSE_STATUS_KEY = "license_status";
+const ACTO_LICENSE_EXPIRES_KEY = "license_expires_at";
+const ACTO_LICENSE_LAST_CHECK_KEY = "license_last_check";
+const ACTO_LICENSE_POLL_ALARM = "license_poll";
+const ACTO_LICENSE_POLL_PERIOD_MIN = 0.5; // 30s
+// Unified regex: accepts legacy (3 segs) + new (4 segs) formats
+const ACTO_LICENSE_REGEX = /^[A-Z]{2,5}(-[A-Z0-9]{3}){2,3}$/;
+
+function isValidActoLicenseFormat(key) {
+  return typeof key === "string" && ACTO_LICENSE_REGEX.test(key.trim());
+}
+
+async function validateActoLicense() {
+  const stored = await storageGet([ACTO_LICENSE_KEY, ACTO_DEVICE_ID_KEY]);
+  const key = stored[ACTO_LICENSE_KEY];
+  if (!key) return { status: "not_found", reason: "no_key" };
+
+  const deviceId = await getOrCreateActoDeviceId(stored[ACTO_DEVICE_ID_KEY]);
+
+  try {
+    const resp = await fetch(ACTO_LICENSE_VALIDATE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, device_id: deviceId }),
+    });
+    if (!resp.ok) {
+      console.warn("[ACTO license] HTTP", resp.status);
+      return { status: "network_error", reason: `http_${resp.status}` };
+    }
+    const data = await resp.json();
+    await storageSet({
+      [ACTO_LICENSE_STATUS_KEY]: data.status || "unknown",
+      [ACTO_LICENSE_EXPIRES_KEY]: data.expires_at || null,
+      [ACTO_LICENSE_LAST_CHECK_KEY]: Date.now(),
+    });
+
+    if (data.status && data.status !== "active") {
+      await forceActoLogout(data.reason || data.status);
+    }
+    return data;
+  } catch (error) {
+    console.warn("[ACTO license] validate failed", error);
+    return { status: "network_error", reason: error?.message || "fetch_failed" };
+  }
+}
+
+async function forceActoLogout(reason) {
+  try {
+    await new Promise((resolve) =>
+      chrome.storage.local.remove(
+        [ACTO_LICENSE_KEY, ACTO_DEVICE_ID_KEY, "session", ACTO_LICENSE_STATUS_KEY, ACTO_LICENSE_EXPIRES_KEY],
+        () => resolve()
+      )
+    );
+    chrome.runtime.sendMessage({ type: "FORCE_LOGOUT", reason }).catch(() => {});
+    chrome.alarms.clear(ACTO_LICENSE_POLL_ALARM).catch(() => {});
+  } catch (error) {
+    console.warn("[ACTO license] forceLogout failed", error);
+  }
+}
+
+async function ensureActoLicensePollAlarm() {
+  const existing = await chrome.alarms.get(ACTO_LICENSE_POLL_ALARM).catch(() => null);
+  if (existing) return;
+  await chrome.alarms.create(ACTO_LICENSE_POLL_ALARM, {
+    periodInMinutes: ACTO_LICENSE_POLL_PERIOD_MIN,
+    delayInMinutes: ACTO_LICENSE_POLL_PERIOD_MIN,
+  });
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm?.name === ACTO_LICENSE_POLL_ALARM) {
+    validateActoLicense().catch((error) => console.warn("[ACTO license] poll error", error));
+  }
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  ensureActoLicensePollAlarm().catch(() => {});
+  validateActoLicense().catch(() => {});
+});
+chrome.runtime.onInstalled.addListener(() => {
+  ensureActoLicensePollAlarm().catch(() => {});
+  validateActoLicense().catch(() => {});
+});
+
+// Expose validation to popup/content scripts on demand
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "ACTO_VALIDATE_LICENSE_NOW") {
+    validateActoLicense()
+      .then((data) => sendResponse({ ok: true, data }))
+      .catch((error) => sendResponse({ ok: false, error: error?.message || "validate failed" }));
+    return true;
+  }
+  if (message?.type === "ACTO_CHECK_LICENSE_FORMAT") {
+    sendResponse({ ok: true, valid: isValidActoLicenseFormat(message.key) });
+    return false;
+  }
+});
+
+ensureActoLicensePollAlarm().catch(() => {});
