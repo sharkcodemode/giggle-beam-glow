@@ -3976,7 +3976,7 @@ async function validateActoLicense() {
       [ACTO_LICENSE_LAST_CHECK_KEY]: Date.now(),
     });
 
-    if (data.status && data.status !== "active") {
+    if (ACTO_LICENSE_TERMINAL_STATUSES.has(data.status)) {
       await forceActoLogout(data.reason || data.status);
     }
     return data;
