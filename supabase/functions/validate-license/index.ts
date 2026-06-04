@@ -5,7 +5,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 const APPS_SCRIPT_URL = Deno.env.get("ACTO_APPS_SCRIPT_URL") ?? "";
 const LICENSE_REGEX = /^[A-Z]{2,5}(-[A-Z0-9]{3}){2,3}$/;
 const EXT_VERSION = "2.19.0";
-const VALIDATOR_VERSION = "2026-06-04-trial-date-fallback-v2";
+const VALIDATOR_VERSION = "2026-06-04-trial-date-fallback-v3";
 
 type Status = "active" | "expired" | "revoked" | "not_found";
 
