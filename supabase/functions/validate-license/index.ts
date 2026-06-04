@@ -149,7 +149,9 @@ Deno.serve(async (req) => {
     // Treat that as active when the validity is still in the future.
     if (
       status === "unknown" &&
-      (successFlag === true || messageLooksLikeSuccess(infoMsg)) &&
+      (successFlag === true || validade || messageLooksLikeSuccess(infoMsg)) &&
+      !explicitErrorMsg &&
+      !messageLooksLikeError(infoMsg) &&
       (!validade || validade.getTime() > now.getTime())
     ) {
       status = "active";
