@@ -66,8 +66,6 @@ function messageLooksLikeSuccess(message: string): boolean {
 
 function parseDate(s: string): Date | null {
   if (!s) return null;
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) return d;
   // dd/MM/yyyy [HH:mm[:ss]]
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
   if (m) {
@@ -77,6 +75,8 @@ function parseDate(s: string): Date | null {
     );
     if (!isNaN(d2.getTime())) return d2;
   }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
   return null;
 }
 
