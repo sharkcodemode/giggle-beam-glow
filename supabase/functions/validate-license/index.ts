@@ -160,12 +160,13 @@ Deno.serve(async (req) => {
     let status = normalizeStatus(statusRaw);
     const hasPositiveSignal = successFlag === true || messageLooksLikeSuccess(infoMsg) || status === "active";
     const swappedBrazilValidade = parseBrazilianIsoSwapDate(validadeRaw);
+    const swappedWindowMs = swappedBrazilValidade ? swappedBrazilValidade.getTime() - now.getTime() : 0;
     const shouldUseBrazilianDateFallback = Boolean(
       parsedValidade &&
       parsedValidade.getTime() <= now.getTime() &&
       swappedBrazilValidade &&
       swappedBrazilValidade.getTime() > now.getTime() &&
-      hasPositiveSignal &&
+      (hasPositiveSignal || (key.startsWith("TRIAL-") && swappedWindowMs <= 7 * 24 * 60 * 60 * 1000)) &&
       !explicitErrorMsg &&
       !messageLooksLikeError(infoMsg),
     );
