@@ -69,10 +69,10 @@ function parseDate(s: string): Date | null {
   // dd/MM/yyyy [HH:mm[:ss]]
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
   if (m) {
-    const d2 = new Date(
+    const d2 = new Date(Date.UTC(
       Number(m[3]), Number(m[2]) - 1, Number(m[1]),
-      Number(m[4] ?? 0), Number(m[5] ?? 0), Number(m[6] ?? 0),
-    );
+      Number(m[4] ?? 0) + 3, Number(m[5] ?? 0), Number(m[6] ?? 0),
+    ));
     if (!isNaN(d2.getTime())) return d2;
   }
   const d = new Date(s);
