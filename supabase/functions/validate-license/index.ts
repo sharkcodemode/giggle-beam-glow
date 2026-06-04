@@ -79,6 +79,20 @@ function parseDate(s: string): Date | null {
   return null;
 }
 
+function parseBrazilianIsoSwapDate(s: string): Date | null {
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const hour = Number(m[4]);
+  const minute = Number(m[5]);
+  const second = Number(m[6]);
+  if (month < 1 || month > 12 || day < 1 || day > 12 || month === day) return null;
+  const swappedAsBrazilLocal = new Date(Date.UTC(year, day - 1, month, hour + 3, minute, second));
+  return isNaN(swappedAsBrazilLocal.getTime()) ? null : swappedAsBrazilLocal;
+}
+
 function normalizeStatus(raw: string): Status | "unknown" {
   const s = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (!s) return "unknown";
@@ -140,10 +154,22 @@ Deno.serve(async (req) => {
     const successFlag = pickBoolean(flat, ["ok", "success", "sucesso", "valid", "valido", "ativa", "active"]);
     const statusRaw = pick(flat, ["status", "Status"]);
     const validadeRaw = pick(flat, ["validade", "Validade", "validUntil", "expires_at", "expiresAt"]);
-    const validade = parseDate(validadeRaw);
+    const parsedValidade = parseDate(validadeRaw);
     const now = new Date();
 
     let status = normalizeStatus(statusRaw);
+    const hasPositiveSignal = successFlag === true || messageLooksLikeSuccess(infoMsg) || status === "active";
+    const swappedBrazilValidade = parseBrazilianIsoSwapDate(validadeRaw);
+    const shouldUseBrazilianDateFallback = Boolean(
+      parsedValidade &&
+      parsedValidade.getTime() <= now.getTime() &&
+      swappedBrazilValidade &&
+      swappedBrazilValidade.getTime() > now.getTime() &&
+      hasPositiveSignal &&
+      !explicitErrorMsg &&
+      !messageLooksLikeError(infoMsg),
+    );
+    const validade = shouldUseBrazilianDateFallback ? swappedBrazilValidade : parsedValidade;
 
     // Some Apps Script paths return only a success boolean/message plus validity.
     // Treat that as active when the validity is still in the future.
