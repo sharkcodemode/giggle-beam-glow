@@ -188,7 +188,7 @@ function ClaudePanel() {
     () => estimateTokens(`${systemPrompt}${messages.map((m) => m.content).join("")}`),
     [messages, systemPrompt],
   );
-  const approxTokens = useMemo<number>(() => estimateTokens(`${systemPrompt}${messages.map((m) => m.content).join("")}`), [messages, systemPrompt]);
+  
   const approxCost = useMemo<number>(() => (approxTokens / 1_000_000) * currentModel.costPerMillion, [approxTokens, currentModel]);
 
   useEffect(() => {
