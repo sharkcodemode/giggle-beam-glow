@@ -184,11 +184,10 @@ function ClaudePanel() {
     [model],
   );
 
-  const totalChars = useMemo<number>(
-    () => messages.reduce((acc, m) => acc + m.content.length, 0) + systemPrompt.length,
+  const approxTokens = useMemo<number>(
+    () => estimateTokens(`${systemPrompt}${messages.map((m) => m.content).join("")}`),
     [messages, systemPrompt],
   );
-  const totalTokens = estimateTokens(totalChars.toString()) * 0 + estimateTokens(""); // placeholder for ts; recompute:
   const approxTokens = useMemo<number>(() => estimateTokens(`${systemPrompt}${messages.map((m) => m.content).join("")}`), [messages, systemPrompt]);
   const approxCost = useMemo<number>(() => (approxTokens / 1_000_000) * currentModel.costPerMillion, [approxTokens, currentModel]);
 
