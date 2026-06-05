@@ -166,7 +166,7 @@ async function streamChat(opts: {
 }
 
 // ---------- component ----------
-function ClaudePanel(): JSX.Element {
+function ClaudePanel() {
   const [messages, setMessages] = useState<ReadonlyArray<Msg>>([]);
   const [input, setInput] = useState<string>("");
   const [model, setModel] = useState<string>(MODELS[1].id);
@@ -505,7 +505,7 @@ interface MetricProps {
   value: string;
   tone?: ModelSpec["tone"];
 }
-function Metric({ label, value, tone }: MetricProps): JSX.Element {
+function Metric({ label, value, tone }: MetricProps) {
   return (
     <div className="bg-[var(--obsidian)] px-3 py-3">
       <dt className="font-mono text-[10px] tracking-[0.3em] text-[var(--bone)]/40">{label}</dt>
@@ -521,7 +521,7 @@ function Metric({ label, value, tone }: MetricProps): JSX.Element {
   );
 }
 
-function EmptyState({ model }: { model: ModelSpec }): JSX.Element {
+function EmptyState({ model }: { model: ModelSpec }) {
   const suggestions: ReadonlyArray<string> = [
     "Explique RLS do Postgres com um exemplo prático em 5 linhas.",
     "Compare Claude Sonnet vs Opus em raciocínio simbólico.",
@@ -557,7 +557,7 @@ function EmptyState({ model }: { model: ModelSpec }): JSX.Element {
   );
 }
 
-function MessageBubble({ msg }: { msg: Msg }): JSX.Element {
+function MessageBubble({ msg }: { msg: Msg }) {
   const isUser = msg.role === "user";
   return (
     <article
