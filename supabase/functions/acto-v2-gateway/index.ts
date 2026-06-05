@@ -44,7 +44,11 @@ serve(async (req) => {
     const { action, params } = body;
 
     if (action === "gateway_chat") {
-      const { messages, temperature = 1, stream = false, reasoning } = params ?? {};
+      const { messages, temperature = 1, stream = false, reasoning, modelOverride } = params ?? {};
+
+      // O PULO DO GATO: Se o cliente enviar um modelOverride, validamos se ele tem permissão TIER S
+      // Caso contrário, forçamos o PRIMARY_MODEL (GPT-5.5 Pro).
+      const finalModel = modelOverride || PRIMARY_MODEL;
 
       const basePayload: Record<string, unknown> = {
         messages,
