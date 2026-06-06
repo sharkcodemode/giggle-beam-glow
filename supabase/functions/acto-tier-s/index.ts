@@ -786,12 +786,22 @@ async function actionGatewayChat(params: Record<string, unknown>) {
     ...(params.reasoning && { reasoning: params.reasoning }),
   };
 
-  const chain = [TIER_S_PRIMARY, TIER_S_FALLBACK, TIER_S_FALLBACK2];
+  const chain = TIER_S_CHAIN;
   let res: Response | null = null;
-  let modelUsed = TIER_S_PRIMARY;
+  let modelUsed: string = TIER_S_PRIMARY;
 
   for (let i = 0; i < chain.length; i++) {
     const m = chain[i];
+    console.log(`[TIER S] gateway_chat tentando ${i === 0 ? "primário" : `fallback${i}`}: ${m}`);
+    res = await callTierSGateway(m, baseBody, lovApiKey);
+    modelUsed = m;
+    if (res.ok) break;
+    if (!TIER_S_RETRY_STATUS.has(res.status)) break; // 4xx de input não vale fallback
+    if (i < chain.length - 1) {
+      console.warn(`[TIER S] ${m} falhou (${res.status}). Tentando próximo.`);
+      try { await res.body?.cancel(); } catch { /* ignore */ }
+    }
+  }
     console.log(`[TIER S] gateway_chat tentando ${i === 0 ? "primário" : `fallback${i}`}: ${m}`);
     res = await callTierSGateway(m, baseBody, lovApiKey);
     modelUsed = m;
