@@ -18,7 +18,7 @@ const ALLOWED_MODELS = new Set([
   "openai/gpt-5-mini",
   "openai/gpt-5",
   "openai/gpt-5.5",
-  "openai/gpt-5.5-pro",
+  // "openai/gpt-5.5-pro" removido — gateway responde 404 (não é chat model em /v1/chat/completions).
 ]);
 
 const DEFAULT_MODEL = "google/gemini-3-flash-preview";
