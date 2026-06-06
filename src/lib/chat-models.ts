@@ -21,7 +21,7 @@ export const CHAT_MODELS: ReadonlyArray<ChatModelSpec> = [
   { id: "openai/gpt-5-mini",             label: "GPT-5 Mini",            tag: "EFFICIENT", costPerMillion: 3.0,  tone: "cyan",   provider: "openai" },
   { id: "openai/gpt-5",                  label: "GPT-5",                 tag: "PREMIUM",   costPerMillion: 15.0, tone: "plasma", provider: "openai" },
   { id: "openai/gpt-5.5",                label: "GPT-5.5",               tag: "FRONTIER",  costPerMillion: 25.0, tone: "plasma", provider: "openai" },
-  { id: "openai/gpt-5.5-pro",            label: "GPT-5.5 Pro",           tag: "APEX",      costPerMillion: 40.0, tone: "plasma", provider: "openai" },
+  // gpt-5.5-pro removido: gateway responde 404 "not a chat model" em /v1/chat/completions.
 ];
 
 export const DEFAULT_CHAT_MODEL_ID: string = "google/gemini-3-flash-preview";

@@ -147,8 +147,14 @@ function RagModelosPage() {
   // init
   useEffect(() => {
     setPasscode(loadStr(STORAGE_PASSCODE, ""));
-    setEmbeddingModel(loadStr(STORAGE_EMB, DEFAULT_EMBEDDING_MODEL_ID));
-    setChatModel(loadStr(STORAGE_CHAT, CHAT_MODELS[1].id));
+    const embRaw = loadStr(STORAGE_EMB, DEFAULT_EMBEDDING_MODEL_ID);
+    setEmbeddingModel(
+      EMBEDDING_MODELS.some((m) => m.id === embRaw) ? embRaw : DEFAULT_EMBEDDING_MODEL_ID,
+    );
+    const chatRaw = loadStr(STORAGE_CHAT, CHAT_MODELS[1].id);
+    setChatModel(
+      CHAT_MODELS.some((m) => m.id === chatRaw) ? chatRaw : CHAT_MODELS[1].id,
+    );
   }, []);
 
   useEffect(() => saveStr(STORAGE_PASSCODE, passcode), [passcode]);
