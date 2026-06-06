@@ -736,12 +736,15 @@ async function actionSheetsAppend(params: Record<string, unknown>) {
 
 // ---------- AI Gateway Tier S ----------
 // Política TIER S: modelo é forçado server-side. Cliente NÃO escolhe.
-//   Primário:  openai/gpt-5.5-pro
-//   Fallback:  anthropic/claude-3.5-sonnet  (só em 402/429/5xx do primário)
+//   Primário:  anthropic/claude-4.5-sonnet  (mais atual disponível na Gateway)
+//   Fallback1: openai/gpt-5.5-pro           (se primário 402/429/5xx)
+//   Fallback2: openai/gpt-5.5               (se ambos acima falharem)
 //   NUNCA cai para Gemini silenciosamente.
-const TIER_S_PRIMARY = "openai/gpt-5.5-pro";
-const TIER_S_FALLBACK = "anthropic/claude-3.5-sonnet";
+const TIER_S_PRIMARY = "anthropic/claude-4.5-sonnet";
+const TIER_S_FALLBACK = "openai/gpt-5.5-pro";
+const TIER_S_FALLBACK2 = "openai/gpt-5.5";
 const TIER_S_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const TIER_S_RETRY_STATUS = new Set([402, 429, 500, 502, 503, 504]);
 
 async function callTierSGateway(model: string, body: Record<string, unknown>, apiKey: string) {
   return await fetch(TIER_S_GATEWAY_URL, {
@@ -773,36 +776,43 @@ async function actionGatewayChat(params: Record<string, unknown>) {
     ...(params.reasoning && { reasoning: params.reasoning }),
   };
 
-  console.log(`[TIER S] gateway_chat tentando primário: ${TIER_S_PRIMARY}`);
-  let res = await callTierSGateway(TIER_S_PRIMARY, baseBody, lovApiKey);
+  const chain = [TIER_S_PRIMARY, TIER_S_FALLBACK, TIER_S_FALLBACK2];
+  let res: Response | null = null;
   let modelUsed = TIER_S_PRIMARY;
 
-  if (!res.ok && [402, 429, 500, 502, 503, 504].includes(res.status)) {
-    console.warn(`[TIER S] primário falhou (${res.status}). Fallback ${TIER_S_FALLBACK}`);
-    try { await res.body?.cancel(); } catch { /* ignore */ }
-    res = await callTierSGateway(TIER_S_FALLBACK, baseBody, lovApiKey);
-    modelUsed = TIER_S_FALLBACK;
+  for (let i = 0; i < chain.length; i++) {
+    const m = chain[i];
+    console.log(`[TIER S] gateway_chat tentando ${i === 0 ? "primário" : `fallback${i}`}: ${m}`);
+    res = await callTierSGateway(m, baseBody, lovApiKey);
+    modelUsed = m;
+    if (res.ok) break;
+    if (!TIER_S_RETRY_STATUS.has(res.status)) break; // 4xx de input não vale fallback
+    if (i < chain.length - 1) {
+      console.warn(`[TIER S] ${m} falhou (${res.status}). Tentando próximo.`);
+      try { await res.body?.cancel(); } catch { /* ignore */ }
+    }
   }
 
-  const text = await res.text();
+  const finalRes = res!;
+  const text = await finalRes.text();
   let parsed: unknown = text;
   try {
     parsed = JSON.parse(text);
   } catch { /* ignore */ }
 
-  if (!res.ok) {
-    console.error(`[TIER S] ambos modelos falharam. status=${res.status}`);
+  if (!finalRes.ok) {
+    console.error(`[TIER S] cadeia esgotada. status=${finalRes.status}`);
     return {
-      status: res.status,
+      status: finalRes.status,
       body: {
-        error: `TIER S indisponível (status ${res.status}). Tente novamente em alguns segundos.`,
+        error: `TIER S indisponível (status ${finalRes.status}). Tente novamente em alguns segundos.`,
         detail: typeof parsed === "string" ? parsed.slice(0, 400) : parsed,
-        model_attempted: [TIER_S_PRIMARY, TIER_S_FALLBACK],
+        model_attempted: chain,
       },
     };
   }
 
-  return { status: res.status, body: parsed, model_used: modelUsed };
+  return { status: finalRes.status, body: parsed, model_used: modelUsed };
 }
 
 // ---------- legacy v1 (painel direto) ----------
