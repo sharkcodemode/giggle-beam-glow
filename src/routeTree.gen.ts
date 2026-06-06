@@ -14,6 +14,7 @@ import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
 import { Route as PulseRouteImport } from './routes/pulse'
 import { Route as ModelosRouteImport } from './routes/modelos'
 import { Route as ClaudeRouteImport } from './routes/claude'
+import { Route as ChatmodelosRouteImport } from './routes/chatmodelos'
 import { Route as AudiosRouteImport } from './routes/audios'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -42,6 +43,11 @@ const ClaudeRoute = ClaudeRouteImport.update({
   path: '/claude',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatmodelosRoute = ChatmodelosRouteImport.update({
+  id: '/chatmodelos',
+  path: '/chatmodelos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AudiosRoute = AudiosRouteImport.update({
   id: '/audios',
   path: '/audios',
@@ -56,6 +62,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
+  '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audios'
+    | '/chatmodelos'
     | '/claude'
     | '/modelos'
     | '/pulse'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/audios'
+    | '/chatmodelos'
     | '/claude'
     | '/modelos'
     | '/pulse'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/audios'
+    | '/chatmodelos'
     | '/claude'
     | '/modelos'
     | '/pulse'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AudiosRoute: typeof AudiosRoute
+  ChatmodelosRoute: typeof ChatmodelosRoute
   ClaudeRoute: typeof ClaudeRoute
   ModelosRoute: typeof ModelosRoute
   PulseRoute: typeof PulseRoute
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClaudeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chatmodelos': {
+      id: '/chatmodelos'
+      path: '/chatmodelos'
+      fullPath: '/chatmodelos'
+      preLoaderRoute: typeof ChatmodelosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/audios': {
       id: '/audios'
       path: '/audios'
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AudiosRoute: AudiosRoute,
+  ChatmodelosRoute: ChatmodelosRoute,
   ClaudeRoute: ClaudeRoute,
   ModelosRoute: ModelosRoute,
   PulseRoute: PulseRoute,
@@ -187,3 +208,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
