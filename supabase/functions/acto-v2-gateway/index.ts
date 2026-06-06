@@ -13,8 +13,9 @@ const corsHeaders = {
 //   Fallback:  anthropic/claude-3.5-sonnet  (se primário 402/429/5xx)
 //   NUNCA cai para Gemini silenciosamente — erro explícito se ambos falharem.
 
-const PRIMARY_MODEL = "openai/gpt-5.5-pro";
-const FALLBACK_MODEL = "anthropic/claude-3.5-sonnet";
+const PRIMARY_MODEL = "anthropic/claude-4.5-sonnet";
+const FALLBACK_MODEL = "openai/gpt-5.5-pro";
+const FALLBACK_MODEL_2 = "openai/gpt-5.5";
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 async function callGateway(model: string, payload: Record<string, unknown>, apiKey: string) {
@@ -57,16 +58,22 @@ serve(async (req) => {
         ...(reasoning ? { reasoning } : {}),
       };
 
-      // 1) Primário: GPT-5.5 Pro
+      // 1) Primário: Claude 4.5 Sonnet
       console.log(`[TIER S] tentando primário: ${PRIMARY_MODEL}`);
       let response = await callGateway(PRIMARY_MODEL, basePayload, LOVABLE_API_KEY);
 
-      // 2) Fallback apenas em indisponibilidade real (não em 4xx de input)
+      // 2) Fallback1: GPT-5.5 Pro — apenas em indisponibilidade real
       if (!response.ok && [402, 429, 500, 502, 503, 504].includes(response.status)) {
-        console.warn(`[TIER S] primário falhou (${response.status}). Caindo para ${FALLBACK_MODEL}`);
-        // Stream do primário não pode ser reaproveitado; consome para liberar.
+        console.warn(`[TIER S] primário falhou (${response.status}). Fallback1 ${FALLBACK_MODEL}`);
         try { await response.body?.cancel(); } catch { /* ignore */ }
         response = await callGateway(FALLBACK_MODEL, basePayload, LOVABLE_API_KEY);
+      }
+
+      // 3) Fallback2: GPT-5.5 — última tentativa
+      if (!response.ok && [402, 429, 500, 502, 503, 504].includes(response.status)) {
+        console.warn(`[TIER S] fallback1 falhou (${response.status}). Fallback2 ${FALLBACK_MODEL_2}`);
+        try { await response.body?.cancel(); } catch { /* ignore */ }
+        response = await callGateway(FALLBACK_MODEL_2, basePayload, LOVABLE_API_KEY);
       }
 
       // 3) Se ainda falhou, surface o erro explícito — NÃO degrada para Gemini.
