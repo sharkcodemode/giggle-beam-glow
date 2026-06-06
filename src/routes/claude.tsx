@@ -288,7 +288,7 @@ function ClaudePanel() {
         <div className="marquee-track py-2 font-mono text-[10px] tracking-[0.3em] text-[var(--bone)]/60 whitespace-nowrap">
           {Array.from({ length: 4 }).map((_, i) => (
             <span key={i} className="px-8">
-              ◇ CLAUDE CONSOLE · TIER S · {currentModel.label.toUpperCase()} · STREAM SSE · LOVABLE GATEWAY · {currentModel.tag} · ZERO LOG ·
+              ◇ AI CONSOLE · TIER S · {currentModel.label.toUpperCase()} · STREAM SSE · LOVABLE GATEWAY · {currentModel.tag} · ZERO LOG ·
             </span>
           ))}
         </div>
