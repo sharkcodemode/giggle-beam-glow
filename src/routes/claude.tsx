@@ -160,7 +160,11 @@ async function streamChat(opts: {
 function ClaudePanel() {
   const [messages, setMessages] = useState<ReadonlyArray<Msg>>([]);
   const [input, setInput] = useState<string>("");
-  const [model, setModel] = useState<string>(MODELS[1].id);
+  const [model, setModelState] = useState<string>(() => getStoredChatModelId());
+  const setModel = useCallback((id: string): void => {
+    setModelState(id);
+    setStoredChatModelId(id);
+  }, []);
   const [systemPrompt, setSystemPrompt] = useState<string>(DEFAULT_SYSTEM);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
