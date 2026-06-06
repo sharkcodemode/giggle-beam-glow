@@ -124,19 +124,26 @@ serve(async (req) => {
       `[claude-proxy] model=${finalModel} msgs=${finalMessages.length}/${messages.length} stream=${stream} cap=${completionCap}`,
     );
 
+    // Modelos OpenAI GPT-5+ só aceitam temperature=1 (default). Enviar outro valor → 400.
+    // Estratégia: omitir o campo nesses casos e deixar o provider usar o default.
+    const isOpenAiFixedTemp = finalModel.startsWith("openai/gpt-5");
+    const payload: Record<string, unknown> = {
+      model: finalModel,
+      messages: finalMessages,
+      stream: Boolean(stream),
+      max_completion_tokens: completionCap,
+    };
+    if (!isOpenAiFixedTemp) {
+      payload.temperature = Number(temperature);
+    }
+
     const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: finalModel,
-        messages: finalMessages,
-        stream: Boolean(stream),
-        temperature: Number(temperature),
-        max_completion_tokens: completionCap,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (upstream.status === 402) {
