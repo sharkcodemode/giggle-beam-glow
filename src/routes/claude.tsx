@@ -51,14 +51,6 @@ interface Msg {
   pending?: boolean;
 }
 
-interface ModelSpec {
-  id: string;
-  label: string;
-  tag: string;
-  costPerMillion: number; // USD/1M tokens (in+out médio aprox.)
-  tone: "mint" | "cyan" | "violet" | "plasma";
-}
-
 type ModelSpec = ChatModelSpec;
 const MODELS = CHAT_MODELS;
 
