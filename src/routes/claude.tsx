@@ -526,7 +526,7 @@ function Metric({ label, value, tone }: MetricProps) {
 function EmptyState({ model }: { model: ModelSpec }) {
   const suggestions: ReadonlyArray<string> = [
     "Explique RLS do Postgres com um exemplo prático em 5 linhas.",
-    "Compare Claude Sonnet vs Opus em raciocínio simbólico.",
+    "Compare Gemini 3 Pro vs GPT-5.5 Pro em raciocínio simbólico.",
     "Refatore esta query SQL para usar window functions:\nSELECT…",
     "Me dê 3 ideias de arquitetura pra um chat com rate-limit por IP.",
   ];
@@ -542,7 +542,7 @@ function EmptyState({ model }: { model: ModelSpec }) {
         Faça a primeira <span className="text-aurora">pergunta</span>.
       </h2>
       <p className="font-grotesk text-sm text-[var(--bone)]/60 mb-6 max-w-lg">
-        Sem login. Sem histórico salvo. Sem chave da Anthropic na sua máquina.
+        Sem login. Sem histórico salvo. Sem chave do provedor na sua máquina.
         Cada token consumido sai do saldo Lovable AI do workspace.
       </p>
       <ul className="grid sm:grid-cols-2 gap-2">
