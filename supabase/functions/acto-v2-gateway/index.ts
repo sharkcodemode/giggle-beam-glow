@@ -13,8 +13,9 @@ const corsHeaders = {
 //   Fallback:  anthropic/claude-3.5-sonnet  (se primário 402/429/5xx)
 //   NUNCA cai para Gemini silenciosamente — erro explícito se ambos falharem.
 
-const PRIMARY_MODEL = "openai/gpt-5.5-pro";
-const FALLBACK_MODEL = "anthropic/claude-3.5-sonnet";
+const PRIMARY_MODEL = "anthropic/claude-4.5-sonnet";
+const FALLBACK_MODEL = "openai/gpt-5.5-pro";
+const FALLBACK_MODEL_2 = "openai/gpt-5.5";
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 async function callGateway(model: string, payload: Record<string, unknown>, apiKey: string) {
