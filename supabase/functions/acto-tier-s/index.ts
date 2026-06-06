@@ -736,13 +736,23 @@ async function actionSheetsAppend(params: Record<string, unknown>) {
 
 // ---------- AI Gateway Tier S ----------
 // Política TIER S: modelo é forçado server-side. Cliente NÃO escolhe.
-//   Primário:  anthropic/claude-4.5-sonnet  (mais atual disponível na Gateway)
-//   Fallback1: openai/gpt-5.5-pro           (se primário 402/429/5xx)
-//   Fallback2: openai/gpt-5.5               (se ambos acima falharem)
-//   NUNCA cai para Gemini silenciosamente.
-const TIER_S_PRIMARY = "anthropic/claude-4.5-sonnet";
-const TIER_S_FALLBACK = "openai/gpt-5.5-pro";
-const TIER_S_FALLBACK2 = "openai/gpt-5.5";
+// Cadeia (6 níveis, executada em ordem em caso de 402/429/5xx):
+//   1. anthropic/claude-4.5-opus         (Claude top de linha — primário)
+//   2. anthropic/claude-4.5-sonnet       (Claude abaixo do top — fallback 1)
+//   3. openai/gpt-5.5-pro                (GPT top de linha — fallback 2)
+//   4. openai/gpt-5.5                    (GPT abaixo do top — fallback 3)
+//   5. google/gemini-3.1-pro-preview     (Gemini top preview — fallback 4)
+//   6. google/gemini-2.5-pro             (Gemini estável abaixo do top — fallback 5)
+// 4xx de input NÃO consome fallback (erro do cliente, não indisponibilidade).
+const TIER_S_CHAIN = [
+  "anthropic/claude-4.5-opus",
+  "anthropic/claude-4.5-sonnet",
+  "openai/gpt-5.5-pro",
+  "openai/gpt-5.5",
+  "google/gemini-3.1-pro-preview",
+  "google/gemini-2.5-pro",
+] as const;
+const TIER_S_PRIMARY = TIER_S_CHAIN[0];
 const TIER_S_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const TIER_S_RETRY_STATUS = new Set([402, 429, 500, 502, 503, 504]);
 
