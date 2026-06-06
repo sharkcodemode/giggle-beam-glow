@@ -139,11 +139,87 @@ export type Database = {
           },
         ]
       }
+      rag_chunks: {
+        Row: {
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string
+          id: string
+          idx: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          document_id: string
+          embedding: string
+          id?: string
+          idx: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string
+          id?: string
+          idx?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "rag_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rag_documents: {
+        Row: {
+          chunk_count: number
+          created_at: string
+          embedding_model: string
+          id: string
+          source: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          chunk_count?: number
+          created_at?: string
+          embedding_model: string
+          id?: string
+          source?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          chunk_count?: number
+          created_at?: string
+          embedding_model?: string
+          id?: string
+          source?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      match_rag_chunks: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          content: string
+          document_id: string
+          document_title: string
+          id: string
+          idx: number
+          similarity: number
+        }[]
+      }
       pulse_check_rate_limit: {
         Args: {
           p_action: string
