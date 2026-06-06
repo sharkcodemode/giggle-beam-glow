@@ -569,10 +569,10 @@ function MessageBubble({ msg }: { msg: Msg }) {
       ].join(" ")}
     >
       <header className="flex items-center gap-2 font-mono text-[10px] tracking-[0.3em] text-[var(--bone)]/40">
-        <span>◇ {isUser ? "VOCÊ" : "CLAUDE"}</span>
+        <span>◇ {isUser ? "VOCÊ" : "AI"}</span>
         {msg.model && !isUser && (
           <span className="text-[var(--bone)]/30">
-            · {msg.model.replace("anthropic/", "").toUpperCase()}
+            · {msg.model.replace(/^(anthropic|google|openai)\//, "").toUpperCase()}
           </span>
         )}
       </header>
