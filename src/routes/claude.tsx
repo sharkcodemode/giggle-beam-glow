@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
@@ -6,11 +6,21 @@ import {
   Loader2,
   RefreshCcw,
   Settings2,
+  Sliders,
   Sparkles,
   Square,
   Wallet,
   X,
 } from "lucide-react";
+import {
+  CHAT_MODELS,
+  getStoredChatModelId,
+  setStoredChatModelId,
+  findChatModel,
+  toneClasses as sharedToneClasses,
+  type ChatModelSpec,
+  type ModelTone,
+} from "@/lib/chat-models";
 
 export const Route = createFileRoute("/claude")({
   head: () => ({
@@ -41,25 +51,8 @@ interface Msg {
   pending?: boolean;
 }
 
-interface ModelSpec {
-  id: string;
-  label: string;
-  tag: string;
-  costPerMillion: number; // USD/1M tokens (in+out médio aprox.)
-  tone: "mint" | "cyan" | "violet" | "plasma";
-}
-
-const MODELS: ReadonlyArray<ModelSpec> = [
-  { id: "google/gemini-2.5-flash-lite",   label: "Gemini 2.5 Flash Lite", tag: "RAPID",     costPerMillion: 0.4,  tone: "mint"   },
-  { id: "google/gemini-3-flash-preview",  label: "Gemini 3 Flash",        tag: "WORKHORSE", costPerMillion: 1.2,  tone: "cyan"   },
-  { id: "google/gemini-3.5-flash",        label: "Gemini 3.5 Flash",      tag: "BALANCED",  costPerMillion: 2.0,  tone: "cyan"   },
-  { id: "google/gemini-2.5-pro",          label: "Gemini 2.5 Pro",        tag: "DEEP",      costPerMillion: 7.0,  tone: "violet" },
-  { id: "google/gemini-3.1-pro-preview",  label: "Gemini 3.1 Pro",        tag: "PREVIEW",   costPerMillion: 10.0, tone: "violet" },
-  { id: "openai/gpt-5-mini",              label: "GPT-5 Mini",            tag: "EFFICIENT", costPerMillion: 3.0,  tone: "cyan"   },
-  { id: "openai/gpt-5",                   label: "GPT-5",                 tag: "PREMIUM",   costPerMillion: 15.0, tone: "plasma" },
-  { id: "openai/gpt-5.5",                 label: "GPT-5.5",               tag: "FRONTIER",  costPerMillion: 25.0, tone: "plasma" },
-  { id: "openai/gpt-5.5-pro",             label: "GPT-5.5 Pro",           tag: "APEX",      costPerMillion: 40.0, tone: "plasma" },
-];
+type ModelSpec = ChatModelSpec;
+const MODELS = CHAT_MODELS;
 
 const DEFAULT_SYSTEM = `Você é o AI TIER S rodando dentro do console privado de Caio Mello.
 Estilo: denso, técnico, anti-marketês. Português PT-BR.
@@ -76,13 +69,8 @@ const newId = (): string =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-function toneClasses(tone: ModelSpec["tone"]): string {
-  switch (tone) {
-    case "mint":   return "text-[oklch(0.86_0.21_158)] border-[oklch(0.86_0.21_158/0.4)]";
-    case "cyan":   return "text-[oklch(0.84_0.16_210)] border-[oklch(0.84_0.16_210/0.4)]";
-    case "violet": return "text-[oklch(0.68_0.24_295)] border-[oklch(0.68_0.24_295/0.4)]";
-    case "plasma": return "text-[oklch(0.72_0.28_335)] border-[oklch(0.72_0.28_335/0.4)]";
-  }
+function toneClasses(tone: ModelTone): string {
+  return sharedToneClasses(tone);
 }
 
 // ---------- streaming parser ----------
@@ -172,7 +160,11 @@ async function streamChat(opts: {
 function ClaudePanel() {
   const [messages, setMessages] = useState<ReadonlyArray<Msg>>([]);
   const [input, setInput] = useState<string>("");
-  const [model, setModel] = useState<string>(MODELS[1].id);
+  const [model, setModelState] = useState<string>(() => getStoredChatModelId());
+  const setModel = useCallback((id: string): void => {
+    setModelState(id);
+    setStoredChatModelId(id);
+  }, []);
   const [systemPrompt, setSystemPrompt] = useState<string>(DEFAULT_SYSTEM);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,10 +174,7 @@ function ClaudePanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const currentModel = useMemo<ModelSpec>(
-    () => MODELS.find((m) => m.id === model) ?? MODELS[1],
-    [model],
-  );
+  const currentModel = useMemo<ModelSpec>(() => findChatModel(model), [model]);
 
   const approxTokens = useMemo<number>(
     () => estimateTokens(`${systemPrompt}${messages.map((m) => m.content).join("")}`),
@@ -312,6 +301,14 @@ function ClaudePanel() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              to="/chatmodelos"
+              className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/20 hover:border-[var(--bone)]/60 transition flex items-center gap-2"
+              aria-label="Abrir seletor de modelo"
+            >
+              <Sliders className="size-3.5" aria-hidden />
+              SELETOR
+            </Link>
             <button
               type="button"
               onClick={() => setSettingsOpen((v) => !v)}
