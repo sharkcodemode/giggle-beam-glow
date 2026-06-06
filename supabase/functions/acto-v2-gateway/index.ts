@@ -55,12 +55,9 @@ serve(async (req) => {
     const { action, params } = body;
 
     if (action === "gateway_chat") {
-      const { messages, temperature = 1, stream = false, reasoning, modelOverride } = params ?? {};
+      const { messages, temperature = 1, stream = false, reasoning } = params ?? {};
 
-      // O PULO DO GATO: Se o cliente enviar um modelOverride, validamos se ele tem permissão TIER S
-      // Caso contrário, forçamos o PRIMARY_MODEL (GPT-5.5 Pro).
-      const finalModel = modelOverride || PRIMARY_MODEL;
-
+      // Cliente NÃO escolhe modelo. Cadeia TIER S forçada server-side.
       const basePayload: Record<string, unknown> = {
         messages,
         temperature,
@@ -68,35 +65,35 @@ serve(async (req) => {
         ...(reasoning ? { reasoning } : {}),
       };
 
-      // 1) Primário: Claude 4.5 Sonnet
-      console.log(`[TIER S] tentando primário: ${PRIMARY_MODEL}`);
-      let response = await callGateway(PRIMARY_MODEL, basePayload, LOVABLE_API_KEY);
+      let response: Response | null = null;
+      let modelUsed: string = PRIMARY_MODEL;
 
-      // 2) Fallback1: GPT-5.5 Pro — apenas em indisponibilidade real
-      if (!response.ok && [402, 429, 500, 502, 503, 504].includes(response.status)) {
-        console.warn(`[TIER S] primário falhou (${response.status}). Fallback1 ${FALLBACK_MODEL}`);
-        try { await response.body?.cancel(); } catch { /* ignore */ }
-        response = await callGateway(FALLBACK_MODEL, basePayload, LOVABLE_API_KEY);
+      for (let i = 0; i < MODEL_CHAIN.length; i++) {
+        const m = MODEL_CHAIN[i];
+        console.log(`[TIER S] tentando ${i === 0 ? "primário" : `fallback${i}`}: ${m}`);
+        response = await callGateway(m, basePayload, LOVABLE_API_KEY);
+        modelUsed = m;
+        if (response.ok) break;
+        // 4xx de input não vale fallback — só status transitórios/quota.
+        if (!RETRY_STATUS.has(response.status)) break;
+        if (i < MODEL_CHAIN.length - 1) {
+          console.warn(`[TIER S] ${m} falhou (${response.status}). Próximo na cadeia.`);
+          try { await response.body?.cancel(); } catch { /* ignore */ }
+        }
       }
 
-      // 3) Fallback2: GPT-5.5 — última tentativa
-      if (!response.ok && [402, 429, 500, 502, 503, 504].includes(response.status)) {
-        console.warn(`[TIER S] fallback1 falhou (${response.status}). Fallback2 ${FALLBACK_MODEL_2}`);
-        try { await response.body?.cancel(); } catch { /* ignore */ }
-        response = await callGateway(FALLBACK_MODEL_2, basePayload, LOVABLE_API_KEY);
-      }
-
-      // 3) Se ainda falhou, surface o erro explícito — NÃO degrada para Gemini.
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error(`[TIER S] ambos modelos falharam. status=${response.status} body=${errText.slice(0, 400)}`);
+      const finalResponse = response!;
+      if (!finalResponse.ok) {
+        const errText = await finalResponse.text();
+        console.error(`[TIER S] cadeia esgotada. status=${finalResponse.status} body=${errText.slice(0, 400)}`);
         return new Response(
           JSON.stringify({
-            error: `TIER S indisponível (status ${response.status}). Tente novamente em alguns segundos.`,
+            error: `TIER S indisponível (status ${finalResponse.status}). Tente novamente em alguns segundos.`,
             detail: errText.slice(0, 400),
+            model_attempted: MODEL_CHAIN,
           }),
           {
-            status: response.status,
+            status: finalResponse.status,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           },
         );
