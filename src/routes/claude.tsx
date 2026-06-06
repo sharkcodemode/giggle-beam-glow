@@ -301,6 +301,14 @@ function ClaudePanel() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              to="/chatmodelos"
+              className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/20 hover:border-[var(--bone)]/60 transition flex items-center gap-2"
+              aria-label="Abrir seletor de modelo"
+            >
+              <Sliders className="size-3.5" aria-hidden />
+              SELETOR
+            </Link>
             <button
               type="button"
               onClick={() => setSettingsOpen((v) => !v)}
