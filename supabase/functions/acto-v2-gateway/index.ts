@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,24 +8,10 @@ const corsHeaders = {
 };
 
 // Protocolo ELITE DEPTH 10 — TIER S
-// Gateway seguro entre a Extensão ACTO e o Lovable AI Gateway.
-// Cadeia de 6 modelos (4xx de input NÃO consome fallback):
-//   1. anthropic/claude-4.5-opus         (Claude top — primário)
-//   2. anthropic/claude-4.5-sonnet       (Claude abaixo do top — fallback 1)
-//   3. openai/gpt-5.5-pro                (GPT top — fallback 2)
-//   4. openai/gpt-5.5                    (GPT abaixo do top — fallback 3)
-//   5. google/gemini-3.1-pro-preview     (Gemini top preview — fallback 4)
-//   6. google/gemini-2.5-pro             (Gemini estável — fallback 5)
+// Cadeia agora é dinâmica (tabela `acto_model_config`, cache 30s).
+// Em caso de falha de leitura → DEFAULT_MODEL_CHAIN.
+// 4xx de input NÃO consome fallback (erro do cliente, não indisponibilidade).
 
-const MODEL_CHAIN = [
-  "anthropic/claude-4.5-opus",
-  "anthropic/claude-4.5-sonnet",
-  "openai/gpt-5.5-pro",
-  "openai/gpt-5.5",
-  "google/gemini-3.1-pro-preview",
-  "google/gemini-2.5-pro",
-] as const;
-const PRIMARY_MODEL = MODEL_CHAIN[0];
 const RETRY_STATUS = new Set([402, 429, 500, 502, 503, 504]);
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -57,7 +44,6 @@ serve(async (req) => {
     if (action === "gateway_chat") {
       const { messages, temperature = 1, stream = false, reasoning } = params ?? {};
 
-      // Cliente NÃO escolhe modelo. Cadeia TIER S forçada server-side.
       const basePayload: Record<string, unknown> = {
         messages,
         temperature,
@@ -65,18 +51,20 @@ serve(async (req) => {
         ...(reasoning ? { reasoning } : {}),
       };
 
-      let response: Response | null = null;
-      let modelUsed: string = PRIMARY_MODEL;
+      const chain = await loadModelChain();
+      const primary = chain[0] ?? DEFAULT_MODEL_CHAIN[0];
 
-      for (let i = 0; i < MODEL_CHAIN.length; i++) {
-        const m = MODEL_CHAIN[i];
+      let response: Response | null = null;
+      let modelUsed: string = primary;
+
+      for (let i = 0; i < chain.length; i++) {
+        const m = chain[i];
         console.log(`[TIER S] tentando ${i === 0 ? "primário" : `fallback${i}`}: ${m}`);
         response = await callGateway(m, basePayload, LOVABLE_API_KEY);
         modelUsed = m;
         if (response.ok) break;
-        // 4xx de input não vale fallback — só status transitórios/quota.
         if (!RETRY_STATUS.has(response.status)) break;
-        if (i < MODEL_CHAIN.length - 1) {
+        if (i < chain.length - 1) {
           console.warn(`[TIER S] ${m} falhou (${response.status}). Próximo na cadeia.`);
           try { await response.body?.cancel(); } catch { /* ignore */ }
         }
@@ -90,7 +78,7 @@ serve(async (req) => {
           JSON.stringify({
             error: `TIER S indisponível (status ${finalResponse.status}). Tente novamente em alguns segundos.`,
             detail: errText.slice(0, 400),
-            model_attempted: MODEL_CHAIN,
+            model_attempted: chain,
           }),
           {
             status: finalResponse.status,

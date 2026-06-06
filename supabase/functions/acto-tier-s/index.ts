@@ -18,6 +18,8 @@
 
 // deno-lint-ignore-file no-explicit-any
 
+import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
+
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -655,7 +657,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
     view: isStr(ctx.view) ? ctx.view : "preview",
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
-    model: "anthropic/claude-4.5-opus",
+    model: (await loadModelChain())[0] ?? DEFAULT_MODEL_CHAIN[0],
     client_logs: [],
     network_requests: [],
     runtime_errors: [
@@ -736,23 +738,9 @@ async function actionSheetsAppend(params: Record<string, unknown>) {
 
 // ---------- AI Gateway Tier S ----------
 // Política TIER S: modelo é forçado server-side. Cliente NÃO escolhe.
-// Cadeia (6 níveis, executada em ordem em caso de 402/429/5xx):
-//   1. anthropic/claude-4.5-opus         (Claude top de linha — primário)
-//   2. anthropic/claude-4.5-sonnet       (Claude abaixo do top — fallback 1)
-//   3. openai/gpt-5.5-pro                (GPT top de linha — fallback 2)
-//   4. openai/gpt-5.5                    (GPT abaixo do top — fallback 3)
-//   5. google/gemini-3.1-pro-preview     (Gemini top preview — fallback 4)
-//   6. google/gemini-2.5-pro             (Gemini estável abaixo do top — fallback 5)
+// Cadeia carregada dinamicamente da tabela `acto_model_config` via
+// loadModelChain() (cache 30s). Fallback hardcoded em DEFAULT_MODEL_CHAIN.
 // 4xx de input NÃO consome fallback (erro do cliente, não indisponibilidade).
-const TIER_S_CHAIN = [
-  "anthropic/claude-4.5-opus",
-  "anthropic/claude-4.5-sonnet",
-  "openai/gpt-5.5-pro",
-  "openai/gpt-5.5",
-  "google/gemini-3.1-pro-preview",
-  "google/gemini-2.5-pro",
-] as const;
-const TIER_S_PRIMARY = TIER_S_CHAIN[0];
 const TIER_S_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const TIER_S_RETRY_STATUS = new Set([402, 429, 500, 502, 503, 504]);
 
@@ -786,9 +774,9 @@ async function actionGatewayChat(params: Record<string, unknown>) {
     ...(params.reasoning && { reasoning: params.reasoning }),
   };
 
-  const chain = TIER_S_CHAIN;
+  const chain = await loadModelChain();
   let res: Response | null = null;
-  let modelUsed: string = TIER_S_PRIMARY;
+  let modelUsed: string = chain[0] ?? DEFAULT_MODEL_CHAIN[0];
 
   for (let i = 0; i < chain.length; i++) {
     const m = chain[i];
