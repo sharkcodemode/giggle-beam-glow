@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
@@ -6,11 +6,21 @@ import {
   Loader2,
   RefreshCcw,
   Settings2,
+  Sliders,
   Sparkles,
   Square,
   Wallet,
   X,
 } from "lucide-react";
+import {
+  CHAT_MODELS,
+  getStoredChatModelId,
+  setStoredChatModelId,
+  findChatModel,
+  toneClasses as sharedToneClasses,
+  type ChatModelSpec,
+  type ModelTone,
+} from "@/lib/chat-models";
 
 export const Route = createFileRoute("/claude")({
   head: () => ({
