@@ -22,8 +22,10 @@ const ALLOWED_MODELS = new Set([
 ]);
 
 const DEFAULT_MODEL = "google/gemini-3-flash-preview";
-const MAX_MESSAGES = 50;
-const MAX_CONTENT_CHARS = 16_000;
+const MAX_MESSAGES = 500;          // hard cap (DoS guard)
+const WINDOW_MESSAGES = 120;        // sliding window enviado ao gateway
+const MAX_CONTENT_CHARS = 32_000;
+const DEFAULT_MAX_COMPLETION = 16_384;
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -66,7 +68,8 @@ serve(async (req) => {
       system,
       stream = true,
       temperature = 1,
-      max_tokens = 2048,
+      max_tokens,
+      max_completion_tokens,
     } = body as Record<string, unknown>;
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
@@ -78,20 +81,37 @@ serve(async (req) => {
 
     if (!messages.every(isValidMessage)) {
       return new Response(
-        JSON.stringify({ error: "Mensagem inválida: role deve ser system|user|assistant e content string <=16k chars." }),
+        JSON.stringify({ error: `Mensagem inválida: role deve ser system|user|assistant e content string <=${MAX_CONTENT_CHARS} chars.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const finalModel = typeof model === "string" && ALLOWED_MODELS.has(model) ? model : DEFAULT_MODEL;
 
+    // Sliding window: preserva primeiras 2 (contexto inicial) + últimas WINDOW-2.
+    let windowed: ChatMessage[] = messages as ChatMessage[];
+    if (windowed.length > WINDOW_MESSAGES) {
+      const head = windowed.slice(0, 2);
+      const tail = windowed.slice(-(WINDOW_MESSAGES - 2));
+      windowed = [...head, ...tail];
+    }
+
     const finalMessages: ChatMessage[] = [];
     if (typeof system === "string" && system.trim().length > 0 && system.length <= MAX_CONTENT_CHARS) {
       finalMessages.push({ role: "system", content: system });
     }
-    finalMessages.push(...messages);
+    finalMessages.push(...windowed);
 
-    console.log(`[claude-proxy] model=${finalModel} msgs=${finalMessages.length} stream=${stream}`);
+    // Gateway: modelos GPT-5+ exigem `max_completion_tokens`; Gemini aceita ambos.
+    // Usar sempre max_completion_tokens é o caminho universal.
+    const rawCap = Number(max_completion_tokens ?? max_tokens ?? DEFAULT_MAX_COMPLETION);
+    const completionCap = Number.isFinite(rawCap) && rawCap > 0
+      ? Math.min(Math.max(Math.floor(rawCap), 64), 32_768)
+      : DEFAULT_MAX_COMPLETION;
+
+    console.log(
+      `[claude-proxy] model=${finalModel} msgs=${finalMessages.length}/${messages.length} stream=${stream} cap=${completionCap}`,
+    );
 
     const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -104,7 +124,7 @@ serve(async (req) => {
         messages: finalMessages,
         stream: Boolean(stream),
         temperature: Number(temperature),
-        max_tokens: Number(max_tokens),
+        max_completion_tokens: completionCap,
       }),
     });
 

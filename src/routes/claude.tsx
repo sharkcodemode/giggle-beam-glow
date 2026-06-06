@@ -110,7 +110,7 @@ async function streamChat(opts: {
         messages: history,
         stream: true,
         temperature: 0.7,
-        max_tokens: 2048,
+        max_completion_tokens: 16384,
       }),
     });
   } catch (e) {
