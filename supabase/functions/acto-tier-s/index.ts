@@ -18,6 +18,8 @@
 
 // deno-lint-ignore-file no-explicit-any
 
+import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
+
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
