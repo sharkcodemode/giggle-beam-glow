@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyMasterSecretPrefix } from "@/lib/secret-check.functions";
 
-export const Route = createFileRoute("/api/_secret-check")({
+export const Route = createFileRoute("/api/public/_secret-check")({
   server: {
     handlers: {
       POST: async ({ request }) => {
