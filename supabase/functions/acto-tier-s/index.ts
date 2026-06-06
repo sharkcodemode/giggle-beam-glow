@@ -802,16 +802,6 @@ async function actionGatewayChat(params: Record<string, unknown>) {
       try { await res.body?.cancel(); } catch { /* ignore */ }
     }
   }
-    console.log(`[TIER S] gateway_chat tentando ${i === 0 ? "primário" : `fallback${i}`}: ${m}`);
-    res = await callTierSGateway(m, baseBody, lovApiKey);
-    modelUsed = m;
-    if (res.ok) break;
-    if (!TIER_S_RETRY_STATUS.has(res.status)) break; // 4xx de input não vale fallback
-    if (i < chain.length - 1) {
-      console.warn(`[TIER S] ${m} falhou (${res.status}). Tentando próximo.`);
-      try { await res.body?.cancel(); } catch { /* ignore */ }
-    }
-  }
 
   const finalRes = res!;
   const text = await finalRes.text();
