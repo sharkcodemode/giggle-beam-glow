@@ -15,16 +15,16 @@ import {
 export const Route = createFileRoute("/claude")({
   head: () => ({
     meta: [
-      { title: "CLAUDE CONSOLE — Tier S via Lovable Gateway" },
+      { title: "AI CONSOLE — Tier S via Lovable Gateway" },
       {
         name: "description",
         content:
-          "Console privado de Claude (Sonnet, Opus, 4.5) servido via Lovable AI Gateway. Streaming token-a-token, seletor de modelo, system prompt editável.",
+          "Console privado de chat (Gemini 3 / GPT-5.5) servido via Lovable AI Gateway. Streaming token-a-token, seletor de modelo, system prompt editável.",
       },
-      { property: "og:title", content: "CLAUDE CONSOLE — Tier S" },
+      { property: "og:title", content: "AI CONSOLE — Tier S" },
       {
         property: "og:description",
-        content: "Painel direto pra Anthropic Claude via gateway Lovable.",
+        content: "Painel direto pra modelos top-tier via gateway Lovable.",
       },
     ],
   }),
