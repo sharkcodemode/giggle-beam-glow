@@ -774,9 +774,9 @@ async function actionGatewayChat(params: Record<string, unknown>) {
     ...(params.reasoning && { reasoning: params.reasoning }),
   };
 
-  const chain = TIER_S_CHAIN;
+  const chain = await loadModelChain();
   let res: Response | null = null;
-  let modelUsed: string = TIER_S_PRIMARY;
+  let modelUsed: string = chain[0] ?? DEFAULT_MODEL_CHAIN[0];
 
   for (let i = 0; i < chain.length; i++) {
     const m = chain[i];
