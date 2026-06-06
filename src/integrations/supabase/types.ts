@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      acto_model_config: {
+        Row: {
+          fallback_models: string[]
+          id: string
+          primary_model: string
+          updated_at: string
+        }
+        Insert: {
+          fallback_models?: string[]
+          id?: string
+          primary_model?: string
+          updated_at?: string
+        }
+        Update: {
+          fallback_models?: string[]
+          id?: string
+          primary_model?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pulse_messages: {
         Row: {
           body: string
