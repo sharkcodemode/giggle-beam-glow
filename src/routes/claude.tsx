@@ -464,7 +464,7 @@ function ClaudePanel() {
               rows={1}
               maxLength={16_000}
               disabled={isStreaming}
-              aria-label="Mensagem para o Claude"
+              aria-label="Mensagem para o modelo selecionado"
               className="flex-1 bg-transparent outline-none resize-none font-grotesk text-sm md:text-base text-[var(--bone)] placeholder:text-[var(--bone)]/35 disabled:opacity-50 py-2"
             />
             {isStreaming ? (
