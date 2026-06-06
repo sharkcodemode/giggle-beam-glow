@@ -8,14 +8,24 @@ const corsHeaders = {
 
 // Protocolo ELITE DEPTH 10 — TIER S
 // Gateway seguro entre a Extensão ACTO e o Lovable AI Gateway.
-// Política de modelo: força TIER S server-side. Cliente NÃO escolhe modelo.
-//   Primário:  openai/gpt-5.5-pro
-//   Fallback:  anthropic/claude-3.5-sonnet  (se primário 402/429/5xx)
-//   NUNCA cai para Gemini silenciosamente — erro explícito se ambos falharem.
+// Cadeia de 6 modelos (4xx de input NÃO consome fallback):
+//   1. anthropic/claude-4.5-opus         (Claude top — primário)
+//   2. anthropic/claude-4.5-sonnet       (Claude abaixo do top — fallback 1)
+//   3. openai/gpt-5.5-pro                (GPT top — fallback 2)
+//   4. openai/gpt-5.5                    (GPT abaixo do top — fallback 3)
+//   5. google/gemini-3.1-pro-preview     (Gemini top preview — fallback 4)
+//   6. google/gemini-2.5-pro             (Gemini estável — fallback 5)
 
-const PRIMARY_MODEL = "anthropic/claude-4.5-sonnet";
-const FALLBACK_MODEL = "openai/gpt-5.5-pro";
-const FALLBACK_MODEL_2 = "openai/gpt-5.5";
+const MODEL_CHAIN = [
+  "anthropic/claude-4.5-opus",
+  "anthropic/claude-4.5-sonnet",
+  "openai/gpt-5.5-pro",
+  "openai/gpt-5.5",
+  "google/gemini-3.1-pro-preview",
+  "google/gemini-2.5-pro",
+] as const;
+const PRIMARY_MODEL = MODEL_CHAIN[0];
+const RETRY_STATUS = new Set([402, 429, 500, 502, 503, 504]);
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 async function callGateway(model: string, payload: Record<string, unknown>, apiKey: string) {
