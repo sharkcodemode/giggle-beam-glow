@@ -10,15 +10,26 @@ const corsHeaders = {
 
 // Lovable AI Gateway só serve Google + OpenAI. Anthropic não está disponível.
 const ALLOWED_MODELS = new Set([
+  // Google Gemini
   "google/gemini-2.5-flash-lite",
+  "google/gemini-3.1-flash-lite-preview",
+  "google/gemini-2.5-flash",
   "google/gemini-3-flash-preview",
   "google/gemini-3.5-flash",
   "google/gemini-2.5-pro",
   "google/gemini-3.1-pro-preview",
+  // OpenAI GPT-5
+  "openai/gpt-5-nano",
   "openai/gpt-5-mini",
   "openai/gpt-5",
+  "openai/gpt-5.2",
+  // OpenAI GPT-5.4
+  "openai/gpt-5.4-nano",
+  "openai/gpt-5.4-mini",
+  "openai/gpt-5.4",
+  // OpenAI GPT-5.5
   "openai/gpt-5.5",
-  // "openai/gpt-5.5-pro" removido — gateway responde 404 (não é chat model em /v1/chat/completions).
+  // NOTA: gpt-5.5-pro e gpt-5.4-pro NÃO expostos pelo gateway em /v1/chat/completions.
 ]);
 
 const DEFAULT_MODEL = "google/gemini-3-flash-preview";

@@ -13,15 +13,26 @@ export interface ChatModelSpec {
 }
 
 export const CHAT_MODELS: ReadonlyArray<ChatModelSpec> = [
-  { id: "google/gemini-2.5-flash-lite",  label: "Gemini 2.5 Flash Lite", tag: "RAPID",     costPerMillion: 0.4,  tone: "mint",   provider: "google" },
-  { id: "google/gemini-3-flash-preview", label: "Gemini 3 Flash",        tag: "WORKHORSE", costPerMillion: 1.2,  tone: "cyan",   provider: "google" },
-  { id: "google/gemini-3.5-flash",       label: "Gemini 3.5 Flash",      tag: "BALANCED",  costPerMillion: 2.0,  tone: "cyan",   provider: "google" },
-  { id: "google/gemini-2.5-pro",         label: "Gemini 2.5 Pro",        tag: "DEEP",      costPerMillion: 7.0,  tone: "violet", provider: "google" },
-  { id: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro",        tag: "PREVIEW",   costPerMillion: 10.0, tone: "violet", provider: "google" },
-  { id: "openai/gpt-5-mini",             label: "GPT-5 Mini",            tag: "EFFICIENT", costPerMillion: 3.0,  tone: "cyan",   provider: "openai" },
-  { id: "openai/gpt-5",                  label: "GPT-5",                 tag: "PREMIUM",   costPerMillion: 15.0, tone: "plasma", provider: "openai" },
-  { id: "openai/gpt-5.5",                label: "GPT-5.5",               tag: "FRONTIER",  costPerMillion: 25.0, tone: "plasma", provider: "openai" },
-  // gpt-5.5-pro removido: gateway responde 404 "not a chat model" em /v1/chat/completions.
+  // ── Google Gemini ────────────────────────────────────────────────
+  { id: "google/gemini-2.5-flash-lite",          label: "Gemini 2.5 Flash Lite", tag: "RAPID",     costPerMillion: 0.4,  tone: "mint",   provider: "google" },
+  { id: "google/gemini-3.1-flash-lite-preview",  label: "Gemini 3.1 Flash Lite", tag: "RAPID+",    costPerMillion: 0.6,  tone: "mint",   provider: "google" },
+  { id: "google/gemini-2.5-flash",               label: "Gemini 2.5 Flash",      tag: "BALANCED",  costPerMillion: 1.0,  tone: "cyan",   provider: "google" },
+  { id: "google/gemini-3-flash-preview",         label: "Gemini 3 Flash",        tag: "WORKHORSE", costPerMillion: 1.2,  tone: "cyan",   provider: "google" },
+  { id: "google/gemini-3.5-flash",               label: "Gemini 3.5 Flash",      tag: "FAST PRO",  costPerMillion: 2.0,  tone: "cyan",   provider: "google" },
+  { id: "google/gemini-2.5-pro",                 label: "Gemini 2.5 Pro",        tag: "DEEP",      costPerMillion: 7.0,  tone: "violet", provider: "google" },
+  { id: "google/gemini-3.1-pro-preview",         label: "Gemini 3.1 Pro",        tag: "PREVIEW",   costPerMillion: 10.0, tone: "violet", provider: "google" },
+  // ── OpenAI GPT-5 família ─────────────────────────────────────────
+  { id: "openai/gpt-5-nano",                     label: "GPT-5 Nano",            tag: "MICRO",     costPerMillion: 0.5,  tone: "mint",   provider: "openai" },
+  { id: "openai/gpt-5-mini",                     label: "GPT-5 Mini",            tag: "EFFICIENT", costPerMillion: 3.0,  tone: "cyan",   provider: "openai" },
+  { id: "openai/gpt-5",                          label: "GPT-5",                 tag: "PREMIUM",   costPerMillion: 15.0, tone: "plasma", provider: "openai" },
+  { id: "openai/gpt-5.2",                        label: "GPT-5.2",               tag: "REASONING", costPerMillion: 18.0, tone: "plasma", provider: "openai" },
+  // ── OpenAI GPT-5.4 família ───────────────────────────────────────
+  { id: "openai/gpt-5.4-nano",                   label: "GPT-5.4 Nano",          tag: "NANO+",     costPerMillion: 0.7,  tone: "mint",   provider: "openai" },
+  { id: "openai/gpt-5.4-mini",                   label: "GPT-5.4 Mini",          tag: "MINI+",     costPerMillion: 4.0,  tone: "cyan",   provider: "openai" },
+  { id: "openai/gpt-5.4",                        label: "GPT-5.4",               tag: "ADVANCED",  costPerMillion: 20.0, tone: "plasma", provider: "openai" },
+  // ── OpenAI GPT-5.5 ───────────────────────────────────────────────
+  { id: "openai/gpt-5.5",                        label: "GPT-5.5",               tag: "FRONTIER",  costPerMillion: 25.0, tone: "plasma", provider: "openai" },
+  // gpt-5.5-pro e gpt-5.4-pro: NÃO expostos como chat models pelo gateway (404 em /v1/chat/completions).
 ];
 
 export const DEFAULT_CHAT_MODEL_ID: string = "google/gemini-3-flash-preview";
