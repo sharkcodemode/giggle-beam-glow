@@ -15,16 +15,16 @@ import {
 export const Route = createFileRoute("/claude")({
   head: () => ({
     meta: [
-      { title: "CLAUDE CONSOLE — Tier S via Lovable Gateway" },
+      { title: "AI CONSOLE — Tier S via Lovable Gateway" },
       {
         name: "description",
         content:
-          "Console privado de Claude (Sonnet, Opus, 4.5) servido via Lovable AI Gateway. Streaming token-a-token, seletor de modelo, system prompt editável.",
+          "Console privado de chat (Gemini 3 / GPT-5.5) servido via Lovable AI Gateway. Streaming token-a-token, seletor de modelo, system prompt editável.",
       },
-      { property: "og:title", content: "CLAUDE CONSOLE — Tier S" },
+      { property: "og:title", content: "AI CONSOLE — Tier S" },
       {
         property: "og:description",
-        content: "Painel direto pra Anthropic Claude via gateway Lovable.",
+        content: "Painel direto pra modelos top-tier via gateway Lovable.",
       },
     ],
   }),
@@ -50,15 +50,18 @@ interface ModelSpec {
 }
 
 const MODELS: ReadonlyArray<ModelSpec> = [
-  { id: "anthropic/claude-3.5-haiku",   label: "Claude 3.5 Haiku",   tag: "RAPID",     costPerMillion: 1.0,  tone: "mint"   },
-  { id: "anthropic/claude-3.5-sonnet",  label: "Claude 3.5 Sonnet",  tag: "WORKHORSE", costPerMillion: 6.0,  tone: "cyan"   },
-  { id: "anthropic/claude-sonnet-4",    label: "Claude Sonnet 4",    tag: "BALANCED",  costPerMillion: 6.0,  tone: "cyan"   },
-  { id: "anthropic/claude-4.5-sonnet",  label: "Claude 4.5 Sonnet",  tag: "DEEP",      costPerMillion: 9.0,  tone: "violet" },
-  { id: "anthropic/claude-opus-4",      label: "Claude Opus 4",      tag: "PREMIUM",   costPerMillion: 45.0, tone: "plasma" },
-  { id: "anthropic/claude-4.5-opus",    label: "Claude 4.5 Opus",    tag: "FRONTIER",  costPerMillion: 60.0, tone: "plasma" },
+  { id: "google/gemini-2.5-flash-lite",   label: "Gemini 2.5 Flash Lite", tag: "RAPID",     costPerMillion: 0.4,  tone: "mint"   },
+  { id: "google/gemini-3-flash-preview",  label: "Gemini 3 Flash",        tag: "WORKHORSE", costPerMillion: 1.2,  tone: "cyan"   },
+  { id: "google/gemini-3.5-flash",        label: "Gemini 3.5 Flash",      tag: "BALANCED",  costPerMillion: 2.0,  tone: "cyan"   },
+  { id: "google/gemini-2.5-pro",          label: "Gemini 2.5 Pro",        tag: "DEEP",      costPerMillion: 7.0,  tone: "violet" },
+  { id: "google/gemini-3.1-pro-preview",  label: "Gemini 3.1 Pro",        tag: "PREVIEW",   costPerMillion: 10.0, tone: "violet" },
+  { id: "openai/gpt-5-mini",              label: "GPT-5 Mini",            tag: "EFFICIENT", costPerMillion: 3.0,  tone: "cyan"   },
+  { id: "openai/gpt-5",                   label: "GPT-5",                 tag: "PREMIUM",   costPerMillion: 15.0, tone: "plasma" },
+  { id: "openai/gpt-5.5",                 label: "GPT-5.5",               tag: "FRONTIER",  costPerMillion: 25.0, tone: "plasma" },
+  { id: "openai/gpt-5.5-pro",             label: "GPT-5.5 Pro",           tag: "APEX",      costPerMillion: 40.0, tone: "plasma" },
 ];
 
-const DEFAULT_SYSTEM = `Você é o CLAUDE TIER S rodando dentro do console privado de Caio Mello.
+const DEFAULT_SYSTEM = `Você é o AI TIER S rodando dentro do console privado de Caio Mello.
 Estilo: denso, técnico, anti-marketês. Português PT-BR.
 Responda em markdown quando ajudar (tabelas, código, listas).
 Nunca invente fatos: se não souber, diga "não tenho dado".`;
@@ -285,7 +288,7 @@ function ClaudePanel() {
         <div className="marquee-track py-2 font-mono text-[10px] tracking-[0.3em] text-[var(--bone)]/60 whitespace-nowrap">
           {Array.from({ length: 4 }).map((_, i) => (
             <span key={i} className="px-8">
-              ◇ CLAUDE CONSOLE · TIER S · {currentModel.label.toUpperCase()} · STREAM SSE · LOVABLE GATEWAY · {currentModel.tag} · ZERO LOG ·
+              ◇ AI CONSOLE · TIER S · {currentModel.label.toUpperCase()} · STREAM SSE · LOVABLE GATEWAY · {currentModel.tag} · ZERO LOG ·
             </span>
           ))}
         </div>
@@ -296,13 +299,13 @@ function ClaudePanel() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
             <p className="font-mono text-[10px] tracking-[0.4em] text-[var(--bone)]/50 mb-2">
-              ◇ ROUTE /claude · ANTHROPIC VIA LOVABLE
+              ◇ ROUTE /claude · GEMINI + GPT VIA LOVABLE
             </p>
             <h1 className="font-display italic text-5xl md:text-7xl leading-[0.95] text-aurora">
-              Claude Console
+              AI Console
             </h1>
             <p className="font-grotesk text-sm md:text-base text-[var(--bone)]/70 mt-3 max-w-xl">
-              Chat direto com a família Claude via{" "}
+              Chat direto com Gemini 3 e GPT-5.5 via{" "}
               <code className="font-mono text-xs text-aurora">ai.gateway.lovable.dev</code>.
               Streaming token-a-token. Sua chave fica server-side.
             </p>
@@ -332,7 +335,7 @@ function ClaudePanel() {
 
         {/* METRICS */}
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-px mt-6 bg-[var(--bone)]/10 border border-[var(--bone)]/10">
-          <Metric label="MODEL" value={currentModel.label.replace("Claude ", "")} tone={currentModel.tone} />
+          <Metric label="MODEL" value={currentModel.label} tone={currentModel.tone} />
           <Metric label="TIER" value={currentModel.tag} />
           <Metric label="TOKENS≈" value={approxTokens.toLocaleString("pt-BR")} />
           <Metric label="COST≈" value={`$${approxCost.toFixed(4)}`} />
@@ -461,7 +464,7 @@ function ClaudePanel() {
               rows={1}
               maxLength={16_000}
               disabled={isStreaming}
-              aria-label="Mensagem para o Claude"
+              aria-label="Mensagem para o modelo selecionado"
               className="flex-1 bg-transparent outline-none resize-none font-grotesk text-sm md:text-base text-[var(--bone)] placeholder:text-[var(--bone)]/35 disabled:opacity-50 py-2"
             />
             {isStreaming ? (
@@ -523,7 +526,7 @@ function Metric({ label, value, tone }: MetricProps) {
 function EmptyState({ model }: { model: ModelSpec }) {
   const suggestions: ReadonlyArray<string> = [
     "Explique RLS do Postgres com um exemplo prático em 5 linhas.",
-    "Compare Claude Sonnet vs Opus em raciocínio simbólico.",
+    "Compare Gemini 3 Pro vs GPT-5.5 Pro em raciocínio simbólico.",
     "Refatore esta query SQL para usar window functions:\nSELECT…",
     "Me dê 3 ideias de arquitetura pra um chat com rate-limit por IP.",
   ];
@@ -539,7 +542,7 @@ function EmptyState({ model }: { model: ModelSpec }) {
         Faça a primeira <span className="text-aurora">pergunta</span>.
       </h2>
       <p className="font-grotesk text-sm text-[var(--bone)]/60 mb-6 max-w-lg">
-        Sem login. Sem histórico salvo. Sem chave da Anthropic na sua máquina.
+        Sem login. Sem histórico salvo. Sem chave do provedor na sua máquina.
         Cada token consumido sai do saldo Lovable AI do workspace.
       </p>
       <ul className="grid sm:grid-cols-2 gap-2">
@@ -566,10 +569,10 @@ function MessageBubble({ msg }: { msg: Msg }) {
       ].join(" ")}
     >
       <header className="flex items-center gap-2 font-mono text-[10px] tracking-[0.3em] text-[var(--bone)]/40">
-        <span>◇ {isUser ? "VOCÊ" : "CLAUDE"}</span>
+        <span>◇ {isUser ? "VOCÊ" : "AI"}</span>
         {msg.model && !isUser && (
           <span className="text-[var(--bone)]/30">
-            · {msg.model.replace("anthropic/", "").toUpperCase()}
+            · {msg.model.replace(/^(anthropic|google|openai)\//, "").toUpperCase()}
           </span>
         )}
       </header>

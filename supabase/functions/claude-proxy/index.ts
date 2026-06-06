@@ -8,16 +8,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "content-type, authorization, apikey",
 };
 
+// Lovable AI Gateway só serve Google + OpenAI. Anthropic não está disponível.
 const ALLOWED_MODELS = new Set([
-  "anthropic/claude-3.5-sonnet",
-  "anthropic/claude-3.5-haiku",
-  "anthropic/claude-sonnet-4",
-  "anthropic/claude-opus-4",
-  "anthropic/claude-4.5-sonnet",
-  "anthropic/claude-4.5-opus",
+  "google/gemini-2.5-flash-lite",
+  "google/gemini-3-flash-preview",
+  "google/gemini-3.5-flash",
+  "google/gemini-2.5-pro",
+  "google/gemini-3.1-pro-preview",
+  "openai/gpt-5-mini",
+  "openai/gpt-5",
+  "openai/gpt-5.5",
+  "openai/gpt-5.5-pro",
 ]);
 
-const DEFAULT_MODEL = "anthropic/claude-3.5-sonnet";
+const DEFAULT_MODEL = "google/gemini-3-flash-preview";
 const MAX_MESSAGES = 50;
 const MAX_CONTENT_CHARS = 16_000;
 
