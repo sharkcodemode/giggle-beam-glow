@@ -335,7 +335,7 @@ function ClaudePanel() {
 
         {/* METRICS */}
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-px mt-6 bg-[var(--bone)]/10 border border-[var(--bone)]/10">
-          <Metric label="MODEL" value={currentModel.label.replace("Claude ", "")} tone={currentModel.tone} />
+          <Metric label="MODEL" value={currentModel.label} tone={currentModel.tone} />
           <Metric label="TIER" value={currentModel.tag} />
           <Metric label="TOKENS≈" value={approxTokens.toLocaleString("pt-BR")} />
           <Metric label="COST≈" value={`$${approxCost.toFixed(4)}`} />
