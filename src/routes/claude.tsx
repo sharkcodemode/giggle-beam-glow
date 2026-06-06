@@ -299,13 +299,13 @@ function ClaudePanel() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
             <p className="font-mono text-[10px] tracking-[0.4em] text-[var(--bone)]/50 mb-2">
-              ◇ ROUTE /claude · ANTHROPIC VIA LOVABLE
+              ◇ ROUTE /claude · GEMINI + GPT VIA LOVABLE
             </p>
             <h1 className="font-display italic text-5xl md:text-7xl leading-[0.95] text-aurora">
-              Claude Console
+              AI Console
             </h1>
             <p className="font-grotesk text-sm md:text-base text-[var(--bone)]/70 mt-3 max-w-xl">
-              Chat direto com a família Claude via{" "}
+              Chat direto com Gemini 3 e GPT-5.5 via{" "}
               <code className="font-mono text-xs text-aurora">ai.gateway.lovable.dev</code>.
               Streaming token-a-token. Sua chave fica server-side.
             </p>
