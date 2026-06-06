@@ -50,15 +50,18 @@ interface ModelSpec {
 }
 
 const MODELS: ReadonlyArray<ModelSpec> = [
-  { id: "anthropic/claude-3.5-haiku",   label: "Claude 3.5 Haiku",   tag: "RAPID",     costPerMillion: 1.0,  tone: "mint"   },
-  { id: "anthropic/claude-3.5-sonnet",  label: "Claude 3.5 Sonnet",  tag: "WORKHORSE", costPerMillion: 6.0,  tone: "cyan"   },
-  { id: "anthropic/claude-sonnet-4",    label: "Claude Sonnet 4",    tag: "BALANCED",  costPerMillion: 6.0,  tone: "cyan"   },
-  { id: "anthropic/claude-4.5-sonnet",  label: "Claude 4.5 Sonnet",  tag: "DEEP",      costPerMillion: 9.0,  tone: "violet" },
-  { id: "anthropic/claude-opus-4",      label: "Claude Opus 4",      tag: "PREMIUM",   costPerMillion: 45.0, tone: "plasma" },
-  { id: "anthropic/claude-4.5-opus",    label: "Claude 4.5 Opus",    tag: "FRONTIER",  costPerMillion: 60.0, tone: "plasma" },
+  { id: "google/gemini-2.5-flash-lite",   label: "Gemini 2.5 Flash Lite", tag: "RAPID",     costPerMillion: 0.4,  tone: "mint"   },
+  { id: "google/gemini-3-flash-preview",  label: "Gemini 3 Flash",        tag: "WORKHORSE", costPerMillion: 1.2,  tone: "cyan"   },
+  { id: "google/gemini-3.5-flash",        label: "Gemini 3.5 Flash",      tag: "BALANCED",  costPerMillion: 2.0,  tone: "cyan"   },
+  { id: "google/gemini-2.5-pro",          label: "Gemini 2.5 Pro",        tag: "DEEP",      costPerMillion: 7.0,  tone: "violet" },
+  { id: "google/gemini-3.1-pro-preview",  label: "Gemini 3.1 Pro",        tag: "PREVIEW",   costPerMillion: 10.0, tone: "violet" },
+  { id: "openai/gpt-5-mini",              label: "GPT-5 Mini",            tag: "EFFICIENT", costPerMillion: 3.0,  tone: "cyan"   },
+  { id: "openai/gpt-5",                   label: "GPT-5",                 tag: "PREMIUM",   costPerMillion: 15.0, tone: "plasma" },
+  { id: "openai/gpt-5.5",                 label: "GPT-5.5",               tag: "FRONTIER",  costPerMillion: 25.0, tone: "plasma" },
+  { id: "openai/gpt-5.5-pro",             label: "GPT-5.5 Pro",           tag: "APEX",      costPerMillion: 40.0, tone: "plasma" },
 ];
 
-const DEFAULT_SYSTEM = `Você é o CLAUDE TIER S rodando dentro do console privado de Caio Mello.
+const DEFAULT_SYSTEM = `Você é o AI TIER S rodando dentro do console privado de Caio Mello.
 Estilo: denso, técnico, anti-marketês. Português PT-BR.
 Responda em markdown quando ajudar (tabelas, código, listas).
 Nunca invente fatos: se não souber, diga "não tenho dado".`;
