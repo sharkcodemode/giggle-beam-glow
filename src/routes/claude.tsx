@@ -174,10 +174,7 @@ function ClaudePanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const currentModel = useMemo<ModelSpec>(
-    () => MODELS.find((m) => m.id === model) ?? MODELS[1],
-    [model],
-  );
+  const currentModel = useMemo<ModelSpec>(() => findChatModel(model), [model]);
 
   const approxTokens = useMemo<number>(
     () => estimateTokens(`${systemPrompt}${messages.map((m) => m.content).join("")}`),
