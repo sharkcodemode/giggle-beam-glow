@@ -18,6 +18,7 @@ import { Route as ClaudeRouteImport } from './routes/claude'
 import { Route as ChatmodelosRouteImport } from './routes/chatmodelos'
 import { Route as AudiosRouteImport } from './routes/audios'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiSecretCheckRouteImport } from './routes/api/_secret-check'
 
 const VoiceRoute = VoiceRouteImport.update({
   id: '/voice',
@@ -64,6 +65,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSecretCheckRoute = ApiSecretCheckRouteImport.update({
+  id: '/api/_secret-check',
+  path: '/api',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
+  '/api': typeof ApiSecretCheckRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
+  '/api': typeof ApiSecretCheckRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
+  '/api/_secret-check': typeof ApiSecretCheckRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/radar-lovable'
     | '/ragmodelos'
     | '/voice'
+    | '/api'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/radar-lovable'
     | '/ragmodelos'
     | '/voice'
+    | '/api'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/radar-lovable'
     | '/ragmodelos'
     | '/voice'
+    | '/api/_secret-check'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +157,7 @@ export interface RootRouteChildren {
   RadarLovableRoute: typeof RadarLovableRoute
   RagmodelosRoute: typeof RagmodelosRoute
   VoiceRoute: typeof VoiceRoute
+  ApiSecretCheckRoute: typeof ApiSecretCheckRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/_secret-check': {
+      id: '/api/_secret-check'
+      path: '/api'
+      fullPath: '/api'
+      preLoaderRoute: typeof ApiSecretCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +245,7 @@ const rootRouteChildren: RootRouteChildren = {
   RadarLovableRoute: RadarLovableRoute,
   RagmodelosRoute: RagmodelosRoute,
   VoiceRoute: VoiceRoute,
+  ApiSecretCheckRoute: ApiSecretCheckRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
