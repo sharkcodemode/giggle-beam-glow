@@ -99,11 +99,11 @@ serve(async (req) => {
         );
       }
 
-      return new Response(response.body, {
+      return new Response(finalResponse.body, {
         headers: {
           ...corsHeaders,
           "Content-Type": stream ? "text/event-stream" : "application/json",
-          "x-acto-model-used": response.headers.get("x-lovable-model") || "unknown",
+          "x-acto-model-used": finalResponse.headers.get("x-lovable-model") || modelUsed,
         },
       });
     }
