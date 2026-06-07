@@ -51,24 +51,49 @@
     );
   }
 
-  const CLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>`;
+  const CLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;display:block;"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>`;
+
+  // procura um botão-irmão no mesmo container da dock pra clonar className/tamanho
+  function findSiblingDockButton(button) {
+    const parent = button.parentElement;
+    if (!parent) return null;
+    const siblings = Array.from(parent.children).filter(
+      (el) =>
+        el !== button &&
+        el instanceof HTMLButtonElement &&
+        el.querySelector("svg") &&
+        !el.hasAttribute(BUTTON_ATTR),
+    );
+    return siblings[0] || null;
+  }
 
   function setButtonLabel(button) {
-    // remove o texto original ("Começar do Zero" / "Criar Checkpoint") e injeta apenas o ícone de relógio
+    const sibling = findSiblingDockButton(button);
+    // limpa qualquer texto/filho original
     button.textContent = "";
+    // se achou irmão, copia a className inteira pra herdar tamanho/padding/cor/hover do tema
+    if (sibling) {
+      button.className = sibling.className;
+      // garante centralização caso o template do irmão dependa de svg como único filho
+      const rect = sibling.getBoundingClientRect();
+      if (rect.width && rect.height) {
+        button.style.width = `${Math.round(rect.width)}px`;
+        button.style.height = `${Math.round(rect.height)}px`;
+      }
+    } else {
+      // fallback discreto: 28×28, padding 0, sem borda — só se não houver irmão
+      button.style.width = "28px";
+      button.style.height = "28px";
+      button.style.padding = "0";
+      button.style.display = "inline-flex";
+      button.style.alignItems = "center";
+      button.style.justifyContent = "center";
+      button.style.flex = "0 0 auto";
+    }
     button.insertAdjacentHTML("afterbegin", CLOCK_SVG);
     button.setAttribute(BUTTON_ATTR, "1");
     button.setAttribute("title", "Criar Checkpoint TIER-S");
     button.setAttribute("aria-label", "Criar Checkpoint TIER-S");
-    // colapsa pra ficar como ícone compacto, não botão largo
-    button.style.width = "32px";
-    button.style.minWidth = "32px";
-    button.style.height = "32px";
-    button.style.padding = "0";
-    button.style.display = "inline-flex";
-    button.style.alignItems = "center";
-    button.style.justifyContent = "center";
-    button.style.flex = "0 0 auto";
   }
 
   function isTargetButton(button) {
