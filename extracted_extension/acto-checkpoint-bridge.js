@@ -71,31 +71,94 @@
 
   function setButtonLabel(button) {
     const sibling = findSiblingDockButton(button);
-    // limpa qualquer texto/filho original
     button.textContent = "";
-    // se achou irmão, copia a className inteira pra herdar tamanho/padding/cor/hover do tema
+    let svgSize = 18;
     if (sibling) {
       button.className = sibling.className;
-      // garante centralização caso o template do irmão dependa de svg como único filho
       const rect = sibling.getBoundingClientRect();
       if (rect.width && rect.height) {
         button.style.width = `${Math.round(rect.width)}px`;
         button.style.height = `${Math.round(rect.height)}px`;
       }
+      const sSvg = sibling.querySelector("svg");
+      if (sSvg) {
+        const sRect = sSvg.getBoundingClientRect();
+        if (sRect.width >= 10) svgSize = Math.round(sRect.width);
+      }
     } else {
-      // fallback discreto: 28×28, padding 0, sem borda — só se não houver irmão
-      button.style.width = "28px";
-      button.style.height = "28px";
+      button.style.width = "32px";
+      button.style.height = "32px";
       button.style.padding = "0";
       button.style.display = "inline-flex";
       button.style.alignItems = "center";
       button.style.justifyContent = "center";
       button.style.flex = "0 0 auto";
     }
-    button.insertAdjacentHTML("afterbegin", CLOCK_SVG);
+    const svg = CLOCK_SVG.replace(
+      'style="width:18px;height:18px;display:block;flex:0 0 auto;"',
+      `style="width:${svgSize}px;height:${svgSize}px;display:block;flex:0 0 auto;"`,
+    );
+    button.insertAdjacentHTML("afterbegin", svg);
     button.setAttribute(BUTTON_ATTR, "1");
-    button.setAttribute("title", "Criar Checkpoint TIER-S");
-    button.setAttribute("aria-label", "Criar Checkpoint TIER-S");
+    button.setAttribute("aria-label", TOOLTIP_LABEL);
+    button.removeAttribute("title");
+    attachTooltip(button);
+  }
+
+  // ---------- TOOLTIP CUSTOM ----------
+
+  function ensureTooltipStyle() {
+    if (document.getElementById("acto-cp-tooltip-style")) return;
+    const css = document.createElement("style");
+    css.id = "acto-cp-tooltip-style";
+    css.textContent = `
+      #${TOOLTIP_ID}{position:fixed;z-index:2147483647;pointer-events:none;padding:6px 10px;border-radius:6px;background:#0b1220;border:1px solid rgba(96,165,250,.45);color:#dbeafe;font:600 11px/1.2 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;}
+      #${TOOLTIP_ID}[data-show="1"]{opacity:1;transform:translateY(0);}
+    `;
+    document.documentElement.appendChild(css);
+  }
+
+  function getTooltipEl() {
+    ensureTooltipStyle();
+    let el = document.getElementById(TOOLTIP_ID);
+    if (!el) {
+      el = document.createElement("div");
+      el.id = TOOLTIP_ID;
+      el.setAttribute("role", "tooltip");
+      document.documentElement.appendChild(el);
+    }
+    return el;
+  }
+
+  function showTooltip(button) {
+    const el = getTooltipEl();
+    el.textContent = TOOLTIP_LABEL;
+    const r = button.getBoundingClientRect();
+    el.style.left = "0px";
+    el.style.top = "0px";
+    el.setAttribute("data-show", "1");
+    const tr = el.getBoundingClientRect();
+    let left = r.left + r.width / 2 - tr.width / 2;
+    let top = r.bottom + 8;
+    left = Math.max(6, Math.min(left, window.innerWidth - tr.width - 6));
+    if (top + tr.height > window.innerHeight - 6) top = r.top - tr.height - 8;
+    el.style.left = `${Math.round(left)}px`;
+    el.style.top = `${Math.round(top)}px`;
+  }
+
+  function hideTooltip() {
+    const el = document.getElementById(TOOLTIP_ID);
+    if (el) el.removeAttribute("data-show");
+  }
+
+  function attachTooltip(button) {
+    if (button.__actoCpTip) return;
+    button.__actoCpTip = true;
+    button.addEventListener("mouseenter", () => showTooltip(button));
+    button.addEventListener("mouseleave", hideTooltip);
+    button.addEventListener("focus", () => showTooltip(button));
+    button.addEventListener("blur", hideTooltip);
+    button.addEventListener("click", hideTooltip);
   }
 
   function isTargetButton(button) {
