@@ -51,7 +51,9 @@
     );
   }
 
-  const CLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;display:block;"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>`;
+  const CLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:18px;height:18px;display:block;flex:0 0 auto;"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>`;
+  const TOOLTIP_LABEL = "Criar Checkpoint TIER-S";
+  const TOOLTIP_ID = "acto-checkpoint-tooltip";
 
   // procura um botão-irmão no mesmo container da dock pra clonar className/tamanho
   function findSiblingDockButton(button) {
