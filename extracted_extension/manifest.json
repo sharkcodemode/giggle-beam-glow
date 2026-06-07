@@ -101,6 +101,7 @@
         "acto-remover-bridge.js",
         "acto-watermark-bridge.js",
         "acto-checkpoint-bridge.js",
+        "acto-attachment-thumbs-bridge.js",
         "acto-i18n-bridge.js",
         "acto-notes-page-modal.js",
         "assets/*",
