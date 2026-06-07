@@ -3,7 +3,7 @@
   "name": "🔥 ACTO",
   "version": "2.19.0",
   "version_name": "V.4.32 | Criar Checkpoint TIER-S 07/06/2026",
-  "description": "Novo sistema de Skills, melhorias de estabilidade, auditoria inteligente e recursos avançados para Lovable.dev. 🚀",
+  "description": "🔥 ACTO V.4.30 | Update 04/06/2026 — Prompts ilimitados, Modo Plano, novo sistema de Skills, melhorias de estabilidade, auditoria inteligente e recursos avançados para Lovable.dev. 🚀 🌐 acto-lov.online",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -101,6 +101,7 @@
         "acto-remover-bridge.js",
         "acto-watermark-bridge.js",
         "acto-checkpoint-bridge.js",
+        "acto-attachment-thumbs-bridge.js",
         "acto-i18n-bridge.js",
         "acto-notes-page-modal.js",
         "assets/*",
