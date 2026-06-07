@@ -2,44 +2,6 @@
   if (window.__ACTO_LOVABLE_CONTEXT_CAPTURED__) return;
   window.__ACTO_LOVABLE_CONTEXT_CAPTURED__ = true;
 
-  // ---- License gate (dual-format, MV3-safe) ----
-  window.__ACTO_LICENSE_OK__ = false;
-  async function actoCheckLicense() {
-    try {
-      const stored = await new Promise((resolve) =>
-        chrome.storage.local.get(["license_status"], (v) => resolve(v || {}))
-      );
-      window.__ACTO_LICENSE_OK__ = stored.license_status === "active";
-      return window.__ACTO_LICENSE_OK__;
-    } catch {
-      window.__ACTO_LICENSE_OK__ = false;
-      return false;
-    }
-  }
-  window.__actoEnsureLicense = async function (action) {
-    const ok = await actoCheckLicense();
-    if (!ok) {
-      try {
-        const t = document.createElement("div");
-        t.textContent = "ACTO: Licença expirada ou inválida.";
-        t.style.cssText = "position:fixed;top:16px;right:16px;z-index:2147483647;background:#111;color:#fff;padding:10px 14px;border-radius:8px;font:600 13px/1.2 system-ui;box-shadow:0 4px 16px rgba(0,0,0,.4)";
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 4000);
-      } catch {}
-      console.warn("[ACTO] Aborting action — license not active:", action || "");
-    }
-    return ok;
-  };
-  actoCheckLicense();
-  try {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "local" && changes.license_status) {
-        window.__ACTO_LICENSE_OK__ = changes.license_status.newValue === "active";
-      }
-    });
-  } catch {}
-
-
   const MESSAGE_TYPE = "ACTO_LOVABLE_CONTEXT_CAPTURE";
   const SHOW_FLOATING_ICON_MESSAGE_TYPE = "ACTO_SHOW_FLOATING_ICON";
   const HIDE_FLOATING_ICON_MESSAGE_TYPE = "ACTO_HIDE_FLOATING_ICON";
@@ -48,7 +10,7 @@
   const PAGE_TOKEN_MESSAGE_SOURCE = "ACTO_LOVABLE_TOKEN_HOOK";
   const FLOATING_ICON_ID = "acto-floating-panel-icon";
   const FLOATING_ICON_POSITION_KEY = "acto-floating-panel-icon-position";
-  const FLOATING_ICON_HTML = '<span class="acto-floating-label"><strong>ACTO</strong><span>IMAGINE</span><span>PROMPT</span><span>CREATE</span></span>';
+  const FLOATING_ICON_HTML = '<span class="acto-floating-label"><strong>ACTO</strong><span>-</span><span>Imagine</span><span>Prompt</span><span>Create</span></span>';
   const FLOATING_ICON_WIDTH = 56;
   const FLOATING_ICON_HEIGHT = 520;
   const FLOATING_ICON_PADDING = 12;
@@ -127,6 +89,9 @@
         touch-action: none !important;
         user-select: none !important;
         overflow: hidden !important;
+      }
+      #${FLOATING_ICON_ID}[hidden] {
+        display: none !important;
       }
       #${FLOATING_ICON_ID}.acto-dragging {
         cursor: grabbing !important;

@@ -26,10 +26,16 @@ const OPEN_STORE_MODAL_MESSAGE_TYPE = "ACTO_OPEN_STORE_MODAL";
 const OPEN_STORE_PAGE_MODAL_MESSAGE_TYPE = "ACTO_OPEN_STORE_PAGE_MODAL_V2";
 const CLOSE_STORE_PAGE_MODAL_MESSAGE_TYPE = "ACTO_CLOSE_STORE_PAGE_MODAL_V2";
 const STORE_MODAL_PING_MESSAGE_TYPE = "ACTO_STORE_PAGE_MODAL_V2_PING";
+const OPEN_EXPIRED_LICENSE_MODAL_MESSAGE_TYPE = "ACTO_OPEN_EXPIRED_LICENSE_MODAL";
+const OPEN_EXPIRED_LICENSE_PAGE_MODAL_MESSAGE_TYPE = "ACTO_OPEN_EXPIRED_LICENSE_PAGE_MODAL";
+const EXPIRED_LICENSE_MODAL_PING_MESSAGE_TYPE = "ACTO_EXPIRED_LICENSE_PAGE_MODAL_PING";
 const OPEN_NOTES_MODAL_MESSAGE_TYPE = "ACTO_OPEN_NOTES_MODAL";
 const OPEN_NOTES_PAGE_MODAL_MESSAGE_TYPE = "ACTO_OPEN_NOTES_PAGE_MODAL";
 const CLOSE_NOTES_PAGE_MODAL_MESSAGE_TYPE = "ACTO_CLOSE_NOTES_PAGE_MODAL";
 const NOTES_MODAL_PING_MESSAGE_TYPE = "ACTO_NOTES_PAGE_MODAL_PING";
+const OPEN_REMOVER_MODAL_MESSAGE_TYPE = "ACTO_OPEN_REMOVER_MODAL";
+const OPEN_REMOVER_PAGE_MODAL_MESSAGE_TYPE = "ACTO_OPEN_REMOVER_PAGE_MODAL";
+const REMOVER_MODAL_PING_MESSAGE_TYPE = "ACTO_REMOVER_PAGE_MODAL_PING";
 const SHOW_FLOATING_ICON_MESSAGE_TYPE = "ACTO_SHOW_FLOATING_ICON";
 const HIDE_FLOATING_ICON_MESSAGE_TYPE = "ACTO_HIDE_FLOATING_ICON";
 const PUBLISH_NATIVE_CHAT_MASK_MESSAGE_TYPE = "ACTO_PUBLISH_NATIVE_CHAT_MASK";
@@ -660,6 +666,36 @@ async function openStoreModalOnTab(tab = undefined) {
   return response?.ok === true;
 }
 
+async function ensureExpiredLicensePageModal(tabId) {
+  const ping = { type: EXPIRED_LICENSE_MODAL_PING_MESSAGE_TYPE };
+  try {
+    const response = await sendTabMessageWithResponse(tabId, ping);
+    if (response?.ok) return true;
+  } catch {}
+
+  await injectScriptFile(tabId, "acto-expired-license-page-modal.js");
+
+  const response = await sendTabMessageWithResponse(tabId, ping);
+  return response?.ok === true;
+}
+
+async function openExpiredLicenseModalOnTab(tab = undefined) {
+  const targetTab = tab?.id && isLovableUrl(tab.url) ? tab : await getActiveTab();
+  if (!targetTab?.id || !isLovableUrl(targetTab.url)) {
+    return false;
+  }
+
+  activeTabId = targetTab.id;
+  const ready = await ensureExpiredLicensePageModal(targetTab.id);
+  if (!ready) return false;
+
+  const response = await sendTabMessageWithResponse(targetTab.id, {
+    type: OPEN_EXPIRED_LICENSE_PAGE_MODAL_MESSAGE_TYPE,
+  });
+
+  return response?.ok === true;
+}
+
 async function ensureNotesPageModal(tabId) {
   const ping = { type: NOTES_MODAL_PING_MESSAGE_TYPE };
   try {
@@ -690,11 +726,38 @@ async function openNotesModalOnTab(tab = undefined) {
   return response?.ok === true;
 }
 
+async function ensureRemoverPageModal(tabId) {
+  const ping = { type: REMOVER_MODAL_PING_MESSAGE_TYPE };
+  try {
+    const response = await sendTabMessageWithResponse(tabId, ping);
+    if (response?.ok) return true;
+  } catch {}
+
+  await injectScriptFile(tabId, "acto-remover-page-modal.js");
+
+  const response = await sendTabMessageWithResponse(tabId, ping);
+  return response?.ok === true;
+}
+
+async function openRemoverModalOnTab(tab = undefined) {
+  const targetTab = tab?.id ? tab : await getActiveTab();
+  if (!targetTab?.id) return false;
+
+  const ready = await ensureRemoverPageModal(targetTab.id);
+  if (!ready) return false;
+
+  const response = await sendTabMessageWithResponse(targetTab.id, {
+    type: OPEN_REMOVER_PAGE_MODAL_MESSAGE_TYPE,
+  });
+
+  return response?.ok === true;
+}
+
 function injectFloatingIconInPage() {
   const ICON_ID = "acto-floating-panel-icon";
   const STYLE_ID = "acto-floating-panel-icon-style";
   const POSITION_KEY = "acto-floating-panel-icon-position";
-  const HTML = '<span class="acto-floating-label"><strong>ACTO</strong><span>IMAGINE</span><span>PROMPT</span><span>CREATE</span></span>';
+  const HTML = '<span class="acto-floating-label"><strong>ACTO</strong><span>-</span><span>Imagine</span><span>Prompt</span><span>Create</span></span>';
   const WIDTH = 56;
   const HEIGHT = 520;
   const PADDING = 12;
@@ -753,6 +816,9 @@ function injectFloatingIconInPage() {
         touch-action: none !important;
         user-select: none !important;
         overflow: hidden !important;
+      }
+      #${ICON_ID}[hidden] {
+        display: none !important;
       }
       #${ICON_ID}.acto-dragging {
         cursor: grabbing !important;
@@ -878,8 +944,10 @@ async function showFloatingIconOnTab(tab) {
   return showFloatingIconViaScripting(tab.id);
 }
 
-async function collapseToFloatingIcon() {
-  const tab = await getActiveTab();
+async function collapseToFloatingIcon(sender = undefined) {
+  const tab = sender?.tab?.id && isLovableUrl(sender.tab.url)
+    ? sender.tab
+    : await getActiveLovableTab();
   const iconShown = await showFloatingIconOnTab(tab);
 
   if (!iconShown) {
@@ -3778,7 +3846,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === COLLAPSE_TO_FLOATING_ICON_MESSAGE_TYPE) {
-    collapseToFloatingIcon()
+    collapseToFloatingIcon(sender)
       .then((closed) => sendResponse({ ok: true, closed }))
       .catch((error) => sendResponse({ ok: false, error: error?.message || "Falha ao retrair" }));
     return true;
@@ -3792,7 +3860,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === OPEN_SIDE_PANEL_MODE_MESSAGE_TYPE) {
-    moveFloatingModalToSidePanel(sender?.tab)
+    openFromFloatingIcon(sender)
       .then((opened) => sendResponse({ ok: opened, opened, error: opened ? undefined : "Abra uma aba do Lovable para alternar o painel." }))
       .catch((error) => sendResponse({ ok: false, opened: false, error: error?.message || "Falha ao abrir painel lateral" }));
     return true;
@@ -3805,10 +3873,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === OPEN_EXPIRED_LICENSE_MODAL_MESSAGE_TYPE) {
+    openExpiredLicenseModalOnTab(sender?.tab)
+      .then((opened) => sendResponse({ ok: opened, opened, error: opened ? undefined : "Abra uma aba do Lovable para abrir o aviso." }))
+      .catch((error) => sendResponse({ ok: false, opened: false, error: error?.message || "Falha ao abrir aviso" }));
+    return true;
+  }
+
   if (message?.type === OPEN_NOTES_MODAL_MESSAGE_TYPE) {
     openNotesModalOnTab(sender?.tab)
       .then((opened) => sendResponse({ ok: opened, opened, error: opened ? undefined : "Abra uma aba do Lovable para abrir o Notas." }))
       .catch((error) => sendResponse({ ok: false, opened: false, error: error?.message || "Falha ao abrir Notas" }));
+    return true;
+  }
+
+  if (message?.type === OPEN_REMOVER_MODAL_MESSAGE_TYPE) {
+    openRemoverModalOnTab(sender?.tab)
+      .then((opened) => sendResponse({ ok: opened, opened, error: opened ? undefined : "Nao foi possivel abrir o Removedor nesta pagina." }))
+      .catch((error) => sendResponse({ ok: false, opened: false, error: error?.message || "Falha ao abrir Removedor" }));
     return true;
   }
 
@@ -3933,110 +4015,3 @@ chrome.action.onClicked.addListener(async (tab) => {
     console.warn("Unable to open ACTO side panel", error);
   }
 });
-
-// ============================================================
-// ACTO License Validation (MV3 alarms, dual-format key support)
-// ============================================================
-const ACTO_LICENSE_API_BASE = "https://bldjotvptyxnnxwvcufk.supabase.co/functions/v1";
-const ACTO_LICENSE_TERMINAL_STATUSES = new Set(["expired", "revoked", "not_found"]);
-const ACTO_LICENSE_VALIDATE_ENDPOINT = `${ACTO_LICENSE_API_BASE}/validate-license`;
-const ACTO_LICENSE_STATUS_KEY = "license_status";
-const ACTO_LICENSE_EXPIRES_KEY = "license_expires_at";
-const ACTO_LICENSE_LAST_CHECK_KEY = "license_last_check";
-const ACTO_LICENSE_POLL_ALARM = "license_poll";
-const ACTO_LICENSE_POLL_PERIOD_MIN = 0.5; // 30s
-// Unified regex: accepts legacy (3 segs) + new (4 segs) formats
-const ACTO_LICENSE_REGEX = /^[A-Z]{2,5}(-[A-Z0-9]{3}){2,3}$/;
-
-function isValidActoLicenseFormat(key) {
-  return typeof key === "string" && ACTO_LICENSE_REGEX.test(key.trim());
-}
-
-async function validateActoLicense() {
-  const stored = await storageGet([ACTO_LICENSE_KEY, ACTO_DEVICE_ID_KEY]);
-  const key = stored[ACTO_LICENSE_KEY];
-  if (!key) return { status: "not_found", reason: "no_key" };
-
-  const deviceId = await getOrCreateActoDeviceId(stored[ACTO_DEVICE_ID_KEY]);
-
-  try {
-    const resp = await fetch(ACTO_LICENSE_VALIDATE_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, device_id: deviceId }),
-    });
-    if (!resp.ok) {
-      console.warn("[ACTO license] HTTP", resp.status);
-      return { status: "network_error", reason: `http_${resp.status}` };
-    }
-    const data = await resp.json();
-    await storageSet({
-      [ACTO_LICENSE_STATUS_KEY]: data.status || "unknown",
-      [ACTO_LICENSE_EXPIRES_KEY]: data.expires_at || null,
-      [ACTO_LICENSE_LAST_CHECK_KEY]: Date.now(),
-    });
-
-    if (ACTO_LICENSE_TERMINAL_STATUSES.has(data.status)) {
-      await forceActoLogout(data.reason || data.status);
-    }
-    return data;
-  } catch (error) {
-    console.warn("[ACTO license] validate failed", error);
-    return { status: "network_error", reason: error?.message || "fetch_failed" };
-  }
-}
-
-async function forceActoLogout(reason) {
-  try {
-    await new Promise((resolve) =>
-      chrome.storage.local.remove(
-        [ACTO_LICENSE_KEY, ACTO_DEVICE_ID_KEY, "session", ACTO_LICENSE_STATUS_KEY, ACTO_LICENSE_EXPIRES_KEY],
-        () => resolve()
-      )
-    );
-    chrome.runtime.sendMessage({ type: "FORCE_LOGOUT", reason }).catch(() => {});
-    chrome.alarms.clear(ACTO_LICENSE_POLL_ALARM).catch(() => {});
-  } catch (error) {
-    console.warn("[ACTO license] forceLogout failed", error);
-  }
-}
-
-async function ensureActoLicensePollAlarm() {
-  const existing = await chrome.alarms.get(ACTO_LICENSE_POLL_ALARM).catch(() => null);
-  if (existing) return;
-  await chrome.alarms.create(ACTO_LICENSE_POLL_ALARM, {
-    periodInMinutes: ACTO_LICENSE_POLL_PERIOD_MIN,
-    delayInMinutes: ACTO_LICENSE_POLL_PERIOD_MIN,
-  });
-}
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm?.name === ACTO_LICENSE_POLL_ALARM) {
-    validateActoLicense().catch((error) => console.warn("[ACTO license] poll error", error));
-  }
-});
-
-chrome.runtime.onStartup.addListener(() => {
-  ensureActoLicensePollAlarm().catch(() => {});
-  validateActoLicense().catch(() => {});
-});
-chrome.runtime.onInstalled.addListener(() => {
-  ensureActoLicensePollAlarm().catch(() => {});
-  validateActoLicense().catch(() => {});
-});
-
-// Expose validation to popup/content scripts on demand
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === "ACTO_VALIDATE_LICENSE_NOW") {
-    validateActoLicense()
-      .then((data) => sendResponse({ ok: true, data }))
-      .catch((error) => sendResponse({ ok: false, error: error?.message || "validate failed" }));
-    return true;
-  }
-  if (message?.type === "ACTO_CHECK_LICENSE_FORMAT") {
-    sendResponse({ ok: true, valid: isValidActoLicenseFormat(message.key) });
-    return false;
-  }
-});
-
-ensureActoLicensePollAlarm().catch(() => {});
