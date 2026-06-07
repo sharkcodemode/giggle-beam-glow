@@ -551,7 +551,7 @@
         <div class="acto-store-title">
           ${selected ? `<button type="button" class="acto-store-back" data-store-back>${iconSvg("M15 18l-6-6 6-6", "")} VOLTAR</button>` : ""}
           ${iconSvg("M6 8V6a6 6 0 0 1 12 0v2M4 8h16l-1 13H5L4 8Z", "")}
-          <span>LOJA - SHARKCODEMODE${selected ? ` - ${selected.label}` : ""}</span>
+          <span>LOJA - ACTO${selected ? ` - ${selected.label}` : ""}</span>
         </div>
         <div class="acto-store-header-actions">
           <button type="button" class="acto-store-close" data-store-close aria-label="Fechar">X</button>
@@ -634,7 +634,7 @@
             )
             .join("")}
         </nav>
-        <iframe class="acto-store-frame" src="${selected.url}" title="SharkCodeMode - ${selected.label}" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
+        <iframe class="acto-store-frame" src="${selected.url}" title="ACTO - ${selected.label}" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
       </div>
     `;
   }

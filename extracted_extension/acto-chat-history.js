@@ -20,6 +20,7 @@
   let toggleEl = null;
   let mounted = false;
   let isOpen = false;
+  let fixedToggleLayout = null;
 
   // ───── storage ───────────────────────────────────────────────────────────
   const loadSession = async () => {
@@ -53,35 +54,45 @@
     s.textContent = `
       #acto-chat-history-toggle{
         position:fixed; z-index:2147483601;
-        width:34px; height:34px; border-radius:10px;
-        display:flex; align-items:center; justify-content:center;
-        background:linear-gradient(135deg, rgba(8,12,20,0.92), rgba(8,12,20,0.86));
-        border:1px solid rgba(125,247,205,0.32);
-        color:#7df7cd; cursor:pointer;
-        backdrop-filter:blur(10px) saturate(1.1);
-        -webkit-backdrop-filter:blur(10px) saturate(1.1);
-        box-shadow:0 4px 14px rgba(0,0,0,0.45), 0 0 0 1px rgba(125,247,205,0.06) inset;
-        transition:transform .15s ease, border-color .15s ease, color .15s ease;
+        width:32px; height:32px; border-radius:8px;
+        display:none; align-items:center; justify-content:center;
+        background:var(--acto-chat-button-bg, rgba(37,99,235,0.2));
+        border:1px solid var(--acto-chat-button-border, rgba(96,165,250,0.5));
+        color:var(--acto-chat-button-color, #bfdbfe); cursor:pointer;
+        backdrop-filter:none;
+        -webkit-backdrop-filter:none;
+        box-shadow:none;
+        transition:transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
         font:700 14px/1 'JetBrains Mono', ui-monospace, monospace;
       }
+      #acto-chat-history-toggle[data-ready="1"]{ display:flex; }
       #acto-chat-history-toggle:hover{
         transform:translateY(-1px);
-        border-color:rgba(125,247,205,0.7);
-        color:#a8ffd8;
+        background:var(--acto-chat-button-hover-bg, rgba(59,130,246,0.1));
+        color:#fff;
       }
       #acto-chat-history-toggle[data-active="1"]{
-        background:linear-gradient(135deg, rgba(125,247,205,0.25), rgba(103,232,249,0.18));
-        border-color:rgba(125,247,205,0.85);
-        color:#0a0f18;
+        background:var(--acto-chat-button-active-bg, rgba(37,99,235,0.35));
+        border-color:var(--acto-chat-button-border, rgba(96,165,250,0.65));
+        color:#fff;
+      }
+      #acto-chat-history-toggle svg{
+        width:16px; height:16px;
+        display:block;
+        fill:none;
+        stroke:currentColor;
+        stroke-width:2;
+        stroke-linecap:round;
+        stroke-linejoin:round;
       }
       #acto-chat-history-toggle .badge{
         position:absolute; top:-4px; right:-4px;
         min-width:16px; height:16px; padding:0 4px;
         border-radius:8px;
-        background:#7df7cd; color:#0a0f18;
+        background:rgba(255,255,255,0.15); color:#fff;
         font:700 9px/16px 'JetBrains Mono', monospace;
         text-align:center;
-        box-shadow:0 0 8px rgba(125,247,205,0.6);
+        box-shadow:0 0 8px rgba(37,99,235,0.45);
       }
       #acto-chat-history-toggle .badge[data-empty="1"]{ display:none; }
 
@@ -309,41 +320,74 @@
   };
 
   // ───── positioning ───────────────────────────────────────────────────────
+  const isVisibleElement = (el) => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && cs.display !== "none" && cs.visibility !== "hidden" && cs.opacity !== "0";
+  };
+
   const findAttachButton = () => {
-    // Botão de anexar: input#file-upload tem um label/button acima
+    // Botao de anexar: input#file-upload fica dentro do botao lateral.
     const input = document.querySelector('input#file-upload[type="file"]');
     if (input) {
       const label = document.querySelector('label[for="file-upload"]');
-      if (label) return label;
-      const wrap = input.closest("button, label, div");
-      if (wrap) return wrap;
+      if (isVisibleElement(label)) return label;
+      const wrap = input.closest("button, label");
+      if (isVisibleElement(wrap)) return wrap;
     }
-    // Fallback: textarea
-    return document.querySelector("textarea");
+    // Sem botao de anexo, nao estamos na tela principal do painel.
+    return null;
   };
 
-  const positionUI = () => {
+  const syncToggleStyle = (anchor) => {
+    if (!toggleEl || !anchor) return;
+    const cs = getComputedStyle(anchor);
+    const bg = cs.backgroundColor || "rgba(37,99,235,0.2)";
+    const border = cs.borderColor || "rgba(96,165,250,0.5)";
+    const color = cs.color || "#bfdbfe";
+    toggleEl.style.setProperty("--acto-chat-button-bg", bg);
+    toggleEl.style.setProperty("--acto-chat-button-border", border);
+    toggleEl.style.setProperty("--acto-chat-button-color", color);
+    toggleEl.style.setProperty("--acto-chat-button-hover-bg", bg);
+    toggleEl.style.setProperty("--acto-chat-button-active-bg", bg);
+  };
+
+  const positionUI = (force = false) => {
     if (!toggleEl) return;
     const anchor = findAttachButton();
+    if (!anchor) {
+      fixedToggleLayout = null;
+      toggleEl.dataset.ready = "0";
+      if (isOpen) setOpen(false);
+      if (rootEl) rootEl.dataset.open = "0";
+      return;
+    }
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let toggleTop, toggleLeft;
-    if (anchor) {
-      const r = anchor.getBoundingClientRect();
-      // Acima do botão de anexar
-      toggleTop = Math.max(8, r.top - 42);
-      toggleLeft = Math.min(vw - 42, Math.max(8, r.left + (r.width / 2) - 17));
-    } else {
-      toggleTop = vh - 200;
-      toggleLeft = vw - 50;
-    }
-    toggleEl.style.top = `${toggleTop}px`;
-    toggleEl.style.left = `${toggleLeft}px`;
+    const r = anchor.getBoundingClientRect();
+    syncToggleStyle(anchor);
+    toggleEl.dataset.ready = "1";
+
+    const size = Math.round(Math.max(28, Math.min(36, r.width || 32)));
+    const gap = 6;
+    fixedToggleLayout = {
+      size,
+      anchorLeft: r.left,
+      vw,
+      top: Math.min(vh - size - 8, Math.max(8, r.top - size - gap)),
+      left: Math.min(vw - size - 8, Math.max(8, r.left + (r.width / 2) - (size / 2))),
+    };
+
+    toggleEl.style.width = `${fixedToggleLayout.size}px`;
+    toggleEl.style.height = `${fixedToggleLayout.size}px`;
+    toggleEl.style.top = `${fixedToggleLayout.top}px`;
+    toggleEl.style.left = `${fixedToggleLayout.left}px`;
 
     if (rootEl && isOpen) {
       // painel acima do toggle
       const panelMaxH = Math.min(vh * 0.46, 380);
-      const panelBottom = vh - toggleTop + 8;
+      const panelBottom = vh - fixedToggleLayout.top + 8;
       rootEl.style.bottom = `${panelBottom}px`;
       rootEl.style.top = "auto";
       rootEl.style.maxHeight = `${panelMaxH}px`;
@@ -352,6 +396,7 @@
 
   // ───── mount ─────────────────────────────────────────────────────────────
   const setOpen = (v) => {
+    if (v && !findAttachButton()) v = false;
     isOpen = !!v;
     saveOpenState(isOpen);
     if (rootEl) rootEl.dataset.open = isOpen ? "1" : "0";
@@ -376,7 +421,15 @@
     toggleEl.title = "Histórico da conversa (sessão local)";
     toggleEl.setAttribute("aria-label", "Abrir histórico de conversa local");
     toggleEl.setAttribute("aria-expanded", "false");
-    toggleEl.innerHTML = `💬<span class="badge" data-empty="1">0</span>`;
+    toggleEl.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+        <path d="M8 10h.01"></path>
+        <path d="M12 10h.01"></path>
+        <path d="M16 10h.01"></path>
+      </svg>
+      <span class="badge" data-empty="1">0</span>
+    `;
     toggleEl.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -411,7 +464,10 @@
     updateBadge();
     positionUI();
 
-    window.addEventListener("resize", positionUI, { passive: true });
+    window.addEventListener("resize", () => {
+      fixedToggleLayout = null;
+      positionUI(true);
+    }, { passive: true });
     window.addEventListener("scroll", positionUI, { passive: true });
     const mo = new MutationObserver(() => positionUI());
     mo.observe(document.body, { childList: true, subtree: true });

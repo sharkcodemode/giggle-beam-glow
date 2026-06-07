@@ -26,8 +26,8 @@
   ];
   const WRAPPER_PATTERNS = [
     /Fix all security issues/i,
-    /Trate a mensagem abaixo como uma tarefa/i,
-    /Analise as instruções e as EXECUTE exatamente/i,
+    /Trate a mensagem abaixo como um bug\/issue/i,
+    /Leia, analise e EXECUTE exatamente o que o usuário pediu/i,
     /Aplique o protocolo ELITE DEPTH 10/i,
     /===\s*MENSAGEM DO USU[ÁA]RIO\s*===/i,
     /===\s*FIM DA MENSAGEM\s*===/i,
