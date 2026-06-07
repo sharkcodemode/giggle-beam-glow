@@ -102,6 +102,7 @@
         "acto-watermark-bridge.js",
         "acto-checkpoint-bridge.js",
         "acto-i18n-bridge.js",
+        "acto-theme-whiteblue.css",
         "acto-notes-page-modal.js",
         "assets/*",
         "ads/*.png",
