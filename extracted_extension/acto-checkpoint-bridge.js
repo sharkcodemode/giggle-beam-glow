@@ -51,16 +51,24 @@
     );
   }
 
+  const CLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>`;
+
   function setButtonLabel(button) {
-    const node = getButtonTextNode(button);
-    if (node) {
-      node.textContent = "Criar Checkpoint";
-    } else {
-      button.textContent = "Criar Checkpoint";
-    }
+    // remove o texto original ("Começar do Zero" / "Criar Checkpoint") e injeta apenas o ícone de relógio
+    button.textContent = "";
+    button.insertAdjacentHTML("afterbegin", CLOCK_SVG);
     button.setAttribute(BUTTON_ATTR, "1");
     button.setAttribute("title", "Criar Checkpoint TIER-S");
     button.setAttribute("aria-label", "Criar Checkpoint TIER-S");
+    // colapsa pra ficar como ícone compacto, não botão largo
+    button.style.width = "32px";
+    button.style.minWidth = "32px";
+    button.style.height = "32px";
+    button.style.padding = "0";
+    button.style.display = "inline-flex";
+    button.style.alignItems = "center";
+    button.style.justifyContent = "center";
+    button.style.flex = "0 0 auto";
   }
 
   function isTargetButton(button) {
