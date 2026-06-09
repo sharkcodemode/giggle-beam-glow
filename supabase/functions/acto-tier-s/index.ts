@@ -993,6 +993,16 @@ async function handle(req: Request): Promise<Response> {
     });
   }
 
+  // ─── FIX RELAY (extensão burra) ───────────────────────────────────────
+  // A extensão NÃO monta mais o payload "mágico" fix_error/fastmode.
+  // Ela só manda { lovableToken, projectId, toolCallEventId, decision, ... }
+  // via header x-acto-action: fix_relay. A edge monta o payload e faz
+  // passthrough SSE direto do Lovable. Stream sem buffer = latência mínima.
+  if (req.headers.get("x-acto-action") === "fix_relay") {
+    return await handleFixRelay(req);
+  }
+
+
   // Legacy: painel envia JSON sem envelope + x-acto-license-key header.
   // Multipart (uploads): extrai campo "payload" JSON + campos "files" (binários).
   // A Edge executa o fluxo nativo Lovable inteiro: generate-upload-url → PUT GCS → generate-download-url → chat.
