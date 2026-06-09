@@ -1714,8 +1714,10 @@ async function respondLovableToolViaTab(message = {}) {
         prevSessionId: message.prevSessionId || message.prev_session_id || "",
         threadId: message.threadId || message.thread_id || "",
         planContent: message.planContent || message.plan_content || "",
+        edgeUrl: ACTO_V2_URL,
       },
     ],
+
     func: async (input) => {
       const API_ORIGIN = "https://api.lovable.dev";
       const ULID_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz";
