@@ -2117,7 +2117,7 @@ async function respondLovableToolViaTab(message = {}) {
         projectId,
         toolCallEventId,
         prevSessionId,
-        sentPlanContent: Boolean(userInput.content),
+        sentPlanContent: false,
       };
     },
   });
