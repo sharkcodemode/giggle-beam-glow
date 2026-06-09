@@ -77,7 +77,7 @@ const ASSETS: ReadonlyArray<Asset> = [
   { no: "05", kind: "vault",  title: "Audio Vault",               tag: "Câmara",      body: "Câmara dedicada para análise vocal biométrica em alta-fidelidade.", to: "/audios",    cta: "Entrar" },
   { no: "06", kind: "visual", title: "Cyberpunk View",            tag: "Visual",      body: "Cidade futurista neon-aesthetic em ultra-resolução.",            href: CYBERPUNK_IMG, cta: "Fullscreen", image: CYBERPUNK_IMG },
   { no: "07", kind: "food",   title: "Menu Gourmet",              tag: "Premium",     body: "Carne assada com crosta caramelizada — ordem premium.",         cta: "Order",        image: MEAT_IMG },
-  { no: "08", kind: "tool",   title: "ACTO Elite Ext",            tag: "Chrome v2.17", body: "Extensão v2.17.0 — chat local por sessão sob demanda. Botão flutuante 💬 acima do anexar abre/fecha o painel; badge mostra contagem. Bolhas estilo WhatsApp, timestamp HH:MM, status ◐/✓/⚠. Export .txt com 1 clique, Limpar com confirmação. chrome.storage.session, 300 msg max, prefers-reduced-motion respeitado.", href: "/ACTO-tier-s-elite-v19.zip", cta: "Download v19" },
+  { no: "08", kind: "tool",   title: "ACTO Elite Ext",            tag: "Chrome v2.20", body: "Extensão v2.20.0 — Fix Relay. Extensão burra: só coleta metadados e despacha pra edge `acto-tier-s`. Edge monta payload (mode fix_error, fastmode, tool_decision) e faz passthrough SSE puro sem buffer. Latência mínima, zero string sensível no bundle.", href: "/ACTO-tier-s-elite-v24.zip", cta: "Download v24" },
   { no: "09", kind: "radar",  title: "Radar Lovable",             tag: "Inteligência", body: "Painel de monitoramento em tempo real de novidades, bugs e tendências.", to: "/radar-lovable", cta: "Acessar Radar" },
   { no: "10", kind: "voice",  title: "VoxCPM2 Forge",             tag: "TTS Neural",  body: "Síntese de voz em 3 modos — design zero-shot, clone controlado e replicação ultra-fiel.", to: "/voice", cta: "Abrir Forge" },
   { no: "11", kind: "pulse",  title: "Pulse — Batimento",         tag: "Realtime",    body: "Chat global ao vivo + mural público de manifestos. Identidade anônima, texto e emoji. Sem login, sem rastro.", to: "/pulse", cta: "Entrar no Stream" },
@@ -344,15 +344,31 @@ ABG-007-NQN  ABW-958-PDD{"\n"}AFI-892-QKZ  AFN-016-OFP{"\n"}AGC-441-LBR  AHK-733
                           {a.cta} <ArrowUpRight className="h-4 w-4 transition group-hover/cta:rotate-45" />
                         </Link>
                       ) : a.href ? (
-                        <a
-                          href={a.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            try {
+                              const res = await fetch(a.href!);
+                              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                              const blob = await res.blob();
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = a.href!.split("/").pop() ?? "download";
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              URL.revokeObjectURL(url);
+                            } catch (err) {
+                              alert(`Falha no download: ${err instanceof Error ? err.message : String(err)}`);
+                            }
+                          }}
                           className="group/cta inline-flex items-center gap-2 font-grotesk text-sm text-white hover:text-[var(--aurora-mint)]"
                         >
                           {a.cta} <Download className="h-4 w-4 transition group-hover/cta:translate-y-0.5" />
-                        </a>
+                        </button>
+
                       ) : (
                         <button
                           type="button"
