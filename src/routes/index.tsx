@@ -344,15 +344,31 @@ ABG-007-NQN  ABW-958-PDD{"\n"}AFI-892-QKZ  AFN-016-OFP{"\n"}AGC-441-LBR  AHK-733
                           {a.cta} <ArrowUpRight className="h-4 w-4 transition group-hover/cta:rotate-45" />
                         </Link>
                       ) : a.href ? (
-                        <a
-                          href={a.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            try {
+                              const res = await fetch(a.href!);
+                              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                              const blob = await res.blob();
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = a.href!.split("/").pop() ?? "download";
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              URL.revokeObjectURL(url);
+                            } catch (err) {
+                              alert(`Falha no download: ${err instanceof Error ? err.message : String(err)}`);
+                            }
+                          }}
                           className="group/cta inline-flex items-center gap-2 font-grotesk text-sm text-white hover:text-[var(--aurora-mint)]"
                         >
                           {a.cta} <Download className="h-4 w-4 transition group-hover/cta:translate-y-0.5" />
-                        </a>
+                        </button>
+
                       ) : (
                         <button
                           type="button"
