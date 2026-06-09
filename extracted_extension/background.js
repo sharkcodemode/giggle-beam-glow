@@ -2066,52 +2066,49 @@ async function respondLovableToolViaTab(message = {}) {
       if (!toolCallEventId) throw new Error("Nao detectei um plano ou acao pendente da Lovable.");
       if (!projectId) throw new Error("Projeto Lovable nao detectado.");
 
-      const msgId = makeMessageId();
-      const payload = decision === "rejected" ? {
-        id: msgId,
-        message: "Try to fix",
-        tool_decision: "approved",
-        tool_call_event_id: toolCallEventId,
-        user_input: {
-          fix_error: {
-            decision: "approved",
-            error_id: makeMessageId(),
-          },
-        },
-        mode: "instant",
-        thread_id: threadId || "main",
-      } : {
-        message: "",
-        id: msgId,
-        mode: "fix_error",
-        fastmode: true,
-        prev_session_id: prevSessionId,
-        tool_call_event_id: toolCallEventId,
-        tool_decision: decision,
-        user_input: {},
-        thread_id: threadId || "main",
-        session_replay: "[]",
-        client_logs: [],
-        network_requests: [],
-        runtime_errors: [],
-        integration_metadata: {
-          browser: {
-            preview_viewport_width: window.innerWidth,
-            preview_viewport_height: window.innerHeight,
-          },
-        },
+      // ─── EXTENSÃO BURRA ────────────────────────────────────────────
+      // Não monta mais payload nativo Lovable aqui. Manda os metadados
+      // crus pra edge acto-tier-s (header x-acto-action: fix_relay) e ela
+      // monta o payload + faz passthrough SSE direto do Lovable.
+      const relayBody = {
+        lovableToken: resolvedLovableToken || resolvedAuthToken || "",
+        projectId,
+        toolCallEventId,
+        decision,
+        threadId: threadId || "main",
+        prevSessionId,
+        browserSessionId: resolvedBrowserSessionId,
+        clientGitSha: resolvedClientGitSha,
+        viewportW: window.innerWidth,
+        viewportH: window.innerHeight,
       };
-      const response = await fetch(`${API_ORIGIN}/tools/respond/${encodeURIComponent(toolCallEventId)}?project_id=${encodeURIComponent(projectId)}`, {
+      const response = await fetch(input.edgeUrl, {
         method: "POST",
-        credentials: "include",
-        headers: headersForLovable({ json: true }),
-        body: JSON.stringify(payload),
+        headers: {
+          "content-type": "application/json",
+          "x-acto-action": "fix_relay",
+        },
+        body: JSON.stringify(relayBody),
+        keepalive: true,
       });
-      const text = await response.text();
-      const data = safeJsonParse(text);
+      // Drena o stream sem bufferar JSON: só queremos saber que terminou.
+      // (UI da Lovable reage ao próprio websocket; nosso papel é só disparar.)
       if (!response.ok) {
-        throw new Error(data?.message || data?.error || `Lovable tools/respond ${response.status}`);
+        let errText = "";
+        try { errText = (await response.text()).slice(0, 400); } catch { /* noop */ }
+        throw new Error(`acto fix_relay ${response.status}${errText ? `: ${errText}` : ""}`);
       }
+      if (response.body && response.body.getReader) {
+        const reader = response.body.getReader();
+        try {
+          // eslint-disable-next-line no-constant-condition
+          while (true) {
+            const { done } = await reader.read();
+            if (done) break;
+          }
+        } catch { /* stream abort = ok */ }
+      }
+
 
       return {
         ok: true,
