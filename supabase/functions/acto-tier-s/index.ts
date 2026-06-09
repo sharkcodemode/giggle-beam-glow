@@ -24,7 +24,8 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
-    "content-type, authorization, apikey, x-acto-license, x-acto-license-key, x-acto-extension-key, x-acto-device-id",
+    "content-type, authorization, apikey, x-acto-license, x-acto-license-key, x-acto-extension-key, x-acto-device-id, x-acto-action",
+
   "Access-Control-Max-Age": "86400",
 };
 
