@@ -982,7 +982,126 @@ function isPlainExtensionPayload(x: unknown): x is { action: string; license: st
 }
 
 // ---------- handler ----------
+// ───────────────────────────────────────────────────────────────────────
+// FIX RELAY — recebe metadados burros da extensão, monta o payload nativo
+// Lovable (fix_error/fastmode/tool_decision/integration_metadata) e faz
+// passthrough SSE direto. Toda lógica "inteligente" vive aqui no servidor.
+// ───────────────────────────────────────────────────────────────────────
+async function handleFixRelay(req: Request): Promise<Response> {
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ ok: false, error: "fix_relay_json_invalido" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const lovableToken = String(body.lovableToken || "").trim();
+  const projectId = String(body.projectId || "").trim();
+  const toolCallEventId = String(body.toolCallEventId || "").trim();
+  const decisionRaw = String(body.decision || "approved").trim();
+  const decision = decisionRaw === "rejected" ? "rejected" : "approved";
+  const threadId = String(body.threadId || "main").trim() || "main";
+  const prevSessionId = String(body.prevSessionId || "").trim();
+  const browserSessionId = String(body.browserSessionId || "").trim();
+  const clientGitSha = String(body.clientGitSha || "").trim();
+  const viewportW = Number(body.viewportW) || 1280;
+  const viewportH = Number(body.viewportH) || 720;
+
+  if (!lovableToken) {
+    return new Response(JSON.stringify({ ok: false, error: "lovable_token_ausente" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  if (!projectId) {
+    return new Response(JSON.stringify({ ok: false, error: "project_id_ausente" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  if (!toolCallEventId) {
+    return new Response(JSON.stringify({ ok: false, error: "tool_call_event_id_ausente" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const msgId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  const errId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+
+  const payload = decision === "rejected"
+    ? {
+        id: msgId,
+        message: "Try to fix",
+        tool_decision: "approved",
+        tool_call_event_id: toolCallEventId,
+        user_input: { fix_error: { decision: "approved", error_id: errId } },
+        mode: "instant",
+        thread_id: threadId,
+      }
+    : {
+        message: "",
+        id: msgId,
+        mode: "fix_error",
+        fastmode: true,
+        prev_session_id: prevSessionId,
+        tool_call_event_id: toolCallEventId,
+        tool_decision: decision,
+        user_input: {},
+        thread_id: threadId,
+        session_replay: "[]",
+        client_logs: [],
+        network_requests: [],
+        runtime_errors: [],
+        integration_metadata: {
+          browser: {
+            preview_viewport_width: viewportW,
+            preview_viewport_height: viewportH,
+          },
+        },
+      };
+
+  const upstreamHeaders: Record<string, string> = {
+    "accept": "*/*",
+    "content-type": "application/json",
+    "authorization": `Bearer ${lovableToken}`,
+  };
+  if (browserSessionId) upstreamHeaders["x-browser-session-id"] = browserSessionId;
+  if (clientGitSha) upstreamHeaders["x-client-git-sha"] = clientGitSha;
+
+  const url = `https://api.lovable.dev/tools/respond/${encodeURIComponent(toolCallEventId)}?project_id=${encodeURIComponent(projectId)}`;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(url, {
+      method: "POST",
+      headers: upstreamHeaders,
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ ok: false, error: `upstream_fetch_fail: ${msg.slice(0, 160)}` }), {
+      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Passthrough puro: stream o body do Lovable direto pro cliente.
+  // SEM await response.text() — primeiro byte em ~ms.
+  const respHeaders = new Headers(corsHeaders);
+  const ct = upstream.headers.get("content-type") || "application/octet-stream";
+  respHeaders.set("content-type", ct);
+  const cc = upstream.headers.get("cache-control");
+  if (cc) respHeaders.set("cache-control", cc);
+  respHeaders.set("x-acto-relay", "fix");
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: respHeaders,
+  });
+}
+
 async function handle(req: Request): Promise<Response> {
+
   console.log(`[acto-v2] ${req.method} ${req.url} - ${req.headers.get("content-type")}`);
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
