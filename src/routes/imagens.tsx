@@ -461,13 +461,28 @@ function ImagensPage() {
                     setElapsed((performance.now() - startRef.current) / 1000);
                   }}
                   onError={() => {
+                    const nextIndex = attemptIndex + 1;
+                    const nextAttempt = attempts[nextIndex];
+                    if (nextAttempt) {
+                      setAttemptIndex(nextIndex);
+                      setFrames((n) => n + 1);
+                      setSrc(
+                        buildDirectPollinationsUrl(
+                          nextAttempt.modelId,
+                          system.trim(),
+                          prompt.trim(),
+                          nextAttempt.size,
+                        ),
+                      );
+                      return;
+                    }
                     setSrc(null);
                     setIsFinal(false);
                     setStatus("error");
                     stopTick();
                     setElapsed((performance.now() - startRef.current) / 1000);
                     setErrMsg(
-                      "Pollinations free recusou a imagem no navegador. Isso normalmente é fila/limite temporário do provedor externo, não saldo Lovable. Tente Turbo, reduza para 1024×1024 ou aguarde 30–60s.",
+                      "Pollinations free recusou todos os fallbacks no navegador. Isso é fila/limite temporário do provedor externo, não saldo Lovable. Aguarde 30–60s e gere novamente.",
                     );
                   }}
                 />
