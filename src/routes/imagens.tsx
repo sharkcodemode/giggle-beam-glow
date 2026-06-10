@@ -133,7 +133,7 @@ function chain_label(id: ImageModel["id"]): string {
 }
 
 function ImagensPage() {
-  const [modelId, setModelId] = useState<ImageModel["id"]>("openai/gpt-image-2");
+  const [modelId, setModelId] = useState<ImageModel["id"]>("pollinations/flux");
   const [system, setSystem] = useState(DEFAULT_SYSTEM);
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState("1024x1024");
@@ -152,7 +152,7 @@ function ImagensPage() {
     () => IMAGE_MODELS.find((m) => m.id === modelId) ?? IMAGE_MODELS[0],
     [modelId],
   );
-  const isOpenAI = model.provider === "openai";
+  const supportsSize = true;
 
   const stopTick = () => {
     if (tickRef.current !== null) {
