@@ -8,7 +8,6 @@ const DEFAULT_CHAIN = [
   "openai/gpt-5.5-pro",
   "openai/gpt-5.5",
   "google/gemini-3.1-pro-preview",
-  "google/gemini-2.5-pro",
 ] as const;
 
 const CACHE_TTL_MS = 30_000;
