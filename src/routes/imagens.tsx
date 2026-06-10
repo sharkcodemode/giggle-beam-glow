@@ -47,13 +47,13 @@ type Tone = "mint" | "cyan" | "violet" | "plasma";
 
 interface ImageModel {
   id:
-    | "openai/gpt-image-2"
-    | "openai/gpt-image-1-mini"
-    | "google/gemini-2.5-flash-image"
-    | "google/gemini-3-pro-image-preview"
-    | "google/gemini-3.1-flash-image-preview";
+    | "pollinations/flux"
+    | "pollinations/flux-realism"
+    | "pollinations/flux-anime"
+    | "pollinations/flux-3d"
+    | "pollinations/turbo";
   label: string;
-  provider: "google" | "openai";
+  provider: "pollinations";
   tag: string;
   tone: Tone;
   modality: string;
@@ -62,49 +62,49 @@ interface ImageModel {
 
 const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
   {
-    id: "openai/gpt-image-2",
-    label: "GPT-Image 2",
-    provider: "openai",
-    tag: "FLAGSHIP",
+    id: "pollinations/flux",
+    label: "Flux",
+    provider: "pollinations",
+    tag: "FREE · DEFAULT",
     tone: "violet",
     modality: "T → I",
-    note: "State-of-the-art OpenAI. Suporta partials + quality low/med/high.",
+    note: "Flux base via Pollinations.ai. Gratuito, sem chave, sem crédito. Qualidade geral alta.",
   },
   {
-    id: "openai/gpt-image-1-mini",
-    label: "GPT-Image 1 Mini",
-    provider: "openai",
-    tag: "EFFICIENT",
+    id: "pollinations/flux-realism",
+    label: "Flux Realism",
+    provider: "pollinations",
+    tag: "FREE · PHOTO",
+    tone: "cyan",
+    modality: "T → I",
+    note: "Tuning fotorrealista. Retratos, produto, editorial. Free.",
+  },
+  {
+    id: "pollinations/flux-anime",
+    label: "Flux Anime",
+    provider: "pollinations",
+    tag: "FREE · ANIME",
     tone: "plasma",
     modality: "T → I",
-    note: "Variante econômica OpenAI. Ícones, mocks, alto volume.",
+    note: "Tuning anime/illustration. Personagens, cenas estilizadas. Free.",
   },
   {
-    id: "google/gemini-3.1-flash-image-preview",
-    label: "Gemini 3.1 Flash Image",
-    provider: "google",
-    tag: "NANO BANANA 2",
+    id: "pollinations/flux-3d",
+    label: "Flux 3D",
+    provider: "pollinations",
+    tag: "FREE · 3D",
     tone: "mint",
-    modality: "T+I → T+I",
-    note: "Geração/edição rápida com qualidade pro.",
+    modality: "T → I",
+    note: "Renders 3D, isometrics, claymation. Free.",
   },
   {
-    id: "google/gemini-3-pro-image-preview",
-    label: "Gemini 3 Pro Image",
-    provider: "google",
-    tag: "PRO QUALITY",
-    tone: "cyan",
-    modality: "T+I → T+I",
-    note: "Top de linha Google. Alta fidelidade.",
-  },
-  {
-    id: "google/gemini-2.5-flash-image",
-    label: "Gemini 2.5 Flash Image",
-    provider: "google",
-    tag: "NANO BANANA",
+    id: "pollinations/turbo",
+    label: "Turbo",
+    provider: "pollinations",
+    tag: "FREE · FAST",
     tone: "mint",
-    modality: "T+I → T+I",
-    note: "Versão estável da família Nano Banana.",
+    modality: "T → I",
+    note: "Modelo mais rápido. Boa pra iterar prompt antes de fechar no Flux. Free.",
   },
 ];
 
@@ -133,7 +133,7 @@ function chain_label(id: ImageModel["id"]): string {
 }
 
 function ImagensPage() {
-  const [modelId, setModelId] = useState<ImageModel["id"]>("openai/gpt-image-2");
+  const [modelId, setModelId] = useState<ImageModel["id"]>("pollinations/flux");
   const [system, setSystem] = useState(DEFAULT_SYSTEM);
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState("1024x1024");
@@ -152,7 +152,7 @@ function ImagensPage() {
     () => IMAGE_MODELS.find((m) => m.id === modelId) ?? IMAGE_MODELS[0],
     [modelId],
   );
-  const isOpenAI = model.provider === "openai";
+  const supportsSize = true;
 
   const stopTick = () => {
     if (tickRef.current !== null) {
@@ -334,7 +334,7 @@ function ImagensPage() {
                 <select
                   value={size}
                   onChange={(e) => setSize(e.target.value)}
-                  disabled={!isOpenAI}
+                  disabled={!supportsSize}
                   className="w-full bg-[var(--obsidian)] font-mono text-[11px] outline-none disabled:opacity-40"
                 >
                   <option value="1024x1024">1024×1024 · square</option>
@@ -345,14 +345,14 @@ function ImagensPage() {
 
               <label className="border border-[var(--bone)]/15 p-3 block col-span-2">
                 <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
-                  QUALITY {isOpenAI ? "" : "(ignorado em Gemini)"}
+                  QUALITY {supportsSize ? "" : "(ignorado em Pollinations)"}
                 </span>
                 <div className="flex gap-1">
                   {(["low", "medium", "high"] as const).map((q) => (
                     <button
                       key={q}
                       type="button"
-                      disabled={!isOpenAI}
+                      disabled={!supportsSize}
                       onClick={() => setQuality(q)}
                       className={`flex-1 font-mono text-[10px] tracking-[0.2em] py-1.5 border transition disabled:opacity-30 disabled:cursor-not-allowed ${
                         quality === q
@@ -581,9 +581,9 @@ function ImagensPage() {
 
         {/* RODAPÉ */}
         <footer className="mt-14 pt-6 border-t border-[var(--bone)]/10 font-mono text-[10px] tracking-[0.2em] opacity-50 space-y-1">
-          <p>// SERVER ROUTE /api/generate-image · SSE PASSTHROUGH</p>
-          <p>// OPENAI: prompt + quality + partial_images=1 · GEMINI: messages + modalities</p>
-          <p>// PARSER: eventsource-parser + flushSync (React 18 batching mata partials)</p>
+          <p>// SERVER ROUTE /api/generate-image · PROVIDER: pollinations.ai (FREE)</p>
+          <p>// Flux family · sem chave, sem crédito, sem rate limit relevante</p>
+          <p>// Fallback chain: modelo → flux → turbo. Sem partials (provider não expõe).</p>
         </footer>
       </div>
     </main>
