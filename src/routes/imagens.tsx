@@ -127,8 +127,40 @@ Nunca produza estética AI-padrão (gradientes roxos, sparkles, mascotes vazios)
 
 type Status = "idle" | "streaming" | "done" | "error";
 
+interface DirectAttempt {
+  modelId: ImageModel["id"];
+  size: string;
+}
+
 function chain_label(id: ImageModel["id"]): string {
   return id.split("/")[1] ?? id;
+}
+
+function parseImageSize(size: string): { width: number; height: number } {
+  const match = size.match(/^(\d{3,4})x(\d{3,4})$/);
+  if (!match) return { width: 1024, height: 1024 };
+  return {
+    width: Math.min(1536, Math.max(512, Number(match[1]))),
+    height: Math.min(1536, Math.max(512, Number(match[2]))),
+  };
+}
+
+function directAttempts(
+  modelId: ImageModel["id"],
+  size: string,
+): ReadonlyArray<DirectAttempt> {
+  const ordered: ReadonlyArray<ImageModel["id"]> =
+    modelId === "pollinations/turbo"
+      ? ["pollinations/turbo", "pollinations/flux"]
+      : [modelId, "pollinations/turbo", "pollinations/flux"];
+  const seen = new Set<ImageModel["id"]>();
+  return ordered
+    .filter((id) => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .map((id, index) => ({ modelId: id, size: index === 0 ? size : "512x512" }));
 }
 
 function buildDirectPollinationsUrl(
@@ -139,9 +171,10 @@ function buildDirectPollinationsUrl(
 ): string {
   const model = chain_label(modelId);
   const fullPrompt = system ? `${system}\n\n${prompt}` : prompt;
+  const { width, height } = parseImageSize(size);
   const params = new URLSearchParams({
-    width: size.includes("1536x1024") ? "1536" : "1024",
-    height: size.includes("1024x1536") ? "1536" : "1024",
+    width: String(width),
+    height: String(height),
     model,
     seed: String(Math.floor(Math.random() * 1_000_000_000)),
     nologo: "true",
