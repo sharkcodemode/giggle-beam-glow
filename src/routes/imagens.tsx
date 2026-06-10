@@ -474,33 +474,24 @@ function ImagensPage() {
             {/* ERRO */}
             {errMsg ? (
               (() => {
-                const isCredits = /crédit|payment_required|402/i.test(errMsg);
-                const isRate = /rate|429/i.test(errMsg);
-                const accent = isCredits
-                  ? "oklch(0.78 0.18 70)"
-                  : isRate
-                    ? "oklch(0.82 0.16 90)"
-                    : "oklch(0.7 0.2 25)";
+                const isRate = /fila|limite|queue|rate|429|402/i.test(errMsg);
+                const accent = isRate
+                  ? "oklch(0.82 0.16 90)"
+                  : "oklch(0.7 0.2 25)";
                 return (
                   <div
                     className="border p-3 font-mono text-[10px] whitespace-pre-wrap break-words space-y-2"
                     style={{ borderColor: accent, color: accent }}
                   >
                     <p className="tracking-[0.25em] text-[9px] opacity-80">
-                      {isCredits
-                        ? "// 402 · SALDO ESGOTADO"
-                        : isRate
-                          ? "// 429 · RATE LIMIT"
-                          : "// ERRO UPSTREAM"}
+                      {isRate ? "// FREE PROVIDER · FILA/LIMITE" : "// ERRO UPSTREAM"}
                     </p>
                     <p className="leading-relaxed">{errMsg}</p>
-                    {isCredits ? (
-                      <p className="opacity-70 text-[9px] leading-relaxed pt-1 border-t border-current/20">
-                        Cadeia TIER S tentou {chain_label(modelId)} e todos os
-                        fallbacks falharam por falta de créditos. Recarregue em
-                        Lovable → Settings → Workspace → Usage.
-                      </p>
-                    ) : null}
+                    <p className="opacity-70 text-[9px] leading-relaxed pt-1 border-t border-current/20">
+                      Rota atual: imagem carregada direto no navegador. Não usa
+                      saldo Lovable AI; se falhar, é limite temporário do serviço
+                      free externo para o seu IP/sessão.
+                    </p>
                   </div>
                 );
               })()
