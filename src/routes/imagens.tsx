@@ -233,15 +233,17 @@ function ImagensPage() {
     }, 100);
 
     const nextAttempts = directAttempts(modelId, size);
+    const firstAttempt = nextAttempts[0];
+    if (!firstAttempt) return;
     setAttempts(nextAttempts);
     setAttemptIndex(0);
     setFrames(1);
     setSrc(
       buildDirectPollinationsUrl(
-        nextAttempts[0].modelId,
+        firstAttempt.modelId,
         system.trim(),
         nextPrompt,
-        nextAttempts[0].size,
+        firstAttempt.size,
       ),
     );
   }, [modelId, prompt, system, size]);
