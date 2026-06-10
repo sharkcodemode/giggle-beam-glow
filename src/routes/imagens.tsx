@@ -581,9 +581,9 @@ function ImagensPage() {
 
         {/* RODAPÉ */}
         <footer className="mt-14 pt-6 border-t border-[var(--bone)]/10 font-mono text-[10px] tracking-[0.2em] opacity-50 space-y-1">
-          <p>// SERVER ROUTE /api/generate-image · SSE PASSTHROUGH</p>
-          <p>// OPENAI: prompt + quality + partial_images=1 · GEMINI: messages + modalities</p>
-          <p>// PARSER: eventsource-parser + flushSync (React 18 batching mata partials)</p>
+          <p>// SERVER ROUTE /api/generate-image · PROVIDER: pollinations.ai (FREE)</p>
+          <p>// Flux family · sem chave, sem crédito, sem rate limit relevante</p>
+          <p>// Fallback chain: modelo → flux → turbo. Sem partials (provider não expõe).</p>
         </footer>
       </div>
     </main>
