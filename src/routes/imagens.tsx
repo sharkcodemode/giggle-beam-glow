@@ -197,6 +197,8 @@ function ImagensPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [attempts, setAttempts] = useState<ReadonlyArray<DirectAttempt>>([]);
+  const [attemptIndex, setAttemptIndex] = useState(0);
   const startRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -230,14 +232,26 @@ function ImagensPage() {
       setElapsed((performance.now() - startRef.current) / 1000);
     }, 100);
 
+    const nextAttempts = directAttempts(modelId, size);
+    setAttempts(nextAttempts);
+    setAttemptIndex(0);
     setFrames(1);
-    setSrc(buildDirectPollinationsUrl(modelId, system.trim(), nextPrompt, size));
+    setSrc(
+      buildDirectPollinationsUrl(
+        nextAttempts[0].modelId,
+        system.trim(),
+        nextPrompt,
+        nextAttempts[0].size,
+      ),
+    );
   }, [modelId, prompt, system, size]);
 
   const stop = useCallback(() => {
     stopTick();
     setSrc(null);
     setIsFinal(false);
+    setAttempts([]);
+    setAttemptIndex(0);
     setStatus("idle");
   }, []);
 
