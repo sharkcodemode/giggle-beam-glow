@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ImageIcon, Loader2, Play, Square, Video } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { streamImage } from "@/lib/stream-image";
 
 export const Route = createFileRoute("/imagens")({
   head: () => ({
@@ -10,13 +9,13 @@ export const Route = createFileRoute("/imagens")({
       {
         name: "description",
         content:
-          "Playground de geração de imagem em streaming via Lovable AI Gateway. 5 modelos (GPT-Image + Gemini Nano Banana).",
+          "Playground de geração de imagem grátis via Pollinations.ai direto no navegador, sem saldo Lovable AI Gateway.",
       },
       { property: "og:title", content: "IMAGENS — Playground IA Imagem" },
       {
         property: "og:description",
         content:
-          "Stream real de partials → final via /v1/images/generations. GPT-Image 2 + Gemini Nano Banana.",
+          "Geração de imagem free por URL direta no browser. Flux/Turbo sem chave e sem créditos Lovable.",
       },
     ],
   }),
@@ -132,6 +131,27 @@ function chain_label(id: ImageModel["id"]): string {
   return id.split("/")[1] ?? id;
 }
 
+function buildDirectPollinationsUrl(
+  modelId: ImageModel["id"],
+  system: string,
+  prompt: string,
+  size: string,
+): string {
+  const model = chain_label(modelId);
+  const fullPrompt = system ? `${system}\n\n${prompt}` : prompt;
+  const params = new URLSearchParams({
+    width: size.includes("1536x1024") ? "1536" : "1024",
+    height: size.includes("1024x1536") ? "1536" : "1024",
+    model,
+    seed: String(Math.floor(Math.random() * 1_000_000_000)),
+    nologo: "true",
+    enhance: "true",
+    private: "true",
+    safe: "false",
+  });
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?${params.toString()}`;
+}
+
 function ImagensPage() {
   const [modelId, setModelId] = useState<ImageModel["id"]>("pollinations/flux");
   const [system, setSystem] = useState(DEFAULT_SYSTEM);
@@ -144,7 +164,6 @@ function ImagensPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const abortRef = useRef<AbortController | null>(null);
   const startRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -153,6 +172,7 @@ function ImagensPage() {
     [modelId],
   );
   const supportsSize = true;
+  const supportsQuality = false;
 
   const stopTick = () => {
     if (tickRef.current !== null) {
@@ -162,10 +182,8 @@ function ImagensPage() {
   };
 
   const generate = useCallback(async () => {
-    if (!prompt.trim()) return;
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    const nextPrompt = prompt.trim();
+    if (!nextPrompt) return;
 
     setSrc(null);
     setIsFinal(false);
@@ -179,42 +197,14 @@ function ImagensPage() {
       setElapsed((performance.now() - startRef.current) / 1000);
     }, 100);
 
-    try {
-      await streamImage(
-        "/api/generate-image",
-        {
-          model: modelId,
-          prompt: prompt.trim(),
-          system: system.trim() || undefined,
-          size,
-          quality,
-        },
-        (dataUrl, final) => {
-          setSrc(dataUrl);
-          setFrames((n) => n + 1);
-          if (final) setIsFinal(true);
-        },
-        ctrl.signal,
-      );
-      setStatus("done");
-    } catch (err) {
-      if (ctrl.signal.aborted) {
-        setStatus("idle");
-        return;
-      }
-      const msg = err instanceof Error ? err.message : String(err);
-      setErrMsg(msg);
-      setStatus("error");
-    } finally {
-      stopTick();
-      setElapsed((performance.now() - startRef.current) / 1000);
-    }
-  }, [modelId, prompt, system, size, quality]);
+    setFrames(1);
+    setSrc(buildDirectPollinationsUrl(modelId, system.trim(), nextPrompt, size));
+  }, [modelId, prompt, system, size]);
 
   const stop = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
     stopTick();
+    setSrc(null);
+    setIsFinal(false);
     setStatus("idle");
   }, []);
 
