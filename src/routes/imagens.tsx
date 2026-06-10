@@ -145,10 +145,7 @@ function parseImageSize(size: string): { width: number; height: number } {
   };
 }
 
-function directAttempts(
-  modelId: ImageModel["id"],
-  size: string,
-): ReadonlyArray<DirectAttempt> {
+function directAttempts(modelId: ImageModel["id"], size: string): ReadonlyArray<DirectAttempt> {
   const ordered: ReadonlyArray<ImageModel["id"]> =
     modelId === "pollinations/turbo"
       ? ["pollinations/turbo", "pollinations/flux"]
@@ -315,10 +312,7 @@ function ImagensPage() {
             </fieldset>
 
             {/* PROMPT */}
-            <fieldset
-              className="border p-4"
-              style={{ borderColor: toneAccent(model.tone) }}
-            >
+            <fieldset className="border p-4" style={{ borderColor: toneAccent(model.tone) }}>
               <legend
                 className="font-mono text-[10px] tracking-[0.35em] px-2"
                 style={{ color: toneAccent(model.tone) }}
@@ -353,9 +347,7 @@ function ImagensPage() {
                 </span>
                 <select
                   value={modelId}
-                  onChange={(e) =>
-                    setModelId(e.target.value as ImageModel["id"])
-                  }
+                  onChange={(e) => setModelId(e.target.value as ImageModel["id"])}
                   className="w-full bg-[var(--obsidian)] font-mono text-[11px] outline-none"
                 >
                   {IMAGE_MODELS.map((m) => (
@@ -441,10 +433,7 @@ function ImagensPage() {
             <div
               className="relative aspect-square border overflow-hidden"
               style={{
-                borderColor:
-                  status === "error"
-                    ? "oklch(0.7 0.2 25)"
-                    : toneAccent(model.tone),
+                borderColor: status === "error" ? "oklch(0.7 0.2 25)" : toneAccent(model.tone),
                 background: `repeating-linear-gradient(45deg, transparent 0 12px, ${toneAccent(model.tone)}08 12px 13px)`,
               }}
             >
