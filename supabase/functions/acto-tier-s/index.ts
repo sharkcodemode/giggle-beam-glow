@@ -766,7 +766,7 @@ async function actionGatewayChat(params: Record<string, unknown>) {
   if (!lovApiKey) throw new Error("LOVABLE_API_KEY ausente na Edge");
 
   if (stream) {
-    throw new Error("streaming_not_implemented_in_gateway_action");
+    throw new Error("gateway_chat_stream_requer_rota_direta");
   }
 
   const baseBody: Record<string, unknown> = {
@@ -812,6 +812,49 @@ async function actionGatewayChat(params: Record<string, unknown>) {
   }
 
   return { status: finalRes.status, body: parsed, model_used: modelUsed };
+}
+
+async function handleGatewayStream(req: Request): Promise<Response> {
+  const body = (await req.json()) as Record<string, unknown>;
+  const license = String(req.headers.get("x-acto-license-key") || body.license || body.license_id || "").trim();
+  const deviceId = String(body.device_id || body.deviceId || "").trim();
+  if (!license || !deviceId) {
+    return new Response(JSON.stringify({ ok: false, error: "license_ou_device_id_ausente" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const lic = await checkLicense(license, deviceId);
+  if (!lic.valid) {
+    return new Response(JSON.stringify({ ok: false, error: "license_invalid", license: lic.raw }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const messages = Array.isArray(body.messages) ? body.messages : Array.isArray((body.params as Record<string, unknown> | undefined)?.messages) ? (body.params as Record<string, unknown>).messages : [];
+  const temperature = typeof body.temperature === "number" ? body.temperature : 1;
+  const lovApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!lovApiKey) throw new Error("LOVABLE_API_KEY ausente na Edge");
+
+  const chain = await loadModelChain();
+  let response: Response | null = null;
+  let modelUsed = chain[0] ?? DEFAULT_MODEL_CHAIN[0];
+  for (let i = 0; i < chain.length; i += 1) {
+    const model = chain[i];
+    response = await callTierSGateway(model, { messages, temperature, stream: true, ...(body.reasoning ? { reasoning: body.reasoning } : {}) }, lovApiKey);
+    modelUsed = model;
+    if (response.ok || !TIER_S_RETRY_STATUS.has(response.status)) break;
+    if (i < chain.length - 1) await response.body?.cancel().catch(() => undefined);
+  }
+
+  const finalResponse = response!;
+  const headers = new Headers(corsHeaders);
+  headers.set("Content-Type", finalResponse.headers.get("content-type") || "text/event-stream; charset=utf-8");
+  headers.set("Cache-Control", "no-cache, no-transform");
+  headers.set("x-acto-model-used", finalResponse.headers.get("x-lovable-model") || modelUsed);
+  return new Response(finalResponse.body, { status: finalResponse.status, headers });
 }
 
 // ---------- legacy v1 (painel direto) ----------
@@ -1039,6 +1082,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
         user_input: { fix_error: { decision: "approved", error_id: errId } },
         mode: "instant",
         thread_id: threadId,
+        stream: true,
       }
     : {
         message: "",
@@ -1050,6 +1094,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
         tool_decision: decision,
         user_input: {},
         thread_id: threadId,
+        stream: true,
         session_replay: "[]",
         client_logs: [],
         network_requests: [],
@@ -1086,14 +1131,16 @@ async function handleFixRelay(req: Request): Promise<Response> {
     });
   }
 
-  // Passthrough puro: stream o body do Lovable direto pro cliente.
-  // SEM await response.text() — primeiro byte em ~ms.
+  // O endpoint nativo /tools/respond costuma aceitar com 202 e body vazio.
+  // Se algum cluster devolver body, repassamos sem buffer; caso contrário o chat
+  // nativo atualiza via websocket/evento interno da Lovable.
   const respHeaders = new Headers(corsHeaders);
   const ct = upstream.headers.get("content-type") || "application/octet-stream";
   respHeaders.set("content-type", ct);
   const cc = upstream.headers.get("cache-control");
   if (cc) respHeaders.set("cache-control", cc);
   respHeaders.set("x-acto-relay", "fix");
+  respHeaders.set("Cache-Control", "no-cache, no-transform");
 
   return new Response(upstream.body, {
     status: upstream.status,
@@ -1120,6 +1167,10 @@ async function handle(req: Request): Promise<Response> {
   // passthrough SSE direto do Lovable. Stream sem buffer = latência mínima.
   if (req.headers.get("x-acto-action") === "fix_relay") {
     return await handleFixRelay(req);
+  }
+
+  if (req.headers.get("x-acto-action") === "gateway_stream") {
+    return await handleGatewayStream(req);
   }
 
 
