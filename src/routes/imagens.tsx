@@ -128,6 +128,10 @@ Nunca produza estética AI-padrão (gradientes roxos, sparkles, mascotes vazios)
 
 type Status = "idle" | "streaming" | "done" | "error";
 
+function chain_label(id: ImageModel["id"]): string {
+  return id.split("/")[1] ?? id;
+}
+
 function ImagensPage() {
   const [modelId, setModelId] = useState<ImageModel["id"]>("openai/gpt-image-2");
   const [system, setSystem] = useState(DEFAULT_SYSTEM);
@@ -463,9 +467,37 @@ function ImagensPage() {
 
             {/* ERRO */}
             {errMsg ? (
-              <div className="border border-[oklch(0.7_0.2_25)] p-3 font-mono text-[10px] text-[oklch(0.85_0.18_25)] whitespace-pre-wrap break-words">
-                {errMsg}
-              </div>
+              (() => {
+                const isCredits = /crédit|payment_required|402/i.test(errMsg);
+                const isRate = /rate|429/i.test(errMsg);
+                const accent = isCredits
+                  ? "oklch(0.78 0.18 70)"
+                  : isRate
+                    ? "oklch(0.82 0.16 90)"
+                    : "oklch(0.7 0.2 25)";
+                return (
+                  <div
+                    className="border p-3 font-mono text-[10px] whitespace-pre-wrap break-words space-y-2"
+                    style={{ borderColor: accent, color: accent }}
+                  >
+                    <p className="tracking-[0.25em] text-[9px] opacity-80">
+                      {isCredits
+                        ? "// 402 · SALDO ESGOTADO"
+                        : isRate
+                          ? "// 429 · RATE LIMIT"
+                          : "// ERRO UPSTREAM"}
+                    </p>
+                    <p className="leading-relaxed">{errMsg}</p>
+                    {isCredits ? (
+                      <p className="opacity-70 text-[9px] leading-relaxed pt-1 border-t border-current/20">
+                        Cadeia TIER S tentou {chain_label(modelId)} e todos os
+                        fallbacks falharam por falta de créditos. Recarregue em
+                        Lovable → Settings → Workspace → Usage.
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })()
             ) : null}
 
             {/* DOWNLOAD */}
