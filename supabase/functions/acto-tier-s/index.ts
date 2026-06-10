@@ -1169,6 +1169,10 @@ async function handle(req: Request): Promise<Response> {
     return await handleFixRelay(req);
   }
 
+  if (req.headers.get("x-acto-action") === "gateway_stream") {
+    return await handleGatewayStream(req);
+  }
+
 
   // Legacy: painel envia JSON sem envelope + x-acto-license-key header.
   // Multipart (uploads): extrai campo "payload" JSON + campos "files" (binários).
