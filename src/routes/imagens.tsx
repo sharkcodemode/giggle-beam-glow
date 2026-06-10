@@ -227,7 +227,7 @@ function ImagensPage() {
               <span className="opacity-40">.</span>
             </h1>
             <p className="font-mono text-[11px] tracking-[0.2em] opacity-60 max-w-md">
-              PLAYGROUND · STREAM REAL · /v1/images/generations · 5 MODELOS
+              PLAYGROUND · FREE DIRECT URL · POLLINATIONS · 5 MODELOS
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -335,14 +335,14 @@ function ImagensPage() {
 
               <label className="border border-[var(--bone)]/15 p-3 block col-span-2">
                 <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
-                  QUALITY {supportsSize ? "" : "(ignorado em Pollinations)"}
+                  QUALITY {supportsQuality ? "" : "(ignorado no modo free)"}
                 </span>
                 <div className="flex gap-1">
                   {(["low", "medium", "high"] as const).map((q) => (
                     <button
                       key={q}
                       type="button"
-                      disabled={!supportsSize}
+                      disabled={!supportsQuality}
                       onClick={() => setQuality(q)}
                       className={`flex-1 font-mono text-[10px] tracking-[0.2em] py-1.5 border transition disabled:opacity-30 disabled:cursor-not-allowed ${
                         quality === q
