@@ -405,6 +405,22 @@ function ImagensPage() {
                   alt={prompt || "imagem gerada"}
                   className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-300"
                   style={{ filter: isFinal ? "none" : "blur(18px)" }}
+                  onLoad={() => {
+                    setIsFinal(true);
+                    setStatus("done");
+                    stopTick();
+                    setElapsed((performance.now() - startRef.current) / 1000);
+                  }}
+                  onError={() => {
+                    setSrc(null);
+                    setIsFinal(false);
+                    setStatus("error");
+                    stopTick();
+                    setElapsed((performance.now() - startRef.current) / 1000);
+                    setErrMsg(
+                      "Pollinations free recusou a imagem no navegador. Isso normalmente é fila/limite temporário do provedor externo, não saldo Lovable. Tente Turbo, reduza para 1024×1024 ou aguarde 30–60s.",
+                    );
+                  }}
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
