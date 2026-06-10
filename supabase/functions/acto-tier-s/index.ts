@@ -760,15 +760,18 @@ async function callTierSGateway(model: string, body: Record<string, unknown>, ap
 async function actionGatewayChat(params: Record<string, unknown>) {
   const messages = Array.isArray(params.messages) ? params.messages : [];
   const temperature = typeof params.temperature === "number" ? params.temperature : 1;
-  const stream = params.stream !== false;
+  const stream = !!params.stream;
 
   const lovApiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!lovApiKey) throw new Error("LOVABLE_API_KEY ausente na Edge");
 
+  if (stream) {
+    throw new Error("gateway_chat_stream_requer_rota_direta");
+  }
+
   const baseBody: Record<string, unknown> = {
     messages,
     temperature,
-    stream,
     ...(params.reasoning && { reasoning: params.reasoning }),
   };
 
@@ -790,15 +793,6 @@ async function actionGatewayChat(params: Record<string, unknown>) {
   }
 
   const finalRes = res!;
-  if (stream && finalRes.ok) {
-    const headers = new Headers(corsHeaders);
-    headers.set("Content-Type", finalRes.headers.get("content-type") || "text/event-stream; charset=utf-8");
-    headers.set("Cache-Control", "no-cache, no-transform");
-    headers.set("Connection", "keep-alive");
-    headers.set("x-acto-model-used", finalRes.headers.get("x-lovable-model") || modelUsed);
-    return new Response(finalRes.body, { status: finalRes.status, headers });
-  }
-
   const text = await finalRes.text();
   let parsed: unknown = text;
   try {
