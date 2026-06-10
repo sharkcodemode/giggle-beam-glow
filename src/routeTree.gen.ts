@@ -14,6 +14,7 @@ import { Route as RagmodelosRouteImport } from './routes/ragmodelos'
 import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
 import { Route as PulseRouteImport } from './routes/pulse'
 import { Route as ModelosRouteImport } from './routes/modelos'
+import { Route as ImagensRouteImport } from './routes/imagens'
 import { Route as ClaudeRouteImport } from './routes/claude'
 import { Route as ChatmodelosRouteImport } from './routes/chatmodelos'
 import { Route as AudiosRouteImport } from './routes/audios'
@@ -43,6 +44,11 @@ const PulseRoute = PulseRouteImport.update({
 const ModelosRoute = ModelosRouteImport.update({
   id: '/modelos',
   path: '/modelos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImagensRoute = ImagensRouteImport.update({
+  id: '/imagens',
+  path: '/imagens',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClaudeRoute = ClaudeRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/audios': typeof AudiosRoute
   '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
+  '/imagens': typeof ImagensRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/audios': typeof AudiosRoute
   '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
+  '/imagens': typeof ImagensRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/audios': typeof AudiosRoute
   '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
+  '/imagens': typeof ImagensRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/audios'
     | '/chatmodelos'
     | '/claude'
+    | '/imagens'
     | '/modelos'
     | '/pulse'
     | '/radar-lovable'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/audios'
     | '/chatmodelos'
     | '/claude'
+    | '/imagens'
     | '/modelos'
     | '/pulse'
     | '/radar-lovable'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/audios'
     | '/chatmodelos'
     | '/claude'
+    | '/imagens'
     | '/modelos'
     | '/pulse'
     | '/radar-lovable'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   AudiosRoute: typeof AudiosRoute
   ChatmodelosRoute: typeof ChatmodelosRoute
   ClaudeRoute: typeof ClaudeRoute
+  ImagensRoute: typeof ImagensRoute
   ModelosRoute: typeof ModelosRoute
   PulseRoute: typeof PulseRoute
   RadarLovableRoute: typeof RadarLovableRoute
@@ -197,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModelosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/imagens': {
+      id: '/imagens'
+      path: '/imagens'
+      fullPath: '/imagens'
+      preLoaderRoute: typeof ImagensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/claude': {
       id: '/claude'
       path: '/claude'
@@ -240,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   AudiosRoute: AudiosRoute,
   ChatmodelosRoute: ChatmodelosRoute,
   ClaudeRoute: ClaudeRoute,
+  ImagensRoute: ImagensRoute,
   ModelosRoute: ModelosRoute,
   PulseRoute: PulseRoute,
   RadarLovableRoute: RadarLovableRoute,
