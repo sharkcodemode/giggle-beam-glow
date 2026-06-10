@@ -814,6 +814,49 @@ async function actionGatewayChat(params: Record<string, unknown>) {
   return { status: finalRes.status, body: parsed, model_used: modelUsed };
 }
 
+async function handleGatewayStream(req: Request): Promise<Response> {
+  const body = (await req.json()) as Record<string, unknown>;
+  const license = String(req.headers.get("x-acto-license-key") || body.license || body.license_id || "").trim();
+  const deviceId = String(body.device_id || body.deviceId || "").trim();
+  if (!license || !deviceId) {
+    return new Response(JSON.stringify({ ok: false, error: "license_ou_device_id_ausente" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const lic = await checkLicense(license, deviceId);
+  if (!lic.valid) {
+    return new Response(JSON.stringify({ ok: false, error: "license_invalid", license: lic.raw }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const messages = Array.isArray(body.messages) ? body.messages : Array.isArray((body.params as Record<string, unknown> | undefined)?.messages) ? (body.params as Record<string, unknown>).messages : [];
+  const temperature = typeof body.temperature === "number" ? body.temperature : 1;
+  const lovApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!lovApiKey) throw new Error("LOVABLE_API_KEY ausente na Edge");
+
+  const chain = await loadModelChain();
+  let response: Response | null = null;
+  let modelUsed = chain[0] ?? DEFAULT_MODEL_CHAIN[0];
+  for (let i = 0; i < chain.length; i += 1) {
+    const model = chain[i];
+    response = await callTierSGateway(model, { messages, temperature, stream: true, ...(body.reasoning ? { reasoning: body.reasoning } : {}) }, lovApiKey);
+    modelUsed = model;
+    if (response.ok || !TIER_S_RETRY_STATUS.has(response.status)) break;
+    if (i < chain.length - 1) await response.body?.cancel().catch(() => undefined);
+  }
+
+  const finalResponse = response!;
+  const headers = new Headers(corsHeaders);
+  headers.set("Content-Type", finalResponse.headers.get("content-type") || "text/event-stream; charset=utf-8");
+  headers.set("Cache-Control", "no-cache, no-transform");
+  headers.set("x-acto-model-used", finalResponse.headers.get("x-lovable-model") || modelUsed);
+  return new Response(finalResponse.body, { status: finalResponse.status, headers });
+}
+
 // ---------- legacy v1 (painel direto) ----------
 async function deviceIdFromLicense(license: string): Promise<string> {
   const h = await crypto.subtle.digest("SHA-256", enc.encode(`acto-device|${license}`));
