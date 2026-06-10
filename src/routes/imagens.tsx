@@ -255,6 +255,8 @@ function ImagensPage() {
   }, []);
 
   const isStreaming = status === "streaming";
+  const errorIsRate = errMsg ? /fila|limite|queue|rate|429|402/i.test(errMsg) : false;
+  const errorAccent = errorIsRate ? "oklch(0.82 0.16 90)" : "oklch(0.7 0.2 25)";
 
   return (
     <main className="min-h-screen bg-[var(--obsidian)] text-[var(--bone)] grain">
@@ -526,28 +528,19 @@ function ImagensPage() {
 
             {/* ERRO */}
             {errMsg ? (
-              (() => {
-                const isRate = /fila|limite|queue|rate|429|402/i.test(errMsg);
-                const accent = isRate
-                  ? "oklch(0.82 0.16 90)"
-                  : "oklch(0.7 0.2 25)";
-                return (
-                  <div
-                    className="border p-3 font-mono text-[10px] whitespace-pre-wrap break-words space-y-2"
-                    style={{ borderColor: accent, color: accent }}
-                  >
-                    <p className="tracking-[0.25em] text-[9px] opacity-80">
-                      {isRate ? "// FREE PROVIDER · FILA/LIMITE" : "// ERRO UPSTREAM"}
-                    </p>
-                    <p className="leading-relaxed">{errMsg}</p>
-                    <p className="opacity-70 text-[9px] leading-relaxed pt-1 border-t border-current/20">
-                      Rota atual: imagem carregada direto no navegador. Não usa
-                      saldo Lovable AI; se falhar, é limite temporário do serviço
-                      free externo para o seu IP/sessão.
-                    </p>
-                  </div>
-                );
-              })()
+              <div
+                className="border p-3 font-mono text-[10px] whitespace-pre-wrap break-words space-y-2"
+                style={{ borderColor: errorAccent, color: errorAccent }}
+              >
+                <p className="tracking-[0.25em] text-[9px] opacity-80">
+                  {errorIsRate ? "// FREE PROVIDER · FILA/LIMITE" : "// ERRO UPSTREAM"}
+                </p>
+                <p className="leading-relaxed">{errMsg}</p>
+                <p className="opacity-70 text-[9px] leading-relaxed pt-1 border-t border-current/20">
+                  Rota atual: imagem carregada direto no navegador. Não usa saldo Lovable AI; se
+                  falhar, é limite temporário do serviço free externo para o seu IP/sessão.
+                </p>
+              </div>
             ) : null}
 
             {/* DOWNLOAD */}
@@ -561,18 +554,13 @@ function ImagensPage() {
               </a>
             ) : null}
 
-            <p className="font-mono text-[9px] opacity-50 leading-relaxed">
-              {model.note}
-            </p>
+            <p className="font-mono text-[9px] opacity-50 leading-relaxed">{model.note}</p>
           </div>
         </section>
 
         {/* CATÁLOGO COMPLETO */}
         <section aria-labelledby="catalogo" className="space-y-4">
-          <h2
-            id="catalogo"
-            className="font-mono text-[10px] tracking-[0.35em] opacity-50"
-          >
+          <h2 id="catalogo" className="font-mono text-[10px] tracking-[0.35em] opacity-50">
             ◇ CATÁLOGO COMPLETO
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -602,24 +590,15 @@ function ImagensPage() {
                     {m.modality}
                   </span>
                 </div>
-                <p className="font-[Instrument_Serif] text-xl italic leading-tight">
-                  {m.label}
-                </p>
-                <p className="font-mono text-[10px] opacity-50 mt-1 break-all">
-                  {m.id}
-                </p>
-                <p className="font-mono text-[10px] opacity-70 mt-3 leading-relaxed">
-                  {m.note}
-                </p>
+                <p className="font-[Instrument_Serif] text-xl italic leading-tight">{m.label}</p>
+                <p className="font-mono text-[10px] opacity-50 mt-1 break-all">{m.id}</p>
+                <p className="font-mono text-[10px] opacity-70 mt-3 leading-relaxed">{m.note}</p>
               </button>
             ))}
           </div>
 
           <section aria-labelledby="grp-video" className="pt-4">
-            <h3
-              id="grp-video"
-              className="font-mono text-[10px] tracking-[0.35em] opacity-50 mb-3"
-            >
+            <h3 id="grp-video" className="font-mono text-[10px] tracking-[0.35em] opacity-50 mb-3">
               ◇ VÍDEO · INDISPONÍVEL NO GATEWAY
             </h3>
             <div className="border border-dashed border-[var(--bone)]/15 p-4 font-mono text-[11px] opacity-60 space-y-1">
