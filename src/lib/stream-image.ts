@@ -41,7 +41,15 @@ export async function streamImage(
   });
   if (!res.ok || !res.body) {
     const txt = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${txt}`);
+    let friendly = `HTTP ${res.status}`;
+    try {
+      const j = JSON.parse(txt) as { message?: string; error?: string };
+      if (j.message) friendly = j.message;
+      else if (j.error) friendly = j.error;
+    } catch {
+      if (txt) friendly = `HTTP ${res.status} · ${txt.slice(0, 200)}`;
+    }
+    throw new Error(friendly);
   }
 
   let sawCompleted = false;
