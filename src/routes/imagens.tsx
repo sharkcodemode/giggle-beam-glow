@@ -334,7 +334,7 @@ function ImagensPage() {
                 <select
                   value={size}
                   onChange={(e) => setSize(e.target.value)}
-                  disabled={!isOpenAI}
+                  disabled={!supportsSize}
                   className="w-full bg-[var(--obsidian)] font-mono text-[11px] outline-none disabled:opacity-40"
                 >
                   <option value="1024x1024">1024×1024 · square</option>
@@ -345,14 +345,14 @@ function ImagensPage() {
 
               <label className="border border-[var(--bone)]/15 p-3 block col-span-2">
                 <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
-                  QUALITY {isOpenAI ? "" : "(ignorado em Gemini)"}
+                  QUALITY {supportsSize ? "" : "(ignorado em Pollinations)"}
                 </span>
                 <div className="flex gap-1">
                   {(["low", "medium", "high"] as const).map((q) => (
                     <button
                       key={q}
                       type="button"
-                      disabled={!isOpenAI}
+                      disabled={!supportsSize}
                       onClick={() => setQuality(q)}
                       className={`flex-1 font-mono text-[10px] tracking-[0.2em] py-1.5 border transition disabled:opacity-30 disabled:cursor-not-allowed ${
                         quality === q
