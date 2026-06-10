@@ -19,6 +19,7 @@ import { Route as ClaudeRouteImport } from './routes/claude'
 import { Route as ChatmodelosRouteImport } from './routes/chatmodelos'
 import { Route as AudiosRouteImport } from './routes/audios'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiPublicSecretCheckRouteImport } from './routes/api/public/_secret-check'
 
 const VoiceRoute = VoiceRouteImport.update({
@@ -71,6 +72,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
+  id: '/api/generate-image',
+  path: '/api/generate-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSecretCheckRoute = ApiPublicSecretCheckRouteImport.update({
   id: '/api/public/_secret-check',
   path: '/api/public',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/public': typeof ApiPublicSecretCheckRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/public': typeof ApiPublicSecretCheckRoute
 }
 export interface FileRoutesById {
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/public/_secret-check': typeof ApiPublicSecretCheckRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/radar-lovable'
     | '/ragmodelos'
     | '/voice'
+    | '/api/generate-image'
     | '/api/public'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/radar-lovable'
     | '/ragmodelos'
     | '/voice'
+    | '/api/generate-image'
     | '/api/public'
   id:
     | '__root__'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/radar-lovable'
     | '/ragmodelos'
     | '/voice'
+    | '/api/generate-image'
     | '/api/public/_secret-check'
   fileRoutesById: FileRoutesById
 }
@@ -170,6 +182,7 @@ export interface RootRouteChildren {
   RadarLovableRoute: typeof RadarLovableRoute
   RagmodelosRoute: typeof RagmodelosRoute
   VoiceRoute: typeof VoiceRoute
+  ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiPublicSecretCheckRoute: typeof ApiPublicSecretCheckRoute
 }
 
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate-image': {
+      id: '/api/generate-image'
+      path: '/api/generate-image'
+      fullPath: '/api/generate-image'
+      preLoaderRoute: typeof ApiGenerateImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/_secret-check': {
       id: '/api/public/_secret-check'
       path: '/api/public'
@@ -266,18 +286,9 @@ const rootRouteChildren: RootRouteChildren = {
   RadarLovableRoute: RadarLovableRoute,
   RagmodelosRoute: RagmodelosRoute,
   VoiceRoute: VoiceRoute,
+  ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiPublicSecretCheckRoute: ApiPublicSecretCheckRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
