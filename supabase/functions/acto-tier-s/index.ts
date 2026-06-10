@@ -760,18 +760,15 @@ async function callTierSGateway(model: string, body: Record<string, unknown>, ap
 async function actionGatewayChat(params: Record<string, unknown>) {
   const messages = Array.isArray(params.messages) ? params.messages : [];
   const temperature = typeof params.temperature === "number" ? params.temperature : 1;
-  const stream = !!params.stream;
+  const stream = params.stream !== false;
 
   const lovApiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!lovApiKey) throw new Error("LOVABLE_API_KEY ausente na Edge");
 
-  if (stream) {
-    throw new Error("streaming_not_implemented_in_gateway_action");
-  }
-
   const baseBody: Record<string, unknown> = {
     messages,
     temperature,
+    stream,
     ...(params.reasoning && { reasoning: params.reasoning }),
   };
 
@@ -793,6 +790,15 @@ async function actionGatewayChat(params: Record<string, unknown>) {
   }
 
   const finalRes = res!;
+  if (stream && finalRes.ok) {
+    const headers = new Headers(corsHeaders);
+    headers.set("Content-Type", finalRes.headers.get("content-type") || "text/event-stream; charset=utf-8");
+    headers.set("Cache-Control", "no-cache, no-transform");
+    headers.set("Connection", "keep-alive");
+    headers.set("x-acto-model-used", finalRes.headers.get("x-lovable-model") || modelUsed);
+    return new Response(finalRes.body, { status: finalRes.status, headers });
+  }
+
   const text = await finalRes.text();
   let parsed: unknown = text;
   try {
@@ -1039,6 +1045,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
         user_input: { fix_error: { decision: "approved", error_id: errId } },
         mode: "instant",
         thread_id: threadId,
+        stream: true,
       }
     : {
         message: "",
@@ -1050,6 +1057,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
         tool_decision: decision,
         user_input: {},
         thread_id: threadId,
+        stream: true,
         session_replay: "[]",
         client_logs: [],
         network_requests: [],
@@ -1086,14 +1094,16 @@ async function handleFixRelay(req: Request): Promise<Response> {
     });
   }
 
-  // Passthrough puro: stream o body do Lovable direto pro cliente.
-  // SEM await response.text() — primeiro byte em ~ms.
+  // O endpoint nativo /tools/respond costuma aceitar com 202 e body vazio.
+  // Se algum cluster devolver body, repassamos sem buffer; caso contrário o chat
+  // nativo atualiza via websocket/evento interno da Lovable.
   const respHeaders = new Headers(corsHeaders);
   const ct = upstream.headers.get("content-type") || "application/octet-stream";
   respHeaders.set("content-type", ct);
   const cc = upstream.headers.get("cache-control");
   if (cc) respHeaders.set("cache-control", cc);
   respHeaders.set("x-acto-relay", "fix");
+  respHeaders.set("Cache-Control", "no-cache, no-transform");
 
   return new Response(upstream.body, {
     status: upstream.status,
