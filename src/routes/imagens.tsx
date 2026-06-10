@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ImageIcon, Loader2, Play, Square, Video } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { streamImage } from "@/lib/stream-image";
 
 export const Route = createFileRoute("/imagens")({
   head: () => ({
@@ -10,13 +9,13 @@ export const Route = createFileRoute("/imagens")({
       {
         name: "description",
         content:
-          "Playground de geração de imagem em streaming via Lovable AI Gateway. 5 modelos (GPT-Image + Gemini Nano Banana).",
+          "Playground de geração de imagem grátis via Pollinations.ai direto no navegador, sem saldo Lovable AI Gateway.",
       },
       { property: "og:title", content: "IMAGENS — Playground IA Imagem" },
       {
         property: "og:description",
         content:
-          "Stream real de partials → final via /v1/images/generations. GPT-Image 2 + Gemini Nano Banana.",
+          "Geração de imagem free por URL direta no browser. Flux/Turbo sem chave e sem créditos Lovable.",
       },
     ],
   }),
@@ -128,8 +127,59 @@ Nunca produza estética AI-padrão (gradientes roxos, sparkles, mascotes vazios)
 
 type Status = "idle" | "streaming" | "done" | "error";
 
+interface DirectAttempt {
+  modelId: ImageModel["id"];
+  size: string;
+}
+
 function chain_label(id: ImageModel["id"]): string {
   return id.split("/")[1] ?? id;
+}
+
+function parseImageSize(size: string): { width: number; height: number } {
+  const match = size.match(/^(\d{3,4})x(\d{3,4})$/);
+  if (!match) return { width: 1024, height: 1024 };
+  return {
+    width: Math.min(1536, Math.max(512, Number(match[1]))),
+    height: Math.min(1536, Math.max(512, Number(match[2]))),
+  };
+}
+
+function directAttempts(modelId: ImageModel["id"], size: string): ReadonlyArray<DirectAttempt> {
+  const ordered: ReadonlyArray<ImageModel["id"]> =
+    modelId === "pollinations/turbo"
+      ? ["pollinations/turbo", "pollinations/flux"]
+      : [modelId, "pollinations/turbo", "pollinations/flux"];
+  const seen = new Set<ImageModel["id"]>();
+  return ordered
+    .filter((id) => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .map((id, index) => ({ modelId: id, size: index === 0 ? size : "512x512" }));
+}
+
+function buildDirectPollinationsUrl(
+  modelId: ImageModel["id"],
+  system: string,
+  prompt: string,
+  size: string,
+): string {
+  const model = chain_label(modelId);
+  const fullPrompt = system ? `${system}\n\n${prompt}` : prompt;
+  const { width, height } = parseImageSize(size);
+  const params = new URLSearchParams({
+    width: String(width),
+    height: String(height),
+    model,
+    seed: String(Math.floor(Math.random() * 1_000_000_000)),
+    nologo: "true",
+    enhance: "true",
+    private: "true",
+    safe: "false",
+  });
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?${params.toString()}`;
 }
 
 function ImagensPage() {
@@ -144,7 +194,8 @@ function ImagensPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const abortRef = useRef<AbortController | null>(null);
+  const [attempts, setAttempts] = useState<ReadonlyArray<DirectAttempt>>([]);
+  const [attemptIndex, setAttemptIndex] = useState(0);
   const startRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -153,6 +204,7 @@ function ImagensPage() {
     [modelId],
   );
   const supportsSize = true;
+  const supportsQuality = false;
 
   const stopTick = () => {
     if (tickRef.current !== null) {
@@ -162,10 +214,8 @@ function ImagensPage() {
   };
 
   const generate = useCallback(async () => {
-    if (!prompt.trim()) return;
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    const nextPrompt = prompt.trim();
+    if (!nextPrompt) return;
 
     setSrc(null);
     setIsFinal(false);
@@ -179,46 +229,34 @@ function ImagensPage() {
       setElapsed((performance.now() - startRef.current) / 1000);
     }, 100);
 
-    try {
-      await streamImage(
-        "/api/generate-image",
-        {
-          model: modelId,
-          prompt: prompt.trim(),
-          system: system.trim() || undefined,
-          size,
-          quality,
-        },
-        (dataUrl, final) => {
-          setSrc(dataUrl);
-          setFrames((n) => n + 1);
-          if (final) setIsFinal(true);
-        },
-        ctrl.signal,
-      );
-      setStatus("done");
-    } catch (err) {
-      if (ctrl.signal.aborted) {
-        setStatus("idle");
-        return;
-      }
-      const msg = err instanceof Error ? err.message : String(err);
-      setErrMsg(msg);
-      setStatus("error");
-    } finally {
-      stopTick();
-      setElapsed((performance.now() - startRef.current) / 1000);
-    }
-  }, [modelId, prompt, system, size, quality]);
+    const nextAttempts = directAttempts(modelId, size);
+    const firstAttempt = nextAttempts[0];
+    if (!firstAttempt) return;
+    setAttempts(nextAttempts);
+    setAttemptIndex(0);
+    setFrames(1);
+    setSrc(
+      buildDirectPollinationsUrl(
+        firstAttempt.modelId,
+        system.trim(),
+        nextPrompt,
+        firstAttempt.size,
+      ),
+    );
+  }, [modelId, prompt, system, size]);
 
   const stop = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
     stopTick();
+    setSrc(null);
+    setIsFinal(false);
+    setAttempts([]);
+    setAttemptIndex(0);
     setStatus("idle");
   }, []);
 
   const isStreaming = status === "streaming";
+  const errorIsRate = errMsg ? /fila|limite|queue|rate|429|402/i.test(errMsg) : false;
+  const errorAccent = errorIsRate ? "oklch(0.82 0.16 90)" : "oklch(0.7 0.2 25)";
 
   return (
     <main className="min-h-screen bg-[var(--obsidian)] text-[var(--bone)] grain">
@@ -237,7 +275,7 @@ function ImagensPage() {
               <span className="opacity-40">.</span>
             </h1>
             <p className="font-mono text-[11px] tracking-[0.2em] opacity-60 max-w-md">
-              PLAYGROUND · STREAM REAL · /v1/images/generations · 5 MODELOS
+              PLAYGROUND · FREE DIRECT URL · POLLINATIONS · 5 MODELOS
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -276,10 +314,7 @@ function ImagensPage() {
             </fieldset>
 
             {/* PROMPT */}
-            <fieldset
-              className="border p-4"
-              style={{ borderColor: toneAccent(model.tone) }}
-            >
+            <fieldset className="border p-4" style={{ borderColor: toneAccent(model.tone) }}>
               <legend
                 className="font-mono text-[10px] tracking-[0.35em] px-2"
                 style={{ color: toneAccent(model.tone) }}
@@ -314,9 +349,7 @@ function ImagensPage() {
                 </span>
                 <select
                   value={modelId}
-                  onChange={(e) =>
-                    setModelId(e.target.value as ImageModel["id"])
-                  }
+                  onChange={(e) => setModelId(e.target.value as ImageModel["id"])}
                   className="w-full bg-[var(--obsidian)] font-mono text-[11px] outline-none"
                 >
                   {IMAGE_MODELS.map((m) => (
@@ -345,14 +378,14 @@ function ImagensPage() {
 
               <label className="border border-[var(--bone)]/15 p-3 block col-span-2">
                 <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
-                  QUALITY {supportsSize ? "" : "(ignorado em Pollinations)"}
+                  QUALITY {supportsQuality ? "" : "(ignorado no modo free)"}
                 </span>
                 <div className="flex gap-1">
                   {(["low", "medium", "high"] as const).map((q) => (
                     <button
                       key={q}
                       type="button"
-                      disabled={!supportsSize}
+                      disabled={!supportsQuality}
                       onClick={() => setQuality(q)}
                       className={`flex-1 font-mono text-[10px] tracking-[0.2em] py-1.5 border transition disabled:opacity-30 disabled:cursor-not-allowed ${
                         quality === q
@@ -402,10 +435,7 @@ function ImagensPage() {
             <div
               className="relative aspect-square border overflow-hidden"
               style={{
-                borderColor:
-                  status === "error"
-                    ? "oklch(0.7 0.2 25)"
-                    : toneAccent(model.tone),
+                borderColor: status === "error" ? "oklch(0.7 0.2 25)" : toneAccent(model.tone),
                 background: `repeating-linear-gradient(45deg, transparent 0 12px, ${toneAccent(model.tone)}08 12px 13px)`,
               }}
             >
@@ -415,6 +445,37 @@ function ImagensPage() {
                   alt={prompt || "imagem gerada"}
                   className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-300"
                   style={{ filter: isFinal ? "none" : "blur(18px)" }}
+                  onLoad={() => {
+                    setIsFinal(true);
+                    setStatus("done");
+                    stopTick();
+                    setElapsed((performance.now() - startRef.current) / 1000);
+                  }}
+                  onError={() => {
+                    const nextIndex = attemptIndex + 1;
+                    const nextAttempt = attempts[nextIndex];
+                    if (nextAttempt) {
+                      setAttemptIndex(nextIndex);
+                      setFrames((n) => n + 1);
+                      setSrc(
+                        buildDirectPollinationsUrl(
+                          nextAttempt.modelId,
+                          system.trim(),
+                          prompt.trim(),
+                          nextAttempt.size,
+                        ),
+                      );
+                      return;
+                    }
+                    setSrc(null);
+                    setIsFinal(false);
+                    setStatus("error");
+                    stopTick();
+                    setElapsed((performance.now() - startRef.current) / 1000);
+                    setErrMsg(
+                      "Pollinations free recusou todos os fallbacks no navegador. Isso é fila/limite temporário do provedor externo, não saldo Lovable. Aguarde 30–60s e gere novamente.",
+                    );
+                  }}
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -467,37 +528,19 @@ function ImagensPage() {
 
             {/* ERRO */}
             {errMsg ? (
-              (() => {
-                const isCredits = /crédit|payment_required|402/i.test(errMsg);
-                const isRate = /rate|429/i.test(errMsg);
-                const accent = isCredits
-                  ? "oklch(0.78 0.18 70)"
-                  : isRate
-                    ? "oklch(0.82 0.16 90)"
-                    : "oklch(0.7 0.2 25)";
-                return (
-                  <div
-                    className="border p-3 font-mono text-[10px] whitespace-pre-wrap break-words space-y-2"
-                    style={{ borderColor: accent, color: accent }}
-                  >
-                    <p className="tracking-[0.25em] text-[9px] opacity-80">
-                      {isCredits
-                        ? "// 402 · SALDO ESGOTADO"
-                        : isRate
-                          ? "// 429 · RATE LIMIT"
-                          : "// ERRO UPSTREAM"}
-                    </p>
-                    <p className="leading-relaxed">{errMsg}</p>
-                    {isCredits ? (
-                      <p className="opacity-70 text-[9px] leading-relaxed pt-1 border-t border-current/20">
-                        Cadeia TIER S tentou {chain_label(modelId)} e todos os
-                        fallbacks falharam por falta de créditos. Recarregue em
-                        Lovable → Settings → Workspace → Usage.
-                      </p>
-                    ) : null}
-                  </div>
-                );
-              })()
+              <div
+                className="border p-3 font-mono text-[10px] whitespace-pre-wrap break-words space-y-2"
+                style={{ borderColor: errorAccent, color: errorAccent }}
+              >
+                <p className="tracking-[0.25em] text-[9px] opacity-80">
+                  {errorIsRate ? "// FREE PROVIDER · FILA/LIMITE" : "// ERRO UPSTREAM"}
+                </p>
+                <p className="leading-relaxed">{errMsg}</p>
+                <p className="opacity-70 text-[9px] leading-relaxed pt-1 border-t border-current/20">
+                  Rota atual: imagem carregada direto no navegador. Não usa saldo Lovable AI; se
+                  falhar, é limite temporário do serviço free externo para o seu IP/sessão.
+                </p>
+              </div>
             ) : null}
 
             {/* DOWNLOAD */}
@@ -511,18 +554,13 @@ function ImagensPage() {
               </a>
             ) : null}
 
-            <p className="font-mono text-[9px] opacity-50 leading-relaxed">
-              {model.note}
-            </p>
+            <p className="font-mono text-[9px] opacity-50 leading-relaxed">{model.note}</p>
           </div>
         </section>
 
         {/* CATÁLOGO COMPLETO */}
         <section aria-labelledby="catalogo" className="space-y-4">
-          <h2
-            id="catalogo"
-            className="font-mono text-[10px] tracking-[0.35em] opacity-50"
-          >
+          <h2 id="catalogo" className="font-mono text-[10px] tracking-[0.35em] opacity-50">
             ◇ CATÁLOGO COMPLETO
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -552,24 +590,15 @@ function ImagensPage() {
                     {m.modality}
                   </span>
                 </div>
-                <p className="font-[Instrument_Serif] text-xl italic leading-tight">
-                  {m.label}
-                </p>
-                <p className="font-mono text-[10px] opacity-50 mt-1 break-all">
-                  {m.id}
-                </p>
-                <p className="font-mono text-[10px] opacity-70 mt-3 leading-relaxed">
-                  {m.note}
-                </p>
+                <p className="font-[Instrument_Serif] text-xl italic leading-tight">{m.label}</p>
+                <p className="font-mono text-[10px] opacity-50 mt-1 break-all">{m.id}</p>
+                <p className="font-mono text-[10px] opacity-70 mt-3 leading-relaxed">{m.note}</p>
               </button>
             ))}
           </div>
 
           <section aria-labelledby="grp-video" className="pt-4">
-            <h3
-              id="grp-video"
-              className="font-mono text-[10px] tracking-[0.35em] opacity-50 mb-3"
-            >
+            <h3 id="grp-video" className="font-mono text-[10px] tracking-[0.35em] opacity-50 mb-3">
               ◇ VÍDEO · INDISPONÍVEL NO GATEWAY
             </h3>
             <div className="border border-dashed border-[var(--bone)]/15 p-4 font-mono text-[11px] opacity-60 space-y-1">
