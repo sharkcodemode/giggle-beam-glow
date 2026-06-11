@@ -13,10 +13,8 @@ import { createFileRoute } from "@tanstack/react-router";
  */
 
 type ImageModel =
+  | "pollinations/sana"
   | "pollinations/flux"
-  | "pollinations/flux-realism"
-  | "pollinations/flux-anime"
-  | "pollinations/flux-3d"
   | "pollinations/turbo";
 
 interface Body {
@@ -28,32 +26,16 @@ interface Body {
 }
 
 const ALLOWED: ReadonlyArray<ImageModel> = [
+  "pollinations/sana",
   "pollinations/flux",
-  "pollinations/flux-realism",
-  "pollinations/flux-anime",
-  "pollinations/flux-3d",
   "pollinations/turbo",
 ];
 
 // Fallback dentro do próprio Pollinations: se o modelo escolhido falhar,
 // degrada para turbo (mais leve) e depois flux base.
 const FALLBACK_CHAINS: Record<ImageModel, ReadonlyArray<ImageModel>> = {
-  "pollinations/flux": ["pollinations/flux", "pollinations/turbo"],
-  "pollinations/flux-realism": [
-    "pollinations/flux-realism",
-    "pollinations/flux",
-    "pollinations/turbo",
-  ],
-  "pollinations/flux-anime": [
-    "pollinations/flux-anime",
-    "pollinations/flux",
-    "pollinations/turbo",
-  ],
-  "pollinations/flux-3d": [
-    "pollinations/flux-3d",
-    "pollinations/flux",
-    "pollinations/turbo",
-  ],
+  "pollinations/sana": ["pollinations/sana", "pollinations/flux", "pollinations/turbo"],
+  "pollinations/flux": ["pollinations/flux", "pollinations/sana", "pollinations/turbo"],
   "pollinations/turbo": ["pollinations/turbo", "pollinations/flux"],
 };
 
