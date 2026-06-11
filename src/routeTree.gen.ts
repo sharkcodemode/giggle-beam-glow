@@ -15,12 +15,14 @@ import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
 import { Route as PulseRouteImport } from './routes/pulse'
 import { Route as ModelosRouteImport } from './routes/modelos'
 import { Route as ImagensRouteImport } from './routes/imagens'
+import { Route as ElitelovableRouteImport } from './routes/elitelovable'
 import { Route as ClaudeRouteImport } from './routes/claude'
 import { Route as ChatmodelosRouteImport } from './routes/chatmodelos'
 import { Route as AudiosRouteImport } from './routes/audios'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiGenerateImageGoogleRouteImport } from './routes/api/generate-image-google'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
+import { Route as ApiPublicElitePromptRouteImport } from './routes/api/public/elite-prompt'
 import { Route as ApiPublicSecretCheckRouteImport } from './routes/api/public/_secret-check'
 
 const VoiceRoute = VoiceRouteImport.update({
@@ -53,6 +55,11 @@ const ImagensRoute = ImagensRouteImport.update({
   path: '/imagens',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ElitelovableRoute = ElitelovableRouteImport.update({
+  id: '/elitelovable',
+  path: '/elitelovable',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClaudeRoute = ClaudeRouteImport.update({
   id: '/claude',
   path: '/claude',
@@ -83,6 +90,11 @@ const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   path: '/api/generate-image',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicElitePromptRoute = ApiPublicElitePromptRouteImport.update({
+  id: '/api/public/elite-prompt',
+  path: '/api/public/elite-prompt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSecretCheckRoute = ApiPublicSecretCheckRouteImport.update({
   id: '/api/public/_secret-check',
   path: '/api/public',
@@ -94,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/audios': typeof AudiosRoute
   '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
+  '/elitelovable': typeof ElitelovableRoute
   '/imagens': typeof ImagensRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
@@ -103,12 +116,14 @@ export interface FileRoutesByFullPath {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
   '/api/public': typeof ApiPublicSecretCheckRoute
+  '/api/public/elite-prompt': typeof ApiPublicElitePromptRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audios': typeof AudiosRoute
   '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
+  '/elitelovable': typeof ElitelovableRoute
   '/imagens': typeof ImagensRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
@@ -118,6 +133,7 @@ export interface FileRoutesByTo {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
   '/api/public': typeof ApiPublicSecretCheckRoute
+  '/api/public/elite-prompt': typeof ApiPublicElitePromptRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +141,7 @@ export interface FileRoutesById {
   '/audios': typeof AudiosRoute
   '/chatmodelos': typeof ChatmodelosRoute
   '/claude': typeof ClaudeRoute
+  '/elitelovable': typeof ElitelovableRoute
   '/imagens': typeof ImagensRoute
   '/modelos': typeof ModelosRoute
   '/pulse': typeof PulseRoute
@@ -134,6 +151,7 @@ export interface FileRoutesById {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
   '/api/public/_secret-check': typeof ApiPublicSecretCheckRoute
+  '/api/public/elite-prompt': typeof ApiPublicElitePromptRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -142,6 +160,7 @@ export interface FileRouteTypes {
     | '/audios'
     | '/chatmodelos'
     | '/claude'
+    | '/elitelovable'
     | '/imagens'
     | '/modelos'
     | '/pulse'
@@ -151,12 +170,14 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/generate-image-google'
     | '/api/public'
+    | '/api/public/elite-prompt'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/audios'
     | '/chatmodelos'
     | '/claude'
+    | '/elitelovable'
     | '/imagens'
     | '/modelos'
     | '/pulse'
@@ -166,12 +187,14 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/generate-image-google'
     | '/api/public'
+    | '/api/public/elite-prompt'
   id:
     | '__root__'
     | '/'
     | '/audios'
     | '/chatmodelos'
     | '/claude'
+    | '/elitelovable'
     | '/imagens'
     | '/modelos'
     | '/pulse'
@@ -181,6 +204,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/generate-image-google'
     | '/api/public/_secret-check'
+    | '/api/public/elite-prompt'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -188,6 +212,7 @@ export interface RootRouteChildren {
   AudiosRoute: typeof AudiosRoute
   ChatmodelosRoute: typeof ChatmodelosRoute
   ClaudeRoute: typeof ClaudeRoute
+  ElitelovableRoute: typeof ElitelovableRoute
   ImagensRoute: typeof ImagensRoute
   ModelosRoute: typeof ModelosRoute
   PulseRoute: typeof PulseRoute
@@ -197,6 +222,7 @@ export interface RootRouteChildren {
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiGenerateImageGoogleRoute: typeof ApiGenerateImageGoogleRoute
   ApiPublicSecretCheckRoute: typeof ApiPublicSecretCheckRoute
+  ApiPublicElitePromptRoute: typeof ApiPublicElitePromptRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -243,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImagensRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/elitelovable': {
+      id: '/elitelovable'
+      path: '/elitelovable'
+      fullPath: '/elitelovable'
+      preLoaderRoute: typeof ElitelovableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/claude': {
       id: '/claude'
       path: '/claude'
@@ -285,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateImageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/elite-prompt': {
+      id: '/api/public/elite-prompt'
+      path: '/api/public/elite-prompt'
+      fullPath: '/api/public/elite-prompt'
+      preLoaderRoute: typeof ApiPublicElitePromptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/_secret-check': {
       id: '/api/public/_secret-check'
       path: '/api/public'
@@ -300,6 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   AudiosRoute: AudiosRoute,
   ChatmodelosRoute: ChatmodelosRoute,
   ClaudeRoute: ClaudeRoute,
+  ElitelovableRoute: ElitelovableRoute,
   ImagensRoute: ImagensRoute,
   ModelosRoute: ModelosRoute,
   PulseRoute: PulseRoute,
@@ -309,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiGenerateImageGoogleRoute: ApiGenerateImageGoogleRoute,
   ApiPublicSecretCheckRoute: ApiPublicSecretCheckRoute,
+  ApiPublicElitePromptRoute: ApiPublicElitePromptRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
