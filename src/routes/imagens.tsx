@@ -51,8 +51,9 @@ type ModelId =
   | "google/gemini-3.1-flash-image-preview"
   | "google/gemini-2.5-flash-image"
   | "google/gemini-3-pro-image-preview"
-  | "gas/gemini-3.0-flash-image-preview"
   | "gas/gemini-2.5-flash-image-preview"
+  | "gas/gemini-2.5-flash-image"
+  | "gas/imagen-4.0-ultra-generate-001"
   | "gas/imagen-4.0-generate-001"
   | "gas/imagen-4.0-fast-generate-001"
   | "gas/imagen-3.0-generate-002";
