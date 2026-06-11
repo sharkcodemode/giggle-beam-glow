@@ -469,6 +469,29 @@ function ImagensPage() {
                   ))}
                 </div>
               </label>
+
+              <label className="border border-[var(--bone)]/15 p-3 block col-span-2">
+                <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
+                  ASPECT RATIO {model.supportsAspectRatio ? "" : "(n/a)"}
+                </span>
+                <div className="flex gap-1 flex-wrap">
+                  {(["1:1", "3:4", "4:3", "9:16", "16:9"] as const).map((ar) => (
+                    <button
+                      key={ar}
+                      type="button"
+                      disabled={!model.supportsAspectRatio}
+                      onClick={() => setAspectRatio(ar)}
+                      className={`flex-1 min-w-[56px] font-mono text-[10px] tracking-[0.2em] py-1.5 border transition disabled:opacity-30 disabled:cursor-not-allowed ${
+                        aspectRatio === ar
+                          ? "bg-[var(--bone)]/10 border-[var(--bone)]/60"
+                          : "border-[var(--bone)]/15 hover:border-[var(--bone)]/40"
+                      }`}
+                    >
+                      {ar}
+                    </button>
+                  ))}
+                </div>
+              </label>
             </div>
 
             {/* AÇÕES */}
