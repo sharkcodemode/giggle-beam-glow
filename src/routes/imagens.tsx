@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ImageIcon, Loader2, Play, Square, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { streamImage } from "@/lib/stream-image";
 
 export const Route = createFileRoute("/imagens")({
   head: () => ({
@@ -9,13 +10,13 @@ export const Route = createFileRoute("/imagens")({
       {
         name: "description",
         content:
-          "Playground de geração de imagem grátis via Pollinations.ai direto no navegador, sem saldo Lovable AI Gateway.",
+          "Playground de geração de imagem via Lovable AI Gateway (GPT-Image-2 / Nano Banana 2 / Gemini 3 Pro), com streaming de frames parciais em tempo real.",
       },
       { property: "og:title", content: "IMAGENS — Playground IA Imagem" },
       {
         property: "og:description",
         content:
-          "Geração de imagem free por URL direta no browser. Flux/Turbo sem chave e sem créditos Lovable.",
+          "Geração streaming com blur progressivo. Cobertura: openai/gpt-image-2, google/gemini-3-pro-image-preview e variantes Flash.",
       },
     ],
   }),
@@ -44,43 +45,80 @@ export const Route = createFileRoute("/imagens")({
 
 type Tone = "mint" | "cyan" | "violet" | "plasma";
 
+type ModelId =
+  | "openai/gpt-image-2"
+  | "openai/gpt-image-1-mini"
+  | "google/gemini-3.1-flash-image-preview"
+  | "google/gemini-2.5-flash-image"
+  | "google/gemini-3-pro-image-preview";
+
 interface ImageModel {
-  id: "pollinations/sana" | "pollinations/flux" | "pollinations/turbo";
+  id: ModelId;
   label: string;
-  provider: "pollinations";
+  provider: "openai" | "google";
   tag: string;
   tone: Tone;
   modality: string;
   note: string;
+  supportsSize: boolean;
+  supportsQuality: boolean;
 }
 
 const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
   {
-    id: "pollinations/sana",
-    label: "Sana",
-    provider: "pollinations",
-    tag: "FREE · LIVE",
-    tone: "cyan",
-    modality: "T → I",
-    note: "Modelo atualmente anunciado pelo endpoint /models do Pollinations. Melhor primeira tentativa no modo free.",
-  },
-  {
-    id: "pollinations/flux",
-    label: "Flux",
-    provider: "pollinations",
-    tag: "FREE · DEFAULT",
+    id: "openai/gpt-image-2",
+    label: "GPT-Image-2",
+    provider: "openai",
+    tag: "DEFAULT · STREAM",
     tone: "violet",
     modality: "T → I",
-    note: "Flux base via Pollinations.ai. Mantido como fallback quando o provedor aceitar a fila.",
+    note: "State-of-the-art OpenAI. Stream com 2 frames parciais antes do final. Cobra crédito Lovable por imagem.",
+    supportsSize: true,
+    supportsQuality: true,
   },
   {
-    id: "pollinations/turbo",
-    label: "Turbo",
-    provider: "pollinations",
-    tag: "FREE · FAST",
+    id: "openai/gpt-image-1-mini",
+    label: "GPT-Image-1 mini",
+    provider: "openai",
+    tag: "CHEAP · STREAM",
     tone: "mint",
     modality: "T → I",
-    note: "Modelo mais rápido. Boa pra iterar prompt antes de fechar no Flux. Free.",
+    note: "Variante econômica do gpt-image. Bom para iterar prompt antes de fechar no 2.",
+    supportsSize: true,
+    supportsQuality: true,
+  },
+  {
+    id: "google/gemini-3.1-flash-image-preview",
+    label: "Nano Banana 2",
+    provider: "google",
+    tag: "FAST · PRO QUALITY",
+    tone: "cyan",
+    modality: "T,I → T,I",
+    note: "Gemini 3.1 Flash Image — rápido, qualidade próxima do Pro. Streaming nativo de frames.",
+    supportsSize: false,
+    supportsQuality: false,
+  },
+  {
+    id: "google/gemini-2.5-flash-image",
+    label: "Nano Banana",
+    provider: "google",
+    tag: "STREAM",
+    tone: "cyan",
+    modality: "T,I → T,I",
+    note: "Gemini 2.5 Flash Image — versão estável anterior do Nano Banana.",
+    supportsSize: false,
+    supportsQuality: false,
+  },
+  {
+    id: "google/gemini-3-pro-image-preview",
+    label: "Gemini 3 Pro Image",
+    provider: "google",
+    tag: "HIGH FIDELITY",
+    tone: "plasma",
+    modality: "T,I → T,I",
+    note: "Geração editorial high-end do Google. Mais caro, melhor coerência narrativa.",
+    supportsSize: false,
+    supportsQuality: false,
   },
 ];
 
@@ -104,65 +142,8 @@ Nunca produza estética AI-padrão (gradientes roxos, sparkles, mascotes vazios)
 
 type Status = "idle" | "streaming" | "done" | "error";
 
-const QUEUE_RETRY_DELAYS_MS: ReadonlyArray<number> = [4_000, 8_000, 14_000, 22_000, 35_000, 55_000];
-
-interface DirectAttempt {
-  modelId: ImageModel["id"];
-  size: string;
-}
-
-function chain_label(id: ImageModel["id"]): string {
-  return id.split("/")[1] ?? id;
-}
-
-function parseImageSize(size: string): { width: number; height: number } {
-  const match = size.match(/^(\d{3,4})x(\d{3,4})$/);
-  if (!match) return { width: 1024, height: 1024 };
-  return {
-    width: Math.min(1536, Math.max(512, Number(match[1]))),
-    height: Math.min(1536, Math.max(512, Number(match[2]))),
-  };
-}
-
-function directAttempts(modelId: ImageModel["id"], size: string): ReadonlyArray<DirectAttempt> {
-  const ordered: ReadonlyArray<ImageModel["id"]> =
-    modelId === "pollinations/turbo"
-      ? ["pollinations/turbo", "pollinations/flux"]
-      : [modelId, "pollinations/sana", "pollinations/flux", "pollinations/turbo"];
-  const seen = new Set<ImageModel["id"]>();
-  return ordered
-    .filter((id) => {
-      if (seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    })
-    .map((id, index) => ({ modelId: id, size: index === 0 ? size : "512x512" }));
-}
-
-function buildDirectPollinationsUrl(
-  modelId: ImageModel["id"],
-  system: string,
-  prompt: string,
-  size: string,
-): string {
-  const model = chain_label(modelId);
-  const fullPrompt = system ? `${system}\n\n${prompt}` : prompt;
-  const { width, height } = parseImageSize(size);
-  const params = new URLSearchParams({
-    width: String(width),
-    height: String(height),
-    model,
-    seed: String(Math.floor(Math.random() * 1_000_000_000)),
-    nologo: "true",
-    enhance: "true",
-    private: "true",
-    safe: "false",
-  });
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?${params.toString()}`;
-}
-
 function ImagensPage() {
-  const [modelId, setModelId] = useState<ImageModel["id"]>("pollinations/sana");
+  const [modelId, setModelId] = useState<ModelId>("openai/gpt-image-2");
   const [system, setSystem] = useState(DEFAULT_SYSTEM);
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState("1024x1024");
@@ -173,19 +154,14 @@ function ImagensPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [attempts, setAttempts] = useState<ReadonlyArray<DirectAttempt>>([]);
-  const [attemptIndex, setAttemptIndex] = useState(0);
-  const [queueRetryIndex, setQueueRetryIndex] = useState(0);
   const startRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const model = useMemo(
     () => IMAGE_MODELS.find((m) => m.id === modelId) ?? IMAGE_MODELS[0],
     [modelId],
   );
-  const supportsSize = true;
-  const supportsQuality = false;
 
   const stopTick = () => {
     if (tickRef.current !== null) {
@@ -194,17 +170,10 @@ function ImagensPage() {
     }
   };
 
-  const stopRetry = () => {
-    if (retryRef.current !== null) {
-      clearTimeout(retryRef.current);
-      retryRef.current = null;
-    }
-  };
-
   useEffect(
     () => () => {
       stopTick();
-      stopRetry();
+      abortRef.current?.abort();
     },
     [],
   );
@@ -213,49 +182,62 @@ function ImagensPage() {
     const nextPrompt = prompt.trim();
     if (!nextPrompt) return;
 
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
     setSrc(null);
     setIsFinal(false);
     setFrames(0);
     setStatus("streaming");
     setErrMsg(null);
     setElapsed(0);
-    setQueueRetryIndex(0);
     startRef.current = performance.now();
     stopTick();
-    stopRetry();
     tickRef.current = setInterval(() => {
       setElapsed((performance.now() - startRef.current) / 1000);
     }, 100);
 
-    const nextAttempts = directAttempts(modelId, size);
-    const firstAttempt = nextAttempts[0];
-    if (!firstAttempt) return;
-    setAttempts(nextAttempts);
-    setAttemptIndex(0);
-    setFrames(1);
-    setSrc(
-      buildDirectPollinationsUrl(
-        firstAttempt.modelId,
-        system.trim(),
-        nextPrompt,
-        firstAttempt.size,
-      ),
-    );
-  }, [modelId, prompt, system, size]);
+    try {
+      await streamImage(
+        "/api/generate-image",
+        {
+          model: modelId,
+          prompt: nextPrompt,
+          system: system.trim() || undefined,
+          size: model.supportsSize ? size : undefined,
+          quality: model.supportsQuality ? quality : undefined,
+        },
+        (dataUrl, final) => {
+          setSrc(dataUrl);
+          setFrames((n) => n + 1);
+          if (final) {
+            setIsFinal(true);
+            setStatus("done");
+            stopTick();
+            setElapsed((performance.now() - startRef.current) / 1000);
+          }
+        },
+        ctrl.signal,
+      );
+    } catch (e) {
+      if (ctrl.signal.aborted) return;
+      const msg = e instanceof Error ? e.message : String(e);
+      setStatus("error");
+      stopTick();
+      setElapsed((performance.now() - startRef.current) / 1000);
+      setErrMsg(msg);
+    }
+  }, [modelId, prompt, system, size, quality, model.supportsSize, model.supportsQuality]);
 
   const stop = useCallback(() => {
+    abortRef.current?.abort();
     stopTick();
-    stopRetry();
-    setSrc(null);
-    setIsFinal(false);
-    setAttempts([]);
-    setAttemptIndex(0);
-    setQueueRetryIndex(0);
     setStatus("idle");
   }, []);
 
   const isStreaming = status === "streaming";
-  const errorIsRate = errMsg ? /fila|limite|queue|rate|429|402/i.test(errMsg) : false;
+  const errorIsRate = errMsg ? /402|429|crédito|credit|rate|limit/i.test(errMsg) : false;
   const errorAccent = errorIsRate ? "oklch(0.82 0.16 90)" : "oklch(0.7 0.2 25)";
 
   return (
@@ -275,12 +257,12 @@ function ImagensPage() {
               <span className="opacity-40">.</span>
             </h1>
             <p className="font-mono text-[11px] tracking-[0.2em] opacity-60 max-w-md">
-              PLAYGROUND · FREE DIRECT URL · POLLINATIONS · RETRY SERIAL
+              PLAYGROUND · LOVABLE AI GATEWAY · STREAMING SSE · PARTIAL FRAMES
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/20 inline-flex items-center gap-2">
-              <ImageIcon className="size-3.5" aria-hidden /> 3 IMAGEM
+              <ImageIcon className="size-3.5" aria-hidden /> {IMAGE_MODELS.length} IMAGEM
             </span>
             <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/10 opacity-50 inline-flex items-center gap-2">
               <Video className="size-3.5" aria-hidden /> 0 VÍDEO
@@ -343,13 +325,13 @@ function ImagensPage() {
 
             {/* PARAMS */}
             <div className="grid grid-cols-2 gap-3">
-              <label className="border border-[var(--bone)]/15 p-3 block">
+              <label className="border border-[var(--bone)]/15 p-3 block col-span-2">
                 <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
                   MODEL
                 </span>
                 <select
                   value={modelId}
-                  onChange={(e) => setModelId(e.target.value as ImageModel["id"])}
+                  onChange={(e) => setModelId(e.target.value as ModelId)}
                   className="w-full bg-[var(--obsidian)] font-mono text-[11px] outline-none"
                 >
                   {IMAGE_MODELS.map((m) => (
@@ -362,12 +344,12 @@ function ImagensPage() {
 
               <label className="border border-[var(--bone)]/15 p-3 block">
                 <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
-                  SIZE
+                  SIZE {model.supportsSize ? "" : "(n/a)"}
                 </span>
                 <select
                   value={size}
                   onChange={(e) => setSize(e.target.value)}
-                  disabled={!supportsSize}
+                  disabled={!model.supportsSize}
                   className="w-full bg-[var(--obsidian)] font-mono text-[11px] outline-none disabled:opacity-40"
                 >
                   <option value="1024x1024">1024×1024 · square</option>
@@ -376,16 +358,16 @@ function ImagensPage() {
                 </select>
               </label>
 
-              <label className="border border-[var(--bone)]/15 p-3 block col-span-2">
+              <label className="border border-[var(--bone)]/15 p-3 block">
                 <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
-                  QUALITY {supportsQuality ? "" : "(ignorado no modo free)"}
+                  QUALITY {model.supportsQuality ? "" : "(n/a)"}
                 </span>
                 <div className="flex gap-1">
                   {(["low", "medium", "high"] as const).map((q) => (
                     <button
                       key={q}
                       type="button"
-                      disabled={!supportsQuality}
+                      disabled={!model.supportsQuality}
                       onClick={() => setQuality(q)}
                       className={`flex-1 font-mono text-[10px] tracking-[0.2em] py-1.5 border transition disabled:opacity-30 disabled:cursor-not-allowed ${
                         quality === q
@@ -445,71 +427,6 @@ function ImagensPage() {
                   alt={prompt || "imagem gerada"}
                   className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-300"
                   style={{ filter: isFinal ? "none" : "blur(18px)" }}
-                  onLoad={() => {
-                    setIsFinal(true);
-                    setStatus("done");
-                    stopTick();
-                    setElapsed((performance.now() - startRef.current) / 1000);
-                  }}
-                  onError={() => {
-                    const nextIndex = attemptIndex + 1;
-                    const nextAttempt = attempts[nextIndex];
-                    if (nextAttempt) {
-                      const delay = QUEUE_RETRY_DELAYS_MS[0];
-                      setSrc(null);
-                      setErrMsg(
-                        `Fila free ocupada. Próxima tentativa serial em ${(delay / 1000).toFixed(0)}s: ${chain_label(nextAttempt.modelId)} · ${nextAttempt.size}.`,
-                      );
-                      stopRetry();
-                      retryRef.current = setTimeout(() => {
-                        setAttemptIndex(nextIndex);
-                        setFrames((n) => n + 1);
-                        setErrMsg(null);
-                        setSrc(
-                          buildDirectPollinationsUrl(
-                            nextAttempt.modelId,
-                            system.trim(),
-                            prompt.trim(),
-                            nextAttempt.size,
-                          ),
-                        );
-                      }, delay);
-                      return;
-                    }
-                    const firstAttempt = attempts[0];
-                    const delay = QUEUE_RETRY_DELAYS_MS[queueRetryIndex];
-                    if (firstAttempt && typeof delay === "number") {
-                      setSrc(null);
-                      setAttemptIndex(0);
-                      setQueueRetryIndex((n) => n + 1);
-                      setErrMsg(
-                        `Pollinations retornou fila cheia. Retry automático ${queueRetryIndex + 1}/${QUEUE_RETRY_DELAYS_MS.length} em ${(delay / 1000).toFixed(0)}s. Não clique de novo: isso reinicia a fila.`,
-                      );
-                      stopRetry();
-                      retryRef.current = setTimeout(() => {
-                        setFrames((n) => n + 1);
-                        setErrMsg(null);
-                        setSrc(
-                          buildDirectPollinationsUrl(
-                            firstAttempt.modelId,
-                            system.trim(),
-                            prompt.trim(),
-                            firstAttempt.size,
-                          ),
-                        );
-                      }, delay);
-                      return;
-                    }
-                    setSrc(null);
-                    setIsFinal(false);
-                    setStatus("error");
-                    stopTick();
-                    stopRetry();
-                    setElapsed((performance.now() - startRef.current) / 1000);
-                    setErrMsg(
-                      "Pollinations free recusou todos os fallbacks após retry serial com backoff. Isso é limite do provedor externo para o IP/sessão; não é saldo Lovable.",
-                    );
-                  }}
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -567,13 +484,9 @@ function ImagensPage() {
                 style={{ borderColor: errorAccent, color: errorAccent }}
               >
                 <p className="tracking-[0.25em] text-[9px] opacity-80">
-                  {errorIsRate ? "// FREE PROVIDER · FILA/LIMITE" : "// ERRO UPSTREAM"}
+                  {errorIsRate ? "// LOVABLE AI · LIMITE/CRÉDITO" : "// ERRO UPSTREAM"}
                 </p>
                 <p className="leading-relaxed">{errMsg}</p>
-                <p className="opacity-70 text-[9px] leading-relaxed pt-1 border-t border-current/20">
-                  Rota atual: imagem carregada direto no navegador. Não usa saldo Lovable AI; se
-                  falhar, é limite temporário do serviço free externo para o seu IP/sessão.
-                </p>
               </div>
             ) : null}
 
@@ -644,9 +557,9 @@ function ImagensPage() {
 
         {/* RODAPÉ */}
         <footer className="mt-14 pt-6 border-t border-[var(--bone)]/10 font-mono text-[10px] tracking-[0.2em] opacity-50 space-y-1">
-          <p>// SERVER ROUTE /api/generate-image · PROVIDER: pollinations.ai (FREE)</p>
-          <p>// Sana / Flux / Turbo · sem chave e sem crédito, mas com fila pública por IP</p>
-          <p>// Fallback chain serial + backoff: modelo → sana → flux → turbo.</p>
+          <p>// SERVER ROUTE /api/generate-image · PROVIDER: Lovable AI Gateway</p>
+          <p>// SSE pass-through · image_generation.partial_image → blur · completed → sharp</p>
+          <p>// OpenAI gpt-image-2/mini · Google Nano Banana 2 / Gemini 3 Pro Image</p>
         </footer>
       </div>
     </main>

@@ -1,18 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * Backend FREE — Pollinations.ai
- * --------------------------------
- * Por que não Lovable AI Gateway: cobra crédito por imagem (gpt-image-2 ≈ $0.19,
- * gemini-flash-image ≈ $0.04) e o saldo do workspace zerou (HTTP 402).
- * Pollinations é endpoint público gratuito, sem auth, modelos Flux.
+ * Backend — Lovable AI Gateway · streaming image generation
+ * ---------------------------------------------------------
+ * Encaminha SSE de /v1/images/generations direto pro client.
+ * Body por família:
+ *  - openai/*  → { model, prompt, size, quality, stream, partial_images }
+ *  - google/*  → { model, messages, modalities, stream }
  *
- * Mantemos o MESMO contrato SSE que o cliente (`streamImage`) já entende:
- * emitimos um único evento `image_generation.completed` com `b64_json`.
- * Pollinations não tem partials — sem blur progressivo, mas zero custo.
+ * Resposta: text/event-stream pass-through (eventos image_generation.partial_image
+ * e image_generation.completed normalizados pelo gateway).
  */
 
-type ImageModel = "pollinations/sana" | "pollinations/flux" | "pollinations/turbo";
+type ImageModel =
+  | "openai/gpt-image-2"
+  | "openai/gpt-image-1-mini"
+  | "google/gemini-3.1-flash-image-preview"
+  | "google/gemini-2.5-flash-image"
+  | "google/gemini-3-pro-image-preview";
 
 interface Body {
   model: ImageModel;
@@ -23,66 +28,47 @@ interface Body {
 }
 
 const ALLOWED: ReadonlyArray<ImageModel> = [
-  "pollinations/sana",
-  "pollinations/flux",
-  "pollinations/turbo",
+  "openai/gpt-image-2",
+  "openai/gpt-image-1-mini",
+  "google/gemini-3.1-flash-image-preview",
+  "google/gemini-2.5-flash-image",
+  "google/gemini-3-pro-image-preview",
 ];
 
-// Fallback dentro do próprio Pollinations: se o modelo escolhido falhar,
-// degrada para turbo (mais leve) e depois flux base.
-const FALLBACK_CHAINS: Record<ImageModel, ReadonlyArray<ImageModel>> = {
-  "pollinations/sana": ["pollinations/sana", "pollinations/flux", "pollinations/turbo"],
-  "pollinations/flux": ["pollinations/flux", "pollinations/sana", "pollinations/turbo"],
-  "pollinations/turbo": ["pollinations/turbo", "pollinations/flux"],
-};
-
-function parseSize(size?: string): { width: number; height: number } {
-  if (!size) return { width: 1024, height: 1024 };
-  const m = size.match(/^(\d{3,4})x(\d{3,4})$/);
-  if (!m) return { width: 1024, height: 1024 };
-  const w = Math.min(1536, Math.max(256, parseInt(m[1], 10)));
-  const h = Math.min(1536, Math.max(256, parseInt(m[2], 10)));
-  return { width: w, height: h };
-}
-
-function buildPollinationsUrl(model: ImageModel, b: Body): string {
-  const id = model.split("/")[1] ?? "flux";
+function buildUpstreamBody(b: Body): Record<string, unknown> {
   const fullPrompt = b.system ? `${b.system}\n\n${b.prompt}` : b.prompt;
-  const { width, height } = parseSize(b.size);
-  const seed = Math.floor(Math.random() * 1_000_000);
-  const params = new URLSearchParams({
-    width: String(width),
-    height: String(height),
-    model: id,
-    seed: String(seed),
-    nologo: "true",
-    enhance: "true",
-    private: "true",
-    safe: "false",
-  });
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?${params.toString()}`;
-}
-
-function sseEvent(event: string, data: unknown): Uint8Array {
-  const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  return new TextEncoder().encode(payload);
-}
-
-function bufferToBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let binary = "";
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
+  if (b.model.startsWith("openai/")) {
+    return {
+      model: b.model,
+      prompt: fullPrompt,
+      size: b.size ?? "1024x1024",
+      quality: b.quality ?? "low",
+      n: 1,
+      stream: true,
+      partial_images: 2,
+    };
   }
-  // btoa exists in Workers/Edge
-  return btoa(binary);
+  // Gemini image (OpenRouter chat-completions image shape)
+  return {
+    model: b.model,
+    messages: [{ role: "user", content: fullPrompt }],
+    modalities: ["image", "text"],
+    stream: true,
+  };
 }
 
 export const Route = createFileRoute("/api/generate-image")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const key = process.env.LOVABLE_API_KEY;
+        if (!key) {
+          return new Response(
+            JSON.stringify({ error: "config", message: "LOVABLE_API_KEY ausente no servidor." }),
+            { status: 500, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
         let parsed: Body;
         try {
           parsed = (await request.json()) as Body;
@@ -96,74 +82,55 @@ export const Route = createFileRoute("/api/generate-image")({
           return new Response("model inválido", { status: 400 });
         }
 
-        const chain = FALLBACK_CHAINS[parsed.model] ?? [parsed.model];
-        let lastStatus = 500;
-        let lastModel: ImageModel = parsed.model;
-        let imageBuffer: ArrayBuffer | null = null;
+        const upstream = await fetch(
+          "https://ai.gateway.lovable.dev/v1/images/generations",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${key}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(buildUpstreamBody(parsed)),
+          },
+        );
 
-        for (let i = 0; i < chain.length; i++) {
-          const m = chain[i];
-          lastModel = m;
-          const url = buildPollinationsUrl(m, parsed);
-          try {
-            const upstream = await fetch(url, {
-              method: "GET",
-              headers: { Accept: "image/png,image/jpeg,image/*" },
-            });
-            if (!upstream.ok) {
-              lastStatus = upstream.status;
-              continue;
+        if (!upstream.ok || !upstream.body) {
+          const txt = await upstream.text().catch(() => "");
+          let message = `Lovable AI Gateway falhou (HTTP ${upstream.status}).`;
+          if (upstream.status === 402)
+            message = "Créditos Lovable AI esgotados. Recarregue em Settings → Workspace → Usage.";
+          else if (upstream.status === 429)
+            message = "Rate limit Lovable AI. Aguarde alguns segundos e tente de novo.";
+          else if (txt) {
+            try {
+              const j = JSON.parse(txt) as { error?: { message?: string } | string };
+              if (typeof j.error === "string") message = j.error;
+              else if (j.error?.message) message = j.error.message;
+            } catch {
+              message = `${message} · ${txt.slice(0, 240)}`;
             }
-            imageBuffer = await upstream.arrayBuffer();
-            if (imageBuffer.byteLength < 512) {
-              // Pollinations às vezes devolve placeholder minúsculo em erro
-              imageBuffer = null;
-              lastStatus = 502;
-              continue;
-            }
-            break;
-          } catch {
-            lastStatus = 502;
           }
-        }
-
-        if (!imageBuffer) {
           return new Response(
             JSON.stringify({
-              error: "upstream_error",
-              status: lastStatus,
-              model_attempted: lastModel,
-              message: `Pollinations.ai falhou (status ${lastStatus}). Tente outro modelo ou reformule o prompt.`,
+              error: "upstream",
+              status: upstream.status,
+              model_attempted: parsed.model,
+              message,
             }),
             {
-              status: lastStatus,
+              status: upstream.status,
               headers: { "Content-Type": "application/json" },
             },
           );
         }
 
-        const b64 = bufferToBase64(imageBuffer);
-        const stream = new ReadableStream({
-          start(controller) {
-            controller.enqueue(
-              sseEvent("image_generation.completed", {
-                type: "image_generation.completed",
-                b64_json: b64,
-                created_at: Date.now(),
-                model: lastModel,
-              }),
-            );
-            controller.close();
-          },
-        });
-
-        return new Response(stream, {
+        return new Response(upstream.body, {
           headers: {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
             Connection: "keep-alive",
-            "x-acto-provider": "pollinations.ai",
-            "x-acto-model-used": lastModel,
+            "x-acto-provider": "lovable-ai-gateway",
+            "x-acto-model-used": parsed.model,
           },
         });
       },
