@@ -104,9 +104,7 @@ Nunca produza estética AI-padrão (gradientes roxos, sparkles, mascotes vazios)
 
 type Status = "idle" | "streaming" | "done" | "error";
 
-const QUEUE_RETRY_DELAYS_MS: ReadonlyArray<number> = [
-  4_000, 8_000, 14_000, 22_000, 35_000, 55_000,
-];
+const QUEUE_RETRY_DELAYS_MS: ReadonlyArray<number> = [4_000, 8_000, 14_000, 22_000, 35_000, 55_000];
 
 interface DirectAttempt {
   modelId: ImageModel["id"];
@@ -281,8 +279,8 @@ function ImagensPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/20 inline-flex items-center gap-2">
-                <ImageIcon className="size-3.5" aria-hidden /> 3 IMAGEM
+            <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/20 inline-flex items-center gap-2">
+              <ImageIcon className="size-3.5" aria-hidden /> 3 IMAGEM
             </span>
             <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/10 opacity-50 inline-flex items-center gap-2">
               <Video className="size-3.5" aria-hidden /> 0 VÍDEO
@@ -647,8 +645,8 @@ function ImagensPage() {
         {/* RODAPÉ */}
         <footer className="mt-14 pt-6 border-t border-[var(--bone)]/10 font-mono text-[10px] tracking-[0.2em] opacity-50 space-y-1">
           <p>// SERVER ROUTE /api/generate-image · PROVIDER: pollinations.ai (FREE)</p>
-          <p>// Flux family · sem chave, sem crédito, sem rate limit relevante</p>
-          <p>// Fallback chain: modelo → flux → turbo. Sem partials (provider não expõe).</p>
+          <p>// Sana / Flux / Turbo · sem chave e sem crédito, mas com fila pública por IP</p>
+          <p>// Fallback chain serial + backoff: modelo → sana → flux → turbo.</p>
         </footer>
       </div>
     </main>
