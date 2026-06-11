@@ -229,7 +229,7 @@ Nunca produza estética AI-padrão (gradientes roxos, sparkles, mascotes vazios)
 type Status = "idle" | "streaming" | "done" | "error";
 
 function ImagensPage() {
-  const [modelId, setModelId] = useState<ModelId>("openai/gpt-image-2");
+  const [modelId, setModelId] = useState<ModelId>("gas/gemini-2.5-flash-image-preview");
   const [system, setSystem] = useState(DEFAULT_SYSTEM);
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState("1024x1024");
