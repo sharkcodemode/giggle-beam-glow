@@ -25,6 +25,7 @@ export interface StreamImageRequest {
   system?: string;
   size?: string;
   quality?: "low" | "medium" | "high";
+  aspectRatio?: "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 }
 
 export async function streamImage(

@@ -19,6 +19,7 @@ import { Route as ClaudeRouteImport } from './routes/claude'
 import { Route as ChatmodelosRouteImport } from './routes/chatmodelos'
 import { Route as AudiosRouteImport } from './routes/audios'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiGenerateImageGoogleRouteImport } from './routes/api/generate-image-google'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiPublicSecretCheckRouteImport } from './routes/api/public/_secret-check'
 
@@ -72,6 +73,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateImageGoogleRoute = ApiGenerateImageGoogleRouteImport.update({
+  id: '/api/generate-image-google',
+  path: '/api/generate-image-google',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   id: '/api/generate-image',
   path: '/api/generate-image',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
   '/api/public': typeof ApiPublicSecretCheckRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
   '/api/public': typeof ApiPublicSecretCheckRoute
 }
 export interface FileRoutesById {
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/ragmodelos': typeof RagmodelosRoute
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
   '/api/public/_secret-check': typeof ApiPublicSecretCheckRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/ragmodelos'
     | '/voice'
     | '/api/generate-image'
+    | '/api/generate-image-google'
     | '/api/public'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/ragmodelos'
     | '/voice'
     | '/api/generate-image'
+    | '/api/generate-image-google'
     | '/api/public'
   id:
     | '__root__'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/ragmodelos'
     | '/voice'
     | '/api/generate-image'
+    | '/api/generate-image-google'
     | '/api/public/_secret-check'
   fileRoutesById: FileRoutesById
 }
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   RagmodelosRoute: typeof RagmodelosRoute
   VoiceRoute: typeof VoiceRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
+  ApiGenerateImageGoogleRoute: typeof ApiGenerateImageGoogleRoute
   ApiPublicSecretCheckRoute: typeof ApiPublicSecretCheckRoute
 }
 
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate-image-google': {
+      id: '/api/generate-image-google'
+      path: '/api/generate-image-google'
+      fullPath: '/api/generate-image-google'
+      preLoaderRoute: typeof ApiGenerateImageGoogleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/generate-image': {
       id: '/api/generate-image'
       path: '/api/generate-image'
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   RagmodelosRoute: RagmodelosRoute,
   VoiceRoute: VoiceRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
+  ApiGenerateImageGoogleRoute: ApiGenerateImageGoogleRoute,
   ApiPublicSecretCheckRoute: ApiPublicSecretCheckRoute,
 }
 export const routeTree = rootRouteImport

@@ -50,18 +50,27 @@ type ModelId =
   | "openai/gpt-image-1-mini"
   | "google/gemini-3.1-flash-image-preview"
   | "google/gemini-2.5-flash-image"
-  | "google/gemini-3-pro-image-preview";
+  | "google/gemini-3-pro-image-preview"
+  | "gas/gemini-2.5-flash-image-preview"
+  | "gas/gemini-2.5-flash-image"
+  | "gas/imagen-4.0-ultra-generate-001"
+  | "gas/imagen-4.0-generate-001"
+  | "gas/imagen-4.0-fast-generate-001"
+  | "gas/imagen-3.0-generate-002";
+
+type Provider = "openai" | "google" | "google-ai-studio";
 
 interface ImageModel {
   id: ModelId;
   label: string;
-  provider: "openai" | "google";
+  provider: Provider;
   tag: string;
   tone: Tone;
   modality: string;
   note: string;
   supportsSize: boolean;
   supportsQuality: boolean;
+  supportsAspectRatio: boolean;
 }
 
 const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
@@ -72,9 +81,10 @@ const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
     tag: "DEFAULT · STREAM",
     tone: "violet",
     modality: "T → I",
-    note: "State-of-the-art OpenAI. Stream com 2 frames parciais antes do final. Cobra crédito Lovable por imagem.",
+    note: "State-of-the-art OpenAI via Lovable Gateway. Stream com 2 frames parciais. Cobra crédito Lovable.",
     supportsSize: true,
     supportsQuality: true,
+    supportsAspectRatio: false,
   },
   {
     id: "openai/gpt-image-1-mini",
@@ -83,42 +93,118 @@ const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
     tag: "CHEAP · STREAM",
     tone: "mint",
     modality: "T → I",
-    note: "Variante econômica do gpt-image. Bom para iterar prompt antes de fechar no 2.",
+    note: "Variante econômica via Lovable Gateway. Bom para iterar prompt antes de fechar no 2.",
     supportsSize: true,
     supportsQuality: true,
+    supportsAspectRatio: false,
   },
   {
     id: "google/gemini-3.1-flash-image-preview",
-    label: "Nano Banana 2",
+    label: "Nano Banana 2 (Gateway)",
     provider: "google",
-    tag: "FAST · PRO QUALITY",
+    tag: "FAST · GATEWAY",
     tone: "cyan",
     modality: "T,I → T,I",
-    note: "Gemini 3.1 Flash Image — rápido, qualidade próxima do Pro. Streaming nativo de frames.",
+    note: "Gemini 3.1 Flash Image via Lovable Gateway. Cobra crédito Lovable. Streaming nativo.",
     supportsSize: false,
     supportsQuality: false,
+    supportsAspectRatio: false,
   },
   {
     id: "google/gemini-2.5-flash-image",
-    label: "Nano Banana",
+    label: "Nano Banana (Gateway)",
     provider: "google",
     tag: "STREAM",
     tone: "cyan",
     modality: "T,I → T,I",
-    note: "Gemini 2.5 Flash Image — versão estável anterior do Nano Banana.",
+    note: "Gemini 2.5 Flash Image via Lovable Gateway.",
     supportsSize: false,
     supportsQuality: false,
+    supportsAspectRatio: false,
   },
   {
     id: "google/gemini-3-pro-image-preview",
-    label: "Gemini 3 Pro Image",
+    label: "Gemini 3 Pro Image (Gateway)",
     provider: "google",
     tag: "HIGH FIDELITY",
     tone: "plasma",
     modality: "T,I → T,I",
-    note: "Geração editorial high-end do Google. Mais caro, melhor coerência narrativa.",
+    note: "Geração editorial high-end via Lovable Gateway. Mais caro, melhor coerência.",
     supportsSize: false,
     supportsQuality: false,
+    supportsAspectRatio: false,
+  },
+  {
+    id: "gas/gemini-2.5-flash-image-preview",
+    label: "Nano Banana · GAS",
+    provider: "google-ai-studio",
+    tag: "DIRECT · PREVIEW",
+    tone: "mint",
+    modality: "T,I → T,I",
+    note: "Gemini 2.5 Flash Image preview direto no Google AI Studio com sua chave. Sem custo Lovable.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: false,
+  },
+  {
+    id: "gas/gemini-2.5-flash-image",
+    label: "Nano Banana stable · GAS",
+    provider: "google-ai-studio",
+    tag: "DIRECT · STABLE",
+    tone: "cyan",
+    modality: "T,I → T,I",
+    note: "Gemini 2.5 Flash Image estável direto no Google AI Studio.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: false,
+  },
+  {
+    id: "gas/imagen-4.0-ultra-generate-001",
+    label: "Imagen 4 Ultra · GAS",
+    provider: "google-ai-studio",
+    tag: "TOP · DIRECT",
+    tone: "plasma",
+    modality: "T → I",
+    note: "Imagen 4 Ultra — máxima fidelidade fotorrealista. Mais caro/lento.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: true,
+  },
+  {
+    id: "gas/imagen-4.0-generate-001",
+    label: "Imagen 4 · GAS",
+    provider: "google-ai-studio",
+    tag: "PHOTOREAL · DIRECT",
+    tone: "plasma",
+    modality: "T → I",
+    note: "Imagen 4 (text-to-image fotorrealismo) direto na sua key Google AI Studio. Suporta aspect ratio.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: true,
+  },
+  {
+    id: "gas/imagen-4.0-fast-generate-001",
+    label: "Imagen 4 Fast · GAS",
+    provider: "google-ai-studio",
+    tag: "FAST · DIRECT",
+    tone: "mint",
+    modality: "T → I",
+    note: "Imagen 4 Fast — mais barato e rápido, qualidade ligeiramente menor.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: true,
+  },
+  {
+    id: "gas/imagen-3.0-generate-002",
+    label: "Imagen 3 · GAS",
+    provider: "google-ai-studio",
+    tag: "STABLE · DIRECT",
+    tone: "violet",
+    modality: "T → I",
+    note: "Imagen 3 estável (fallback se Imagen 4 não estiver disponível na sua região).",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: true,
   },
 ];
 
@@ -148,6 +234,7 @@ function ImagensPage() {
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState("1024x1024");
   const [quality, setQuality] = useState<"low" | "medium" | "high">("low");
+  const [aspectRatio, setAspectRatio] = useState<"1:1" | "3:4" | "4:3" | "9:16" | "16:9">("1:1");
   const [src, setSrc] = useState<string | null>(null);
   const [isFinal, setIsFinal] = useState(false);
   const [frames, setFrames] = useState(0);
@@ -199,14 +286,18 @@ function ImagensPage() {
     }, 100);
 
     try {
+      const isGAS = model.provider === "google-ai-studio";
+      const endpoint = isGAS ? "/api/generate-image-google" : "/api/generate-image";
+      const modelForApi = isGAS ? (modelId.replace(/^gas\//, "") as string) : modelId;
       await streamImage(
-        "/api/generate-image",
+        endpoint,
         {
-          model: modelId,
+          model: modelForApi,
           prompt: nextPrompt,
           system: system.trim() || undefined,
           size: model.supportsSize ? size : undefined,
           quality: model.supportsQuality ? quality : undefined,
+          aspectRatio: model.supportsAspectRatio ? aspectRatio : undefined,
         },
         (dataUrl, final) => {
           setSrc(dataUrl);
@@ -228,7 +319,18 @@ function ImagensPage() {
       setElapsed((performance.now() - startRef.current) / 1000);
       setErrMsg(msg);
     }
-  }, [modelId, prompt, system, size, quality, model.supportsSize, model.supportsQuality]);
+  }, [
+    modelId,
+    prompt,
+    system,
+    size,
+    quality,
+    aspectRatio,
+    model.provider,
+    model.supportsSize,
+    model.supportsQuality,
+    model.supportsAspectRatio,
+  ]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
@@ -376,6 +478,29 @@ function ImagensPage() {
                       }`}
                     >
                       {q.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </label>
+
+              <label className="border border-[var(--bone)]/15 p-3 block col-span-2">
+                <span className="font-mono text-[9px] tracking-[0.3em] opacity-50 block mb-1">
+                  ASPECT RATIO {model.supportsAspectRatio ? "" : "(n/a)"}
+                </span>
+                <div className="flex gap-1 flex-wrap">
+                  {(["1:1", "3:4", "4:3", "9:16", "16:9"] as const).map((ar) => (
+                    <button
+                      key={ar}
+                      type="button"
+                      disabled={!model.supportsAspectRatio}
+                      onClick={() => setAspectRatio(ar)}
+                      className={`flex-1 min-w-[56px] font-mono text-[10px] tracking-[0.2em] py-1.5 border transition disabled:opacity-30 disabled:cursor-not-allowed ${
+                        aspectRatio === ar
+                          ? "bg-[var(--bone)]/10 border-[var(--bone)]/60"
+                          : "border-[var(--bone)]/15 hover:border-[var(--bone)]/40"
+                      }`}
+                    >
+                      {ar}
                     </button>
                   ))}
                 </div>
