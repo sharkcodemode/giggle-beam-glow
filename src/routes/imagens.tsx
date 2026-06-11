@@ -277,12 +277,12 @@ function ImagensPage() {
               <span className="opacity-40">.</span>
             </h1>
             <p className="font-mono text-[11px] tracking-[0.2em] opacity-60 max-w-md">
-              PLAYGROUND · FREE DIRECT URL · POLLINATIONS · 5 MODELOS
+              PLAYGROUND · FREE DIRECT URL · POLLINATIONS · RETRY SERIAL
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/20 inline-flex items-center gap-2">
-              <ImageIcon className="size-3.5" aria-hidden /> 5 IMAGEM
+              <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/20 inline-flex items-center gap-2">
+                <ImageIcon className="size-3.5" aria-hidden /> 3 IMAGEM
             </span>
             <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/10 opacity-50 inline-flex items-center gap-2">
               <Video className="size-3.5" aria-hidden /> 0 VÍDEO
@@ -457,25 +457,59 @@ function ImagensPage() {
                     const nextIndex = attemptIndex + 1;
                     const nextAttempt = attempts[nextIndex];
                     if (nextAttempt) {
-                      setAttemptIndex(nextIndex);
-                      setFrames((n) => n + 1);
-                      setSrc(
-                        buildDirectPollinationsUrl(
-                          nextAttempt.modelId,
-                          system.trim(),
-                          prompt.trim(),
-                          nextAttempt.size,
-                        ),
+                      const delay = QUEUE_RETRY_DELAYS_MS[0];
+                      setSrc(null);
+                      setErrMsg(
+                        `Fila free ocupada. Próxima tentativa serial em ${(delay / 1000).toFixed(0)}s: ${chain_label(nextAttempt.modelId)} · ${nextAttempt.size}.`,
                       );
+                      stopRetry();
+                      retryRef.current = setTimeout(() => {
+                        setAttemptIndex(nextIndex);
+                        setFrames((n) => n + 1);
+                        setErrMsg(null);
+                        setSrc(
+                          buildDirectPollinationsUrl(
+                            nextAttempt.modelId,
+                            system.trim(),
+                            prompt.trim(),
+                            nextAttempt.size,
+                          ),
+                        );
+                      }, delay);
+                      return;
+                    }
+                    const firstAttempt = attempts[0];
+                    const delay = QUEUE_RETRY_DELAYS_MS[queueRetryIndex];
+                    if (firstAttempt && typeof delay === "number") {
+                      setSrc(null);
+                      setAttemptIndex(0);
+                      setQueueRetryIndex((n) => n + 1);
+                      setErrMsg(
+                        `Pollinations retornou fila cheia. Retry automático ${queueRetryIndex + 1}/${QUEUE_RETRY_DELAYS_MS.length} em ${(delay / 1000).toFixed(0)}s. Não clique de novo: isso reinicia a fila.`,
+                      );
+                      stopRetry();
+                      retryRef.current = setTimeout(() => {
+                        setFrames((n) => n + 1);
+                        setErrMsg(null);
+                        setSrc(
+                          buildDirectPollinationsUrl(
+                            firstAttempt.modelId,
+                            system.trim(),
+                            prompt.trim(),
+                            firstAttempt.size,
+                          ),
+                        );
+                      }, delay);
                       return;
                     }
                     setSrc(null);
                     setIsFinal(false);
                     setStatus("error");
                     stopTick();
+                    stopRetry();
                     setElapsed((performance.now() - startRef.current) / 1000);
                     setErrMsg(
-                      "Pollinations free recusou todos os fallbacks no navegador. Isso é fila/limite temporário do provedor externo, não saldo Lovable. Aguarde 30–60s e gere novamente.",
+                      "Pollinations free recusou todos os fallbacks após retry serial com backoff. Isso é limite do provedor externo para o IP/sessão; não é saldo Lovable.",
                     );
                   }}
                 />
