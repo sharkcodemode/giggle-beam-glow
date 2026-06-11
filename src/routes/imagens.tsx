@@ -273,14 +273,18 @@ function ImagensPage() {
     }, 100);
 
     try {
+      const isGAS = model.provider === "google-ai-studio";
+      const endpoint = isGAS ? "/api/generate-image-google" : "/api/generate-image";
+      const modelForApi = isGAS ? (modelId.replace(/^gas\//, "") as string) : modelId;
       await streamImage(
-        "/api/generate-image",
+        endpoint,
         {
-          model: modelId,
+          model: modelForApi,
           prompt: nextPrompt,
           system: system.trim() || undefined,
           size: model.supportsSize ? size : undefined,
           quality: model.supportsQuality ? quality : undefined,
+          aspectRatio: model.supportsAspectRatio ? aspectRatio : undefined,
         },
         (dataUrl, final) => {
           setSrc(dataUrl);
@@ -302,7 +306,18 @@ function ImagensPage() {
       setElapsed((performance.now() - startRef.current) / 1000);
       setErrMsg(msg);
     }
-  }, [modelId, prompt, system, size, quality, model.supportsSize, model.supportsQuality]);
+  }, [
+    modelId,
+    prompt,
+    system,
+    size,
+    quality,
+    aspectRatio,
+    model.provider,
+    model.supportsSize,
+    model.supportsQuality,
+    model.supportsAspectRatio,
+  ]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
