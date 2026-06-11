@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ImageIcon, Loader2, Play, Square, Video } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export const Route = createFileRoute("/imagens")({
   head: () => ({
@@ -45,12 +45,7 @@ export const Route = createFileRoute("/imagens")({
 type Tone = "mint" | "cyan" | "violet" | "plasma";
 
 interface ImageModel {
-  id:
-    | "pollinations/flux"
-    | "pollinations/flux-realism"
-    | "pollinations/flux-anime"
-    | "pollinations/flux-3d"
-    | "pollinations/turbo";
+  id: "pollinations/sana" | "pollinations/flux" | "pollinations/turbo";
   label: string;
   provider: "pollinations";
   tag: string;
@@ -61,40 +56,22 @@ interface ImageModel {
 
 const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
   {
+    id: "pollinations/sana",
+    label: "Sana",
+    provider: "pollinations",
+    tag: "FREE · LIVE",
+    tone: "cyan",
+    modality: "T → I",
+    note: "Modelo atualmente anunciado pelo endpoint /models do Pollinations. Melhor primeira tentativa no modo free.",
+  },
+  {
     id: "pollinations/flux",
     label: "Flux",
     provider: "pollinations",
     tag: "FREE · DEFAULT",
     tone: "violet",
     modality: "T → I",
-    note: "Flux base via Pollinations.ai. Gratuito, sem chave, sem crédito. Qualidade geral alta.",
-  },
-  {
-    id: "pollinations/flux-realism",
-    label: "Flux Realism",
-    provider: "pollinations",
-    tag: "FREE · PHOTO",
-    tone: "cyan",
-    modality: "T → I",
-    note: "Tuning fotorrealista. Retratos, produto, editorial. Free.",
-  },
-  {
-    id: "pollinations/flux-anime",
-    label: "Flux Anime",
-    provider: "pollinations",
-    tag: "FREE · ANIME",
-    tone: "plasma",
-    modality: "T → I",
-    note: "Tuning anime/illustration. Personagens, cenas estilizadas. Free.",
-  },
-  {
-    id: "pollinations/flux-3d",
-    label: "Flux 3D",
-    provider: "pollinations",
-    tag: "FREE · 3D",
-    tone: "mint",
-    modality: "T → I",
-    note: "Renders 3D, isometrics, claymation. Free.",
+    note: "Flux base via Pollinations.ai. Mantido como fallback quando o provedor aceitar a fila.",
   },
   {
     id: "pollinations/turbo",
@@ -127,6 +104,8 @@ Nunca produza estética AI-padrão (gradientes roxos, sparkles, mascotes vazios)
 
 type Status = "idle" | "streaming" | "done" | "error";
 
+const QUEUE_RETRY_DELAYS_MS: ReadonlyArray<number> = [4_000, 8_000, 14_000, 22_000, 35_000, 55_000];
+
 interface DirectAttempt {
   modelId: ImageModel["id"];
   size: string;
@@ -149,7 +128,7 @@ function directAttempts(modelId: ImageModel["id"], size: string): ReadonlyArray<
   const ordered: ReadonlyArray<ImageModel["id"]> =
     modelId === "pollinations/turbo"
       ? ["pollinations/turbo", "pollinations/flux"]
-      : [modelId, "pollinations/turbo", "pollinations/flux"];
+      : [modelId, "pollinations/sana", "pollinations/flux", "pollinations/turbo"];
   const seen = new Set<ImageModel["id"]>();
   return ordered
     .filter((id) => {
@@ -183,7 +162,7 @@ function buildDirectPollinationsUrl(
 }
 
 function ImagensPage() {
-  const [modelId, setModelId] = useState<ImageModel["id"]>("pollinations/flux");
+  const [modelId, setModelId] = useState<ImageModel["id"]>("pollinations/sana");
   const [system, setSystem] = useState(DEFAULT_SYSTEM);
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState("1024x1024");
@@ -196,8 +175,10 @@ function ImagensPage() {
   const [elapsed, setElapsed] = useState(0);
   const [attempts, setAttempts] = useState<ReadonlyArray<DirectAttempt>>([]);
   const [attemptIndex, setAttemptIndex] = useState(0);
+  const [queueRetryIndex, setQueueRetryIndex] = useState(0);
   const startRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const model = useMemo(
     () => IMAGE_MODELS.find((m) => m.id === modelId) ?? IMAGE_MODELS[0],
@@ -213,6 +194,21 @@ function ImagensPage() {
     }
   };
 
+  const stopRetry = () => {
+    if (retryRef.current !== null) {
+      clearTimeout(retryRef.current);
+      retryRef.current = null;
+    }
+  };
+
+  useEffect(
+    () => () => {
+      stopTick();
+      stopRetry();
+    },
+    [],
+  );
+
   const generate = useCallback(async () => {
     const nextPrompt = prompt.trim();
     if (!nextPrompt) return;
@@ -223,8 +219,10 @@ function ImagensPage() {
     setStatus("streaming");
     setErrMsg(null);
     setElapsed(0);
+    setQueueRetryIndex(0);
     startRef.current = performance.now();
     stopTick();
+    stopRetry();
     tickRef.current = setInterval(() => {
       setElapsed((performance.now() - startRef.current) / 1000);
     }, 100);
@@ -247,10 +245,12 @@ function ImagensPage() {
 
   const stop = useCallback(() => {
     stopTick();
+    stopRetry();
     setSrc(null);
     setIsFinal(false);
     setAttempts([]);
     setAttemptIndex(0);
+    setQueueRetryIndex(0);
     setStatus("idle");
   }, []);
 
@@ -275,12 +275,12 @@ function ImagensPage() {
               <span className="opacity-40">.</span>
             </h1>
             <p className="font-mono text-[11px] tracking-[0.2em] opacity-60 max-w-md">
-              PLAYGROUND · FREE DIRECT URL · POLLINATIONS · 5 MODELOS
+              PLAYGROUND · FREE DIRECT URL · POLLINATIONS · RETRY SERIAL
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/20 inline-flex items-center gap-2">
-              <ImageIcon className="size-3.5" aria-hidden /> 5 IMAGEM
+              <ImageIcon className="size-3.5" aria-hidden /> 3 IMAGEM
             </span>
             <span className="font-mono text-[10px] tracking-[0.25em] px-3 py-2 border border-[var(--bone)]/10 opacity-50 inline-flex items-center gap-2">
               <Video className="size-3.5" aria-hidden /> 0 VÍDEO
@@ -455,25 +455,59 @@ function ImagensPage() {
                     const nextIndex = attemptIndex + 1;
                     const nextAttempt = attempts[nextIndex];
                     if (nextAttempt) {
-                      setAttemptIndex(nextIndex);
-                      setFrames((n) => n + 1);
-                      setSrc(
-                        buildDirectPollinationsUrl(
-                          nextAttempt.modelId,
-                          system.trim(),
-                          prompt.trim(),
-                          nextAttempt.size,
-                        ),
+                      const delay = QUEUE_RETRY_DELAYS_MS[0];
+                      setSrc(null);
+                      setErrMsg(
+                        `Fila free ocupada. Próxima tentativa serial em ${(delay / 1000).toFixed(0)}s: ${chain_label(nextAttempt.modelId)} · ${nextAttempt.size}.`,
                       );
+                      stopRetry();
+                      retryRef.current = setTimeout(() => {
+                        setAttemptIndex(nextIndex);
+                        setFrames((n) => n + 1);
+                        setErrMsg(null);
+                        setSrc(
+                          buildDirectPollinationsUrl(
+                            nextAttempt.modelId,
+                            system.trim(),
+                            prompt.trim(),
+                            nextAttempt.size,
+                          ),
+                        );
+                      }, delay);
+                      return;
+                    }
+                    const firstAttempt = attempts[0];
+                    const delay = QUEUE_RETRY_DELAYS_MS[queueRetryIndex];
+                    if (firstAttempt && typeof delay === "number") {
+                      setSrc(null);
+                      setAttemptIndex(0);
+                      setQueueRetryIndex((n) => n + 1);
+                      setErrMsg(
+                        `Pollinations retornou fila cheia. Retry automático ${queueRetryIndex + 1}/${QUEUE_RETRY_DELAYS_MS.length} em ${(delay / 1000).toFixed(0)}s. Não clique de novo: isso reinicia a fila.`,
+                      );
+                      stopRetry();
+                      retryRef.current = setTimeout(() => {
+                        setFrames((n) => n + 1);
+                        setErrMsg(null);
+                        setSrc(
+                          buildDirectPollinationsUrl(
+                            firstAttempt.modelId,
+                            system.trim(),
+                            prompt.trim(),
+                            firstAttempt.size,
+                          ),
+                        );
+                      }, delay);
                       return;
                     }
                     setSrc(null);
                     setIsFinal(false);
                     setStatus("error");
                     stopTick();
+                    stopRetry();
                     setElapsed((performance.now() - startRef.current) / 1000);
                     setErrMsg(
-                      "Pollinations free recusou todos os fallbacks no navegador. Isso é fila/limite temporário do provedor externo, não saldo Lovable. Aguarde 30–60s e gere novamente.",
+                      "Pollinations free recusou todos os fallbacks após retry serial com backoff. Isso é limite do provedor externo para o IP/sessão; não é saldo Lovable.",
                     );
                   }}
                 />
@@ -611,8 +645,8 @@ function ImagensPage() {
         {/* RODAPÉ */}
         <footer className="mt-14 pt-6 border-t border-[var(--bone)]/10 font-mono text-[10px] tracking-[0.2em] opacity-50 space-y-1">
           <p>// SERVER ROUTE /api/generate-image · PROVIDER: pollinations.ai (FREE)</p>
-          <p>// Flux family · sem chave, sem crédito, sem rate limit relevante</p>
-          <p>// Fallback chain: modelo → flux → turbo. Sem partials (provider não expõe).</p>
+          <p>// Sana / Flux / Turbo · sem chave e sem crédito, mas com fila pública por IP</p>
+          <p>// Fallback chain serial + backoff: modelo → sana → flux → turbo.</p>
         </footer>
       </div>
     </main>
