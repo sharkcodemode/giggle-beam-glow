@@ -436,11 +436,20 @@ function ImagensPage() {
                   onChange={(e) => setModelId(e.target.value as ModelId)}
                   className="w-full bg-[var(--obsidian)] font-mono text-[11px] outline-none"
                 >
-                  {IMAGE_MODELS.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label} · {m.tag}
-                    </option>
-                  ))}
+                  <optgroup label="◇ GOOGLE AI STUDIO · SUA KEY · SEM CUSTO LOVABLE">
+                    {IMAGE_MODELS.filter((m) => m.provider === "google-ai-studio").map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label} · {m.tag}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="◇ LOVABLE GATEWAY · CONSOME CRÉDITO">
+                    {IMAGE_MODELS.filter((m) => m.provider !== "google-ai-studio").map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label} · {m.tag}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </label>
 
