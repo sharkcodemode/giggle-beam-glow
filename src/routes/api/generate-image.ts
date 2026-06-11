@@ -12,10 +12,7 @@ import { createFileRoute } from "@tanstack/react-router";
  * Pollinations não tem partials — sem blur progressivo, mas zero custo.
  */
 
-type ImageModel =
-  | "pollinations/sana"
-  | "pollinations/flux"
-  | "pollinations/turbo";
+type ImageModel = "pollinations/sana" | "pollinations/flux" | "pollinations/turbo";
 
 interface Body {
   model: ImageModel;
@@ -76,10 +73,7 @@ function bufferToBase64(buf: ArrayBuffer): string {
   let binary = "";
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode.apply(
-      null,
-      Array.from(bytes.subarray(i, i + CHUNK)),
-    );
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)));
   }
   // btoa exists in Workers/Edge
   return btoa(binary);
