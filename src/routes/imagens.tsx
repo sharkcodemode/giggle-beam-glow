@@ -45,12 +45,7 @@ export const Route = createFileRoute("/imagens")({
 type Tone = "mint" | "cyan" | "violet" | "plasma";
 
 interface ImageModel {
-  id:
-    | "pollinations/flux"
-    | "pollinations/flux-realism"
-    | "pollinations/flux-anime"
-    | "pollinations/flux-3d"
-    | "pollinations/turbo";
+  id: "pollinations/sana" | "pollinations/flux" | "pollinations/turbo";
   label: string;
   provider: "pollinations";
   tag: string;
@@ -61,40 +56,22 @@ interface ImageModel {
 
 const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
   {
+    id: "pollinations/sana",
+    label: "Sana",
+    provider: "pollinations",
+    tag: "FREE · LIVE",
+    tone: "cyan",
+    modality: "T → I",
+    note: "Modelo atualmente anunciado pelo endpoint /models do Pollinations. Melhor primeira tentativa no modo free.",
+  },
+  {
     id: "pollinations/flux",
     label: "Flux",
     provider: "pollinations",
     tag: "FREE · DEFAULT",
     tone: "violet",
     modality: "T → I",
-    note: "Flux base via Pollinations.ai. Gratuito, sem chave, sem crédito. Qualidade geral alta.",
-  },
-  {
-    id: "pollinations/flux-realism",
-    label: "Flux Realism",
-    provider: "pollinations",
-    tag: "FREE · PHOTO",
-    tone: "cyan",
-    modality: "T → I",
-    note: "Tuning fotorrealista. Retratos, produto, editorial. Free.",
-  },
-  {
-    id: "pollinations/flux-anime",
-    label: "Flux Anime",
-    provider: "pollinations",
-    tag: "FREE · ANIME",
-    tone: "plasma",
-    modality: "T → I",
-    note: "Tuning anime/illustration. Personagens, cenas estilizadas. Free.",
-  },
-  {
-    id: "pollinations/flux-3d",
-    label: "Flux 3D",
-    provider: "pollinations",
-    tag: "FREE · 3D",
-    tone: "mint",
-    modality: "T → I",
-    note: "Renders 3D, isometrics, claymation. Free.",
+    note: "Flux base via Pollinations.ai. Mantido como fallback quando o provedor aceitar a fila.",
   },
   {
     id: "pollinations/turbo",
@@ -153,7 +130,7 @@ function directAttempts(modelId: ImageModel["id"], size: string): ReadonlyArray<
   const ordered: ReadonlyArray<ImageModel["id"]> =
     modelId === "pollinations/turbo"
       ? ["pollinations/turbo", "pollinations/flux"]
-      : [modelId, "pollinations/turbo", "pollinations/flux"];
+      : [modelId, "pollinations/sana", "pollinations/flux", "pollinations/turbo"];
   const seen = new Set<ImageModel["id"]>();
   return ordered
     .filter((id) => {
@@ -187,7 +164,7 @@ function buildDirectPollinationsUrl(
 }
 
 function ImagensPage() {
-  const [modelId, setModelId] = useState<ImageModel["id"]>("pollinations/flux");
+  const [modelId, setModelId] = useState<ImageModel["id"]>("pollinations/sana");
   const [system, setSystem] = useState(DEFAULT_SYSTEM);
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState("1024x1024");
