@@ -107,7 +107,7 @@ export const Route = createFileRoute("/api/public/elite-prompt")({
           body: JSON.stringify({
             systemInstruction: { role: "system", parts: [{ text: system }] },
             contents: [{ role: "user", parts: [{ text: userBlock }] }],
-            generationConfig: { temperature: 0.6, maxOutputTokens: 2048 },
+            generationConfig: { temperature: 0.25, topP: 0.9, maxOutputTokens: 2048 },
           }),
         });
 
