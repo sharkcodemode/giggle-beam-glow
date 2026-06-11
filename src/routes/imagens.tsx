@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ImageIcon, Loader2, Play, Square, Video } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export const Route = createFileRoute("/imagens")({
   head: () => ({
@@ -127,6 +127,10 @@ Nunca produza estética AI-padrão (gradientes roxos, sparkles, mascotes vazios)
 
 type Status = "idle" | "streaming" | "done" | "error";
 
+const QUEUE_RETRY_DELAYS_MS: ReadonlyArray<number> = [
+  4_000, 8_000, 14_000, 22_000, 35_000, 55_000,
+];
+
 interface DirectAttempt {
   modelId: ImageModel["id"];
   size: string;
@@ -196,8 +200,10 @@ function ImagensPage() {
   const [elapsed, setElapsed] = useState(0);
   const [attempts, setAttempts] = useState<ReadonlyArray<DirectAttempt>>([]);
   const [attemptIndex, setAttemptIndex] = useState(0);
+  const [queueRetryIndex, setQueueRetryIndex] = useState(0);
   const startRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const model = useMemo(
     () => IMAGE_MODELS.find((m) => m.id === modelId) ?? IMAGE_MODELS[0],
@@ -213,6 +219,21 @@ function ImagensPage() {
     }
   };
 
+  const stopRetry = () => {
+    if (retryRef.current !== null) {
+      clearTimeout(retryRef.current);
+      retryRef.current = null;
+    }
+  };
+
+  useEffect(
+    () => () => {
+      stopTick();
+      stopRetry();
+    },
+    [],
+  );
+
   const generate = useCallback(async () => {
     const nextPrompt = prompt.trim();
     if (!nextPrompt) return;
@@ -223,8 +244,10 @@ function ImagensPage() {
     setStatus("streaming");
     setErrMsg(null);
     setElapsed(0);
+    setQueueRetryIndex(0);
     startRef.current = performance.now();
     stopTick();
+    stopRetry();
     tickRef.current = setInterval(() => {
       setElapsed((performance.now() - startRef.current) / 1000);
     }, 100);
@@ -247,10 +270,12 @@ function ImagensPage() {
 
   const stop = useCallback(() => {
     stopTick();
+    stopRetry();
     setSrc(null);
     setIsFinal(false);
     setAttempts([]);
     setAttemptIndex(0);
+    setQueueRetryIndex(0);
     setStatus("idle");
   }, []);
 
