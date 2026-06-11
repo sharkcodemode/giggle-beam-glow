@@ -50,18 +50,26 @@ type ModelId =
   | "openai/gpt-image-1-mini"
   | "google/gemini-3.1-flash-image-preview"
   | "google/gemini-2.5-flash-image"
-  | "google/gemini-3-pro-image-preview";
+  | "google/gemini-3-pro-image-preview"
+  | "gas/gemini-3.0-flash-image-preview"
+  | "gas/gemini-2.5-flash-image-preview"
+  | "gas/imagen-4.0-generate-001"
+  | "gas/imagen-4.0-fast-generate-001"
+  | "gas/imagen-3.0-generate-002";
+
+type Provider = "openai" | "google" | "google-ai-studio";
 
 interface ImageModel {
   id: ModelId;
   label: string;
-  provider: "openai" | "google";
+  provider: Provider;
   tag: string;
   tone: Tone;
   modality: string;
   note: string;
   supportsSize: boolean;
   supportsQuality: boolean;
+  supportsAspectRatio: boolean;
 }
 
 const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
@@ -72,9 +80,10 @@ const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
     tag: "DEFAULT · STREAM",
     tone: "violet",
     modality: "T → I",
-    note: "State-of-the-art OpenAI. Stream com 2 frames parciais antes do final. Cobra crédito Lovable por imagem.",
+    note: "State-of-the-art OpenAI via Lovable Gateway. Stream com 2 frames parciais. Cobra crédito Lovable.",
     supportsSize: true,
     supportsQuality: true,
+    supportsAspectRatio: false,
   },
   {
     id: "openai/gpt-image-1-mini",
@@ -83,42 +92,106 @@ const IMAGE_MODELS: ReadonlyArray<ImageModel> = [
     tag: "CHEAP · STREAM",
     tone: "mint",
     modality: "T → I",
-    note: "Variante econômica do gpt-image. Bom para iterar prompt antes de fechar no 2.",
+    note: "Variante econômica via Lovable Gateway. Bom para iterar prompt antes de fechar no 2.",
     supportsSize: true,
     supportsQuality: true,
+    supportsAspectRatio: false,
   },
   {
     id: "google/gemini-3.1-flash-image-preview",
-    label: "Nano Banana 2",
+    label: "Nano Banana 2 (Gateway)",
     provider: "google",
-    tag: "FAST · PRO QUALITY",
+    tag: "FAST · GATEWAY",
     tone: "cyan",
     modality: "T,I → T,I",
-    note: "Gemini 3.1 Flash Image — rápido, qualidade próxima do Pro. Streaming nativo de frames.",
+    note: "Gemini 3.1 Flash Image via Lovable Gateway. Cobra crédito Lovable. Streaming nativo.",
     supportsSize: false,
     supportsQuality: false,
+    supportsAspectRatio: false,
   },
   {
     id: "google/gemini-2.5-flash-image",
-    label: "Nano Banana",
+    label: "Nano Banana (Gateway)",
     provider: "google",
     tag: "STREAM",
     tone: "cyan",
     modality: "T,I → T,I",
-    note: "Gemini 2.5 Flash Image — versão estável anterior do Nano Banana.",
+    note: "Gemini 2.5 Flash Image via Lovable Gateway.",
     supportsSize: false,
     supportsQuality: false,
+    supportsAspectRatio: false,
   },
   {
     id: "google/gemini-3-pro-image-preview",
-    label: "Gemini 3 Pro Image",
+    label: "Gemini 3 Pro Image (Gateway)",
     provider: "google",
     tag: "HIGH FIDELITY",
     tone: "plasma",
     modality: "T,I → T,I",
-    note: "Geração editorial high-end do Google. Mais caro, melhor coerência narrativa.",
+    note: "Geração editorial high-end via Lovable Gateway. Mais caro, melhor coerência.",
     supportsSize: false,
     supportsQuality: false,
+    supportsAspectRatio: false,
+  },
+  {
+    id: "gas/gemini-3.0-flash-image-preview",
+    label: "Nano Banana 2 · GAS",
+    provider: "google-ai-studio",
+    tag: "DIRECT · FREE TIER",
+    tone: "mint",
+    modality: "T,I → T,I",
+    note: "Gemini 3.0 Flash Image direto no Google AI Studio com sua chave. Sem custo Lovable; usa quota da sua key.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: false,
+  },
+  {
+    id: "gas/gemini-2.5-flash-image-preview",
+    label: "Nano Banana · GAS",
+    provider: "google-ai-studio",
+    tag: "DIRECT",
+    tone: "cyan",
+    modality: "T,I → T,I",
+    note: "Gemini 2.5 Flash Image preview direto no Google AI Studio.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: false,
+  },
+  {
+    id: "gas/imagen-4.0-generate-001",
+    label: "Imagen 4 · GAS",
+    provider: "google-ai-studio",
+    tag: "PHOTOREAL · DIRECT",
+    tone: "plasma",
+    modality: "T → I",
+    note: "Imagen 4 (text-to-image fotorrealismo) direto na sua key Google AI Studio. Suporta aspect ratio.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: true,
+  },
+  {
+    id: "gas/imagen-4.0-fast-generate-001",
+    label: "Imagen 4 Fast · GAS",
+    provider: "google-ai-studio",
+    tag: "FAST · DIRECT",
+    tone: "mint",
+    modality: "T → I",
+    note: "Imagen 4 Fast — mais barato e rápido, qualidade ligeiramente menor.",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: true,
+  },
+  {
+    id: "gas/imagen-3.0-generate-002",
+    label: "Imagen 3 · GAS",
+    provider: "google-ai-studio",
+    tag: "STABLE · DIRECT",
+    tone: "violet",
+    modality: "T → I",
+    note: "Imagen 3 estável (fallback se Imagen 4 não estiver disponível na sua região).",
+    supportsSize: false,
+    supportsQuality: false,
+    supportsAspectRatio: true,
   },
 ];
 
