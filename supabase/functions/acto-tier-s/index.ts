@@ -637,9 +637,12 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     ? `${message}\n\n${attachedUrlLines.join("\n")}`
     : message;
 
-  // Roteamento via /chat nativo com intent fix_error (única rota gratuita validada).
-  // Payload de erro é sintético; mensagem do usuário vai pura, sem wrapper.
-  console.log("[acto-v2 tier-s] Routing via ACTO bridge");
+  // Roteamento DIRETO via /chat nativo com intent fix_error.
+  // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
+  // O campo `model` é OMITIDO — a própria Lovable escolhe o modelo.
+  console.log("[acto-v2 tier-s] route=direct_fix_error_no_model project_id=", projectId,
+    "has_files=", filesArr.length > 0,
+    "has_selected_elements=", Array.isArray((ctx as any).selectedElements) && (ctx as any).selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
   const payload = {
@@ -649,7 +652,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     selected_elements: (ctx as any).selectedElements ?? [],
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
-    intent: "fix_error", // Retornando para a única intent que realmente pula o scanner e funciona
+    intent: "fix_error",
     contains_error: true,
     error_ids: [typeid("error")],
     error_source: "runtime_error_toast",
@@ -672,7 +675,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
     view: isStr(ctx.view) ? ctx.view : "preview",
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
-    model: (await loadModelChain())[0] ?? DEFAULT_MODEL_CHAIN[0],
+    // model: OMITIDO de propósito — deixar Lovable decidir.
     client_logs: [],
     network_requests: [],
     runtime_errors: [
