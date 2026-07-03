@@ -698,20 +698,23 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     "x-client-git-sha": captured.client_git_sha || "acto-v2",
   }) as Record<string, string>;
 
+  const t0 = Date.now();
   const res = await fetch(url, {
     method: "POST",
     headers: sentHeaders,
     body: JSON.stringify(payload),
   });
   const text = await res.text();
-  console.log("[acto-v2 send] ←", res.status, "body=", text.slice(0, 600));
+  const lovable_chat_ms = Date.now() - t0;
+  console.log("[acto-v2 send] route=direct_fix_error_no_model status=", res.status,
+    "lovable_chat_ms=", lovable_chat_ms, "body=", text.slice(0, 400));
   let parsed: unknown = text;
   try {
     parsed = JSON.parse(text);
   } catch {
     /* keep text */
   }
-  return { status: res.status, body: parsed };
+  return { status: res.status, body: parsed, lovable_chat_ms };
 }
 
 async function actionListProjects(captured: Captured) {
