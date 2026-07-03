@@ -941,42 +941,46 @@ async function handleLegacy(
     deviceId ? "set" : "missing",
   );
 
+  const tTotal0 = Date.now();
   let licenseRaw: unknown = null;
+  let license_ms = 0;
   try {
+    const tLic = Date.now();
     const lic = await checkLicense(license, deviceId);
+    license_ms = Date.now() - tLic;
     licenseRaw = lic.raw;
     if (!lic.valid) {
-      return new Response(JSON.stringify({ ok: false, error: "license_invalid", license: lic.raw }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.warn("[acto-v2 legacy] license_invalid license_ms=", license_ms, "raw=", JSON.stringify(lic.raw).slice(0, 300));
+      return jsonErr(
+        "license_invalid",
+        "Licença inválida. Verifique se está ativa e vinculada a este dispositivo.",
+        200,
+        { license_ms },
+      );
     }
   } catch (e) {
-    console.error("[acto-v2 legacy] license", e instanceof Error ? e.message : String(e));
-    return new Response(JSON.stringify({ ok: false, error: "license_unreachable" }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[acto-v2 legacy] license_unreachable", e instanceof Error ? e.message : String(e));
+    return jsonErr(
+      "license_unreachable",
+      "Não consegui validar sua licença agora. Tente novamente em instantes.",
+      200,
+    );
   }
 
   if (!projectId || !message) {
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: "missing_project_or_message",
-        detail: { hasProjectId: !!projectId, hasMessage: !!message },
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+    return jsonErr(
+      "missing_project_or_message",
+      "Faltam project_id ou mensagem para enviar.",
+      400,
+      { has_project_id: !!projectId, has_message: !!message },
     );
   }
   if (!authToken && !lovableToken) {
-    return new Response(JSON.stringify({ ok: false, error: "missing_tokens" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonErr(
+      "missing_tokens",
+      "Tokens da Lovable não capturados. Abra o painel Lovable uma vez para reautenticar.",
+      400,
+    );
   }
 
   const captured: Captured = {
@@ -1006,18 +1010,52 @@ async function handleLegacy(
     const upstreamStatus =
       typeof (data as { status?: unknown }).status === "number" ? (data as { status: number }).status : 0;
     const upstreamBody = (data as { body?: unknown }).body;
+    const lovable_chat_ms = typeof (data as { lovable_chat_ms?: unknown }).lovable_chat_ms === "number"
+      ? (data as { lovable_chat_ms: number }).lovable_chat_ms : 0;
+    const total_ms = Date.now() - tTotal0;
     const ok = upstreamStatus >= 200 && upstreamStatus < 300;
+
+    console.log(
+      "[acto-v2 legacy] route=direct_fix_error_no_model project_id=", projectId,
+      "status=", upstreamStatus,
+      "license_ms=", license_ms,
+      "lovable_chat_ms=", lovable_chat_ms,
+      "total_ms=", total_ms,
+    );
+
+    if (!ok) {
+      // Log interno mantém body cru para debug; resposta pública fica sanitizada.
+      console.error("[acto-v2 legacy] lovable_error status=", upstreamStatus,
+        "body=", typeof upstreamBody === "string" ? upstreamBody.slice(0, 400) : JSON.stringify(upstreamBody).slice(0, 400));
+      const msg = upstreamStatus === 401 || upstreamStatus === 403
+        ? "Lovable rejeitou o token do projeto. Recarregue o painel Lovable."
+        : upstreamStatus === 429
+        ? "Lovable limitou requisições. Aguarde alguns segundos."
+        : upstreamStatus >= 500
+        ? "Lovable indisponível no momento. Tente novamente."
+        : `Falha ao enviar mensagem (status ${upstreamStatus}).`;
+      return jsonErr("lovable_upstream_error", msg, 200, {
+        upstream_status: upstreamStatus,
+        license_ms,
+        lovable_chat_ms,
+        total_ms,
+      });
+    }
+
     return new Response(
       JSON.stringify({
-        ok,
+        ok: true,
         status: upstreamStatus,
         mode: "legacy",
         action: "send_message",
         version: ACTO_EDGE_VERSION,
-        error: ok ? undefined : upstreamBody,
+        route: "direct_fix_error_no_model",
+        license_ms,
+        lovable_chat_ms,
+        total_ms,
+        // `data` retornado apenas quando ok — extensão precisa de nativeChatMask/etc.
         data,
         nativeChatMask: data && typeof data === "object" ? (data as any).nativeChatMask : undefined,
-        license: licenseRaw,
       }),
       {
         status: 200,
@@ -1025,12 +1063,13 @@ async function handleLegacy(
       },
     );
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "legacy_failed";
-    console.error("[acto-v2 legacy] send", msg);
-    return new Response(JSON.stringify({ ok: false, error: msg }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const raw = e instanceof Error ? e.message : String(e);
+    console.error("[acto-v2 legacy] send_exception", raw);
+    return jsonErr(
+      "send_failed",
+      `Falha ao enviar mensagem: ${raw.slice(0, 160)}`,
+      200,
+    );
   }
 }
 
