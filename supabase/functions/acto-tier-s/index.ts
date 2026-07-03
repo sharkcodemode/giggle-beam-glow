@@ -1464,9 +1464,14 @@ async function handle(req: Request): Promise<Response> {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "action_failed";
-    console.error("[acto-v2] action", pt.action, msg);
-    const out = await encryptEnvelope(envelope.license_id, { ok: false, error: msg });
+    const raw = e instanceof Error ? e.message : "action_failed";
+    console.error("[acto-v2] action_exception", pt.action, raw);
+    const out = await encryptEnvelope(envelope.license_id, {
+      ok: false,
+      error: "action_failed",
+      code: "action_failed",
+      message: `Falha ao executar ação ${pt.action}: ${raw.slice(0, 160)}`,
+    });
     return new Response(JSON.stringify(out), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
