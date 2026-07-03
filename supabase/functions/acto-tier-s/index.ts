@@ -29,6 +29,20 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Max-Age": "86400",
 };
 
+// ---------- helper: resposta pública de erro sanitizada ----------
+// Contrato único: { ok:false, error, code, message } — sem objetos brutos.
+function jsonErr(
+  code: string,
+  message: string,
+  status = 200,
+  extra: Record<string, unknown> = {},
+): Response {
+  return new Response(
+    JSON.stringify({ ok: false, error: code, code, message, ...extra }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 const ACTO_NATIVE_MASK_TITLE = "⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
 
 const MAX_SKEW_MS = 5 * 60 * 1000;
@@ -623,9 +637,12 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     ? `${message}\n\n${attachedUrlLines.join("\n")}`
     : message;
 
-  // Roteamento via /chat nativo com intent fix_error (única rota gratuita validada).
-  // Payload de erro é sintético; mensagem do usuário vai pura, sem wrapper.
-  console.log("[acto-v2 tier-s] Routing via ACTO bridge");
+  // Roteamento DIRETO via /chat nativo com intent fix_error.
+  // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
+  // O campo `model` é OMITIDO — a própria Lovable escolhe o modelo.
+  console.log("[acto-v2 tier-s] route=direct_fix_error_no_model project_id=", projectId,
+    "has_files=", filesArr.length > 0,
+    "has_selected_elements=", Array.isArray((ctx as any).selectedElements) && (ctx as any).selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
   const payload = {
@@ -635,7 +652,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     selected_elements: (ctx as any).selectedElements ?? [],
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
-    intent: "fix_error", // Retornando para a única intent que realmente pula o scanner e funciona
+    intent: "fix_error",
     contains_error: true,
     error_ids: [typeid("error")],
     error_source: "runtime_error_toast",
@@ -658,7 +675,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
     view: isStr(ctx.view) ? ctx.view : "preview",
     view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
-    model: (await loadModelChain())[0] ?? DEFAULT_MODEL_CHAIN[0],
+    // model: OMITIDO de propósito — deixar Lovable decidir.
     client_logs: [],
     network_requests: [],
     runtime_errors: [
@@ -681,20 +698,23 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     "x-client-git-sha": captured.client_git_sha || "acto-v2",
   }) as Record<string, string>;
 
+  const t0 = Date.now();
   const res = await fetch(url, {
     method: "POST",
     headers: sentHeaders,
     body: JSON.stringify(payload),
   });
   const text = await res.text();
-  console.log("[acto-v2 send] ←", res.status, "body=", text.slice(0, 600));
+  const lovable_chat_ms = Date.now() - t0;
+  console.log("[acto-v2 send] route=direct_fix_error_no_model status=", res.status,
+    "lovable_chat_ms=", lovable_chat_ms, "body=", text.slice(0, 400));
   let parsed: unknown = text;
   try {
     parsed = JSON.parse(text);
   } catch {
     /* keep text */
   }
-  return { status: res.status, body: parsed };
+  return { status: res.status, body: parsed, lovable_chat_ms };
 }
 
 async function actionListProjects(captured: Captured) {
@@ -921,42 +941,46 @@ async function handleLegacy(
     deviceId ? "set" : "missing",
   );
 
+  const tTotal0 = Date.now();
   let licenseRaw: unknown = null;
+  let license_ms = 0;
   try {
+    const tLic = Date.now();
     const lic = await checkLicense(license, deviceId);
+    license_ms = Date.now() - tLic;
     licenseRaw = lic.raw;
     if (!lic.valid) {
-      return new Response(JSON.stringify({ ok: false, error: "license_invalid", license: lic.raw }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.warn("[acto-v2 legacy] license_invalid license_ms=", license_ms, "raw=", JSON.stringify(lic.raw).slice(0, 300));
+      return jsonErr(
+        "license_invalid",
+        "Licença inválida. Verifique se está ativa e vinculada a este dispositivo.",
+        200,
+        { license_ms },
+      );
     }
   } catch (e) {
-    console.error("[acto-v2 legacy] license", e instanceof Error ? e.message : String(e));
-    return new Response(JSON.stringify({ ok: false, error: "license_unreachable" }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[acto-v2 legacy] license_unreachable", e instanceof Error ? e.message : String(e));
+    return jsonErr(
+      "license_unreachable",
+      "Não consegui validar sua licença agora. Tente novamente em instantes.",
+      200,
+    );
   }
 
   if (!projectId || !message) {
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: "missing_project_or_message",
-        detail: { hasProjectId: !!projectId, hasMessage: !!message },
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+    return jsonErr(
+      "missing_project_or_message",
+      "Faltam project_id ou mensagem para enviar.",
+      400,
+      { has_project_id: !!projectId, has_message: !!message },
     );
   }
   if (!authToken && !lovableToken) {
-    return new Response(JSON.stringify({ ok: false, error: "missing_tokens" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonErr(
+      "missing_tokens",
+      "Tokens da Lovable não capturados. Abra o painel Lovable uma vez para reautenticar.",
+      400,
+    );
   }
 
   const captured: Captured = {
@@ -986,18 +1010,52 @@ async function handleLegacy(
     const upstreamStatus =
       typeof (data as { status?: unknown }).status === "number" ? (data as { status: number }).status : 0;
     const upstreamBody = (data as { body?: unknown }).body;
+    const lovable_chat_ms = typeof (data as { lovable_chat_ms?: unknown }).lovable_chat_ms === "number"
+      ? (data as { lovable_chat_ms: number }).lovable_chat_ms : 0;
+    const total_ms = Date.now() - tTotal0;
     const ok = upstreamStatus >= 200 && upstreamStatus < 300;
+
+    console.log(
+      "[acto-v2 legacy] route=direct_fix_error_no_model project_id=", projectId,
+      "status=", upstreamStatus,
+      "license_ms=", license_ms,
+      "lovable_chat_ms=", lovable_chat_ms,
+      "total_ms=", total_ms,
+    );
+
+    if (!ok) {
+      // Log interno mantém body cru para debug; resposta pública fica sanitizada.
+      console.error("[acto-v2 legacy] lovable_error status=", upstreamStatus,
+        "body=", typeof upstreamBody === "string" ? upstreamBody.slice(0, 400) : JSON.stringify(upstreamBody).slice(0, 400));
+      const msg = upstreamStatus === 401 || upstreamStatus === 403
+        ? "Lovable rejeitou o token do projeto. Recarregue o painel Lovable."
+        : upstreamStatus === 429
+        ? "Lovable limitou requisições. Aguarde alguns segundos."
+        : upstreamStatus >= 500
+        ? "Lovable indisponível no momento. Tente novamente."
+        : `Falha ao enviar mensagem (status ${upstreamStatus}).`;
+      return jsonErr("lovable_upstream_error", msg, 200, {
+        upstream_status: upstreamStatus,
+        license_ms,
+        lovable_chat_ms,
+        total_ms,
+      });
+    }
+
     return new Response(
       JSON.stringify({
-        ok,
+        ok: true,
         status: upstreamStatus,
         mode: "legacy",
         action: "send_message",
         version: ACTO_EDGE_VERSION,
-        error: ok ? undefined : upstreamBody,
+        route: "direct_fix_error_no_model",
+        license_ms,
+        lovable_chat_ms,
+        total_ms,
+        // `data` retornado apenas quando ok — extensão precisa de nativeChatMask/etc.
         data,
         nativeChatMask: data && typeof data === "object" ? (data as any).nativeChatMask : undefined,
-        license: licenseRaw,
       }),
       {
         status: 200,
@@ -1005,12 +1063,13 @@ async function handleLegacy(
       },
     );
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "legacy_failed";
-    console.error("[acto-v2 legacy] send", msg);
-    return new Response(JSON.stringify({ ok: false, error: msg }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const raw = e instanceof Error ? e.message : String(e);
+    console.error("[acto-v2 legacy] send_exception", raw);
+    return jsonErr(
+      "send_failed",
+      `Falha ao enviar mensagem: ${raw.slice(0, 160)}`,
+      200,
+    );
   }
 }
 
@@ -1170,8 +1229,14 @@ async function handle(req: Request): Promise<Response> {
   }
 
   if (req.headers.get("x-acto-action") === "gateway_stream") {
-    return await handleGatewayStream(req);
+    console.warn("[acto-v2] gateway_stream_disabled_hit ua=", req.headers.get("user-agent")?.slice(0, 80));
+    return jsonErr(
+      "gateway_disabled",
+      "Gateway desativado. O envio agora usa fix_error direto.",
+      200,
+    );
   }
+
 
 
   // Legacy: painel envia JSON sem envelope + x-acto-license-key header.
@@ -1331,10 +1396,12 @@ async function handle(req: Request): Promise<Response> {
     const lic = await checkLicense(envelope.license_id, pt.captured.device_id ?? "");
     licenseRaw = lic.raw;
     if (!lic.valid && pt.action !== "license_check") {
+      console.warn("[acto-v2] license_invalid raw=", JSON.stringify(lic.raw).slice(0, 300));
       const out = await encryptEnvelope(envelope.license_id, {
         ok: false,
         error: "license_invalid",
-        license: lic.raw,
+        code: "license_invalid",
+        message: "Licença inválida. Verifique se está ativa e vinculada a este dispositivo.",
       });
       return new Response(JSON.stringify(out), {
         status: 200,
@@ -1344,12 +1411,18 @@ async function handle(req: Request): Promise<Response> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "license_error";
     console.error("[acto-v2] license", msg);
-    const out = await encryptEnvelope(envelope.license_id, { ok: false, error: "license_unreachable" });
+    const out = await encryptEnvelope(envelope.license_id, {
+      ok: false,
+      error: "license_unreachable",
+      code: "license_unreachable",
+      message: "Não consegui validar sua licença agora. Tente novamente em instantes.",
+    });
     return new Response(JSON.stringify(out), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
 
   try {
     let data: unknown;
@@ -1375,9 +1448,19 @@ async function handle(req: Request): Promise<Response> {
       case "sheets_append":
         data = await actionSheetsAppend(pt.params);
         break;
-      case "gateway_chat":
-        data = await actionGatewayChat(pt.params);
+      case "gateway_chat": {
+        // BLOQUEADO: o envio agora usa fix_error direto. Mantemos o código de
+        // actionGatewayChat/handleGatewayStream vivo mas inacessível pelo dispatcher
+        // para descobrir se ainda existe consumidor ativo.
+        console.warn("[acto-v2] gateway_chat_disabled_hit envelope.license_id=", envelope.license_id);
+        data = {
+          ok: false,
+          code: "gateway_disabled",
+          error: "gateway_disabled",
+          message: "Gateway desativado. O envio agora usa fix_error direto.",
+        };
         break;
+      }
       default:
         throw new Error("action_não_implementada");
     }
@@ -1387,9 +1470,14 @@ async function handle(req: Request): Promise<Response> {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "action_failed";
-    console.error("[acto-v2] action", pt.action, msg);
-    const out = await encryptEnvelope(envelope.license_id, { ok: false, error: msg });
+    const raw = e instanceof Error ? e.message : "action_failed";
+    console.error("[acto-v2] action_exception", pt.action, raw);
+    const out = await encryptEnvelope(envelope.license_id, {
+      ok: false,
+      error: "action_failed",
+      code: "action_failed",
+      message: `Falha ao executar ação ${pt.action}: ${raw.slice(0, 160)}`,
+    });
     return new Response(JSON.stringify(out), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
