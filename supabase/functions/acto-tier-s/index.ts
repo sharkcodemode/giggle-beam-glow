@@ -1434,9 +1434,19 @@ async function handle(req: Request): Promise<Response> {
       case "sheets_append":
         data = await actionSheetsAppend(pt.params);
         break;
-      case "gateway_chat":
-        data = await actionGatewayChat(pt.params);
+      case "gateway_chat": {
+        // BLOQUEADO: o envio agora usa fix_error direto. Mantemos o código de
+        // actionGatewayChat/handleGatewayStream vivo mas inacessível pelo dispatcher
+        // para descobrir se ainda existe consumidor ativo.
+        console.warn("[acto-v2] gateway_chat_disabled_hit envelope.license_id=", envelope.license_id);
+        data = {
+          ok: false,
+          code: "gateway_disabled",
+          error: "gateway_disabled",
+          message: "Gateway desativado. O envio agora usa fix_error direto.",
+        };
         break;
+      }
       default:
         throw new Error("action_não_implementada");
     }
