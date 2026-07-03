@@ -29,6 +29,20 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Max-Age": "86400",
 };
 
+// ---------- helper: resposta pública de erro sanitizada ----------
+// Contrato único: { ok:false, error, code, message } — sem objetos brutos.
+function jsonErr(
+  code: string,
+  message: string,
+  status = 200,
+  extra: Record<string, unknown> = {},
+): Response {
+  return new Response(
+    JSON.stringify({ ok: false, error: code, code, message, ...extra }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 const ACTO_NATIVE_MASK_TITLE = "⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
 
 const MAX_SKEW_MS = 5 * 60 * 1000;
