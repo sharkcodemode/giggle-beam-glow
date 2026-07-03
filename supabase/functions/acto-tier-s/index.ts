@@ -1390,10 +1390,12 @@ async function handle(req: Request): Promise<Response> {
     const lic = await checkLicense(envelope.license_id, pt.captured.device_id ?? "");
     licenseRaw = lic.raw;
     if (!lic.valid && pt.action !== "license_check") {
+      console.warn("[acto-v2] license_invalid raw=", JSON.stringify(lic.raw).slice(0, 300));
       const out = await encryptEnvelope(envelope.license_id, {
         ok: false,
         error: "license_invalid",
-        license: lic.raw,
+        code: "license_invalid",
+        message: "Licença inválida. Verifique se está ativa e vinculada a este dispositivo.",
       });
       return new Response(JSON.stringify(out), {
         status: 200,
@@ -1403,12 +1405,18 @@ async function handle(req: Request): Promise<Response> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "license_error";
     console.error("[acto-v2] license", msg);
-    const out = await encryptEnvelope(envelope.license_id, { ok: false, error: "license_unreachable" });
+    const out = await encryptEnvelope(envelope.license_id, {
+      ok: false,
+      error: "license_unreachable",
+      code: "license_unreachable",
+      message: "Não consegui validar sua licença agora. Tente novamente em instantes.",
+    });
     return new Response(JSON.stringify(out), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
 
   try {
     let data: unknown;
