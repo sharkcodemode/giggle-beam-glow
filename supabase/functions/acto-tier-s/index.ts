@@ -1229,8 +1229,14 @@ async function handle(req: Request): Promise<Response> {
   }
 
   if (req.headers.get("x-acto-action") === "gateway_stream") {
-    return await handleGatewayStream(req);
+    console.warn("[acto-v2] gateway_stream_disabled_hit ua=", req.headers.get("user-agent")?.slice(0, 80));
+    return jsonErr(
+      "gateway_disabled",
+      "Gateway desativado. O envio agora usa fix_error direto.",
+      200,
+    );
   }
+
 
 
   // Legacy: painel envia JSON sem envelope + x-acto-license-key header.
