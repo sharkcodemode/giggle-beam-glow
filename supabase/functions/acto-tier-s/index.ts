@@ -983,11 +983,14 @@ async function handleLegacy(
   const tTotal0 = Date.now();
   let licenseRaw: unknown = null;
   let license_ms = 0;
+  let license_cache: "hit" | "miss" = "miss";
   try {
     const tLic = Date.now();
     const lic = await checkLicense(license, deviceId);
     license_ms = Date.now() - tLic;
+    license_cache = lic.cached ? "hit" : "miss";
     licenseRaw = lic.raw;
+
     if (!lic.valid) {
       console.warn("[acto-v2 legacy] license_invalid license_ms=", license_ms, "raw=", JSON.stringify(lic.raw).slice(0, 300));
       return jsonErr(
