@@ -71,7 +71,7 @@ async function hmacKey(): Promise<CryptoKey> {
   if (!master) throw new Error("ACTO_MASTER_SECRET ausente");
   return crypto.subtle.importKey(
     "raw",
-    decodeMaster(master),
+    decodeMaster(master) as unknown as BufferSource,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],
