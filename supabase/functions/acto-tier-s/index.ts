@@ -1044,34 +1044,8 @@ async function handleLegacy(
   );
 
   const tTotal0 = Date.now();
-  let licenseRaw: unknown = null;
-  let license_ms = 0;
-  let license_cache: CacheLayer = "miss";
-  try {
-    const tLic = Date.now();
-    const lic = await checkLicense(license, deviceId);
-    license_ms = Date.now() - tLic;
-    license_cache = lic.cached;
-    licenseRaw = lic.raw;
 
-    if (!lic.valid) {
-      console.warn("[acto-v2 legacy] license_invalid license_ms=", license_ms, "raw=", JSON.stringify(lic.raw).slice(0, 300));
-      return jsonErr(
-        "license_invalid",
-        "Licença inválida. Verifique se está ativa e vinculada a este dispositivo.",
-        200,
-        { license_ms },
-      );
-    }
-  } catch (e) {
-    console.error("[acto-v2 legacy] license_unreachable", e instanceof Error ? e.message : String(e));
-    return jsonErr(
-      "license_unreachable",
-      "Não consegui validar sua licença agora. Tente novamente em instantes.",
-      200,
-    );
-  }
-
+  // Validações inline (baratas, ajudam o usuário a corrigir input) — antes do 202.
   if (!projectId || !message) {
     return jsonErr(
       "missing_project_or_message",
@@ -1098,87 +1072,117 @@ async function handleLegacy(
     browser_session_id: browserSessionId,
     device_id: deviceId,
   };
-  try {
-    const data = await actionSendMessage(
-      captured,
-      {
-        project_id: projectId,
-        message,
-        context: body.context,
-        file_refs: Array.isArray((body as Record<string, unknown>).file_refs)
-          ? (body as Record<string, unknown>).file_refs
-          : [],
-        files_inline: inlineFiles,
-      },
-      license,
-    );
-    const upstreamStatus =
-      typeof (data as { status?: unknown }).status === "number" ? (data as { status: number }).status : 0;
-    const upstreamBody = (data as { body?: unknown }).body;
-    const lovable_chat_ms = typeof (data as { lovable_chat_ms?: unknown }).lovable_chat_ms === "number"
-      ? (data as { lovable_chat_ms: number }).lovable_chat_ms : 0;
-    const total_ms = Date.now() - tTotal0;
-    const ok = upstreamStatus >= 200 && upstreamStatus < 300;
 
-    console.log(
-      "[acto-v2 legacy] route=direct_fix_error_no_model project_id=", projectId,
-      "status=", upstreamStatus,
-      "license_ms=", license_ms,
-      "license_cache=", license_cache,
-      "lovable_chat_ms=", lovable_chat_ms,
-      "total_ms=", total_ms,
-    );
+  const inlineFilesForBg = inlineFiles;
+  const bodyForBg = body;
 
-
-    if (!ok) {
-      // Log interno mantém body cru para debug; resposta pública fica sanitizada.
-      console.error("[acto-v2 legacy] lovable_error status=", upstreamStatus,
-        "body=", typeof upstreamBody === "string" ? upstreamBody.slice(0, 400) : JSON.stringify(upstreamBody).slice(0, 400));
-      const msg = upstreamStatus === 401 || upstreamStatus === 403
-        ? "Lovable rejeitou o token do projeto. Recarregue o painel Lovable."
-        : upstreamStatus === 429
-        ? "Lovable limitou requisições. Aguarde alguns segundos."
-        : upstreamStatus >= 500
-        ? "Lovable indisponível no momento. Tente novamente."
-        : `Falha ao enviar mensagem (status ${upstreamStatus}).`;
-      return jsonErr("lovable_upstream_error", msg, 200, {
-        upstream_status: upstreamStatus,
-        license_ms,
-        lovable_chat_ms,
-        total_ms,
-      });
+  // ========== BACKGROUND: license check + Lovable Chat ==========
+  // Trade-off consciente: extensão vê "Enviada" em ~50ms. Se licença estiver
+  // inválida ou Lovable falhar, a msg silenciosamente não aparece no chat
+  // nativo — usuário descobre no próximo poll. Debug depende 100% destes logs.
+  const bgTask = (async () => {
+    const tLic = Date.now();
+    let license_ms = 0;
+    let license_cache: CacheLayer = "miss";
+    try {
+      const lic = await checkLicense(license, deviceId);
+      license_ms = Date.now() - tLic;
+      license_cache = lic.cached;
+      if (!lic.valid) {
+        console.warn(
+          "[acto-v2 legacy bg] license_invalid project_id=", projectId,
+          "license_ms=", license_ms,
+          "raw=", JSON.stringify(lic.raw).slice(0, 300),
+        );
+        return;
+      }
+    } catch (e) {
+      console.error(
+        "[acto-v2 legacy bg] license_unreachable project_id=", projectId,
+        "err=", e instanceof Error ? e.message : String(e),
+      );
+      return;
     }
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        status: upstreamStatus,
-        mode: "legacy",
-        action: "send_message",
-        version: ACTO_EDGE_VERSION,
-        route: "direct_fix_error_no_model",
-        license_ms,
-        lovable_chat_ms,
-        total_ms,
-        // `data` retornado apenas quando ok — extensão precisa de nativeChatMask/etc.
-        data,
-        nativeChatMask: data && typeof data === "object" ? (data as any).nativeChatMask : undefined,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
-  } catch (e) {
-    const raw = e instanceof Error ? e.message : String(e);
-    console.error("[acto-v2 legacy] send_exception", raw);
-    return jsonErr(
-      "send_failed",
-      `Falha ao enviar mensagem: ${raw.slice(0, 160)}`,
-      200,
-    );
-  }
+    try {
+      const data = await actionSendMessage(
+        captured,
+        {
+          project_id: projectId,
+          message,
+          context: bodyForBg.context,
+          file_refs: Array.isArray((bodyForBg as Record<string, unknown>).file_refs)
+            ? (bodyForBg as Record<string, unknown>).file_refs
+            : [],
+          files_inline: inlineFilesForBg,
+        },
+        license,
+      );
+      const upstreamStatus =
+        typeof (data as { status?: unknown }).status === "number" ? (data as { status: number }).status : 0;
+      const upstreamBody = (data as { body?: unknown }).body;
+      const lovable_chat_ms = typeof (data as { lovable_chat_ms?: unknown }).lovable_chat_ms === "number"
+        ? (data as { lovable_chat_ms: number }).lovable_chat_ms : 0;
+      const total_ms = Date.now() - tTotal0;
+      const ok = upstreamStatus >= 200 && upstreamStatus < 300;
+
+      console.log(
+        "[acto-v2 legacy bg] route=direct_fix_error_no_model project_id=", projectId,
+        "upstream_status=", upstreamStatus,
+        "ok=", ok,
+        "license_ms=", license_ms,
+        "license_cache=", license_cache,
+        "lovable_chat_ms=", lovable_chat_ms,
+        "total_ms=", total_ms,
+      );
+
+      if (!ok) {
+        console.error(
+          "[acto-v2 legacy bg] lovable_error project_id=", projectId,
+          "status=", upstreamStatus,
+          "body=", typeof upstreamBody === "string"
+            ? upstreamBody.slice(0, 400)
+            : JSON.stringify(upstreamBody).slice(0, 400),
+        );
+      }
+    } catch (e) {
+      console.error(
+        "[acto-v2 legacy bg] send_message_failed project_id=", projectId,
+        "err=", e instanceof Error ? e.message : String(e),
+      );
+    }
+  })();
+
+  // EdgeRuntime.waitUntil mantém o worker vivo até bgTask resolver, sem bloquear a resposta.
+  try {
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(bgTask);
+  } catch (_) { /* noop */ }
+
+  const ack_ms = Date.now() - tTotal0;
+  console.log(
+    "[acto-v2 legacy ack] route=direct_fix_error_no_model project_id=", projectId,
+    "ack_ms=", ack_ms,
+  );
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      status: 202,
+      mode: "legacy_async",
+      action: "send_message",
+      version: ACTO_EDGE_VERSION,
+      route: "direct_fix_error_no_model",
+      ack_ms,
+      queued: true,
+    }),
+    {
+      status: 202,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
 }
+
 
 // Detecta shape "plain" enviado pela extensão (sem envelope, sem header de license).
 function isPlainExtensionPayload(x: unknown): x is { action: string; license: string } {
