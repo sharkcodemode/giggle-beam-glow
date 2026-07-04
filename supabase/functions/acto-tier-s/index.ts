@@ -949,18 +949,13 @@ async function handleGatewayStream(req: Request): Promise<Response> {
   const license = String(req.headers.get("x-acto-license-key") || body.license || body.license_id || "").trim();
   const deviceId = String(body.device_id || body.deviceId || "").trim();
   if (!license || !deviceId) {
-    return new Response(JSON.stringify({ ok: false, error: "license_ou_device_id_ausente" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonErr("missing_fields", "Faltam license ou device_id.", 400);
   }
 
   const lic = await checkLicense(license, deviceId);
   if (!lic.valid) {
-    return new Response(JSON.stringify({ ok: false, error: "license_invalid", license: lic.raw }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.warn("[acto-v2 gateway_stream] license_invalid raw=", JSON.stringify(lic.raw).slice(0, 300));
+    return jsonErr("license_invalid", "Licença inválida ou expirada.", 403);
   }
 
   const messages = Array.isArray(body.messages) ? body.messages : Array.isArray((body.params as Record<string, unknown> | undefined)?.messages) ? (body.params as Record<string, unknown>).messages : [];
