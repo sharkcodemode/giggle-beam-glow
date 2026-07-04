@@ -117,7 +117,7 @@ export async function readSessionTicket(raw: string): Promise<SessionTicketPaylo
   const body = b64urlDecode(raw.slice(0, dot));
   const sig = b64urlDecode(raw.slice(dot + 1));
   const key = await hmacKey();
-  const ok = await crypto.subtle.verify("HMAC", key, sig, body);
+  const ok = await crypto.subtle.verify("HMAC", key, sig as unknown as BufferSource, body as unknown as BufferSource);
   if (!ok) throw new Error("ticket_assinatura_invalida");
   let parsed: unknown;
   try { parsed = JSON.parse(dec.decode(body)); }
