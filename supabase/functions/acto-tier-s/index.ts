@@ -215,27 +215,31 @@ function asPlaintext(x: unknown): Plaintext {
 // ---------- license ----------
 // Contrato Apps Script: { action:"license_check", chave, deviceId }
 // Cache em memória do worker: só resultados válidos, TTL curto.
-// Motivo: Apps Script responde em ~2.5s; cachear 45s corta latência de
-// mensagens subsequentes do mesmo par licença+device para ~0ms.
-// Consequência se errado: janela máx de 45s entre revogar licença no Apps Script
-// e a edge parar de aceitar. Aceitável para o modelo atual.
+// Cache de licença em 2 camadas:
+//   L1 = in-memory por worker (0ms; sobrevive só enquanto instance viver)
+//   L2 = tabela Postgres acto_license_cache (persistente entre cold starts)
+// Motivo: Apps Script responde em ~2.5-12s; edge workers Deno morrem a cada
+// idle ~15s, então L1 sozinho não sobrevive entre requests de tráfego baixo.
+// Consequência se errado: janela máx de 45s entre revogar licença no Apps
+// Script e a edge parar de aceitar. Aceitável para o modelo atual.
 const LICENSE_CACHE_TTL_MS = 45_000;
 const LICENSE_CACHE_MAX = 500;
 const licenseCache = new Map<string, { raw: unknown; expires: number }>();
 
-function licenseCacheGet(key: string): { valid: true; raw: unknown } | null {
+type CacheLayer = "l1" | "l2" | "miss";
+
+function licenseCacheGet(key: string): { raw: unknown } | null {
   const hit = licenseCache.get(key);
   if (!hit) return null;
   if (Date.now() > hit.expires) {
     licenseCache.delete(key);
     return null;
   }
-  return { valid: true, raw: hit.raw };
+  return { raw: hit.raw };
 }
 
 function licenseCacheSet(key: string, raw: unknown): void {
   if (licenseCache.size >= LICENSE_CACHE_MAX) {
-    // evict oldest ~10% quando encher; simples, sem LRU real
     const drop = Math.ceil(LICENSE_CACHE_MAX / 10);
     let i = 0;
     for (const k of licenseCache.keys()) {
@@ -246,15 +250,71 @@ function licenseCacheSet(key: string, raw: unknown): void {
   licenseCache.set(key, { raw, expires: Date.now() + LICENSE_CACHE_TTL_MS });
 }
 
-async function checkLicense(licenseId: string, deviceId: string): Promise<{ valid: boolean; raw: unknown; cached?: boolean }> {
+// --- L2: Postgres via PostgREST (service_role) ---
+// Fetch direto evita importar supabase-js (menor cold-start).
+function pgHeaders(): Record<string, string> | null {
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url = Deno.env.get("SUPABASE_URL");
+  if (!key || !url) return null;
+  return {
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function licenseCacheDbGet(key: string): Promise<{ raw: unknown } | null> {
+  const h = pgHeaders();
+  const base = Deno.env.get("SUPABASE_URL");
+  if (!h || !base) return null;
+  try {
+    const nowIso = new Date().toISOString();
+    const qs = `key=eq.${encodeURIComponent(key)}&expires_at=gt.${encodeURIComponent(nowIso)}&select=raw&limit=1`;
+    const res = await fetch(`${base}/rest/v1/acto_license_cache?${qs}`, { headers: h });
+    if (!res.ok) return null;
+    const rows = await res.json() as Array<{ raw: unknown }>;
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    return { raw: rows[0].raw };
+  } catch {
+    return null;
+  }
+}
+
+async function licenseCacheDbSet(key: string, raw: unknown): Promise<void> {
+  const h = pgHeaders();
+  const base = Deno.env.get("SUPABASE_URL");
+  if (!h || !base) return;
+  try {
+    const expires_at = new Date(Date.now() + LICENSE_CACHE_TTL_MS).toISOString();
+    await fetch(`${base}/rest/v1/acto_license_cache?on_conflict=key`, {
+      method: "POST",
+      headers: { ...h, Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ key, raw, expires_at }),
+    });
+  } catch {
+    /* cache write falha não deve derrubar request */
+  }
+}
+
+async function checkLicense(licenseId: string, deviceId: string): Promise<{ valid: boolean; raw: unknown; cached: CacheLayer }> {
   const url = Deno.env.get("ACTO_APPS_SCRIPT_URL");
   if (!url) throw new Error("ACTO_APPS_SCRIPT_URL ausente");
   if (!deviceId) throw new Error("device_id ausente");
 
   const cacheKey = `${licenseId}|${deviceId}`;
-  const cached = licenseCacheGet(cacheKey);
-  if (cached) return { valid: true, raw: cached.raw, cached: true };
 
+  // L1 in-memory
+  const l1 = licenseCacheGet(cacheKey);
+  if (l1) return { valid: true, raw: l1.raw, cached: "l1" };
+
+  // L2 Postgres
+  const l2 = await licenseCacheDbGet(cacheKey);
+  if (l2) {
+    licenseCacheSet(cacheKey, l2.raw); // populate L1
+    return { valid: true, raw: l2.raw, cached: "l2" };
+  }
+
+  // MISS — chama Apps Script
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -268,10 +328,13 @@ async function checkLicense(licenseId: string, deviceId: string): Promise<{ vali
   } catch {
     /* ignore */
   }
-  // Apps Script Acto responde { sucesso: true } em caso válido.
   const valid = !!(raw && typeof raw === "object" && ((raw as any).sucesso === true || (raw as any).valid === true));
-  if (valid) licenseCacheSet(cacheKey, raw);
-  return { valid, raw, cached: false };
+  if (valid) {
+    licenseCacheSet(cacheKey, raw);
+    // fire-and-forget: não bloqueia resposta
+    licenseCacheDbSet(cacheKey, raw);
+  }
+  return { valid, raw, cached: "miss" };
 }
 
 
