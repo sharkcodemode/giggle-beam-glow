@@ -1061,9 +1061,11 @@ async function handleLegacy(
       "[acto-v2 legacy] route=direct_fix_error_no_model project_id=", projectId,
       "status=", upstreamStatus,
       "license_ms=", license_ms,
+      "license_cache=", license_cache,
       "lovable_chat_ms=", lovable_chat_ms,
       "total_ms=", total_ms,
     );
+
 
     if (!ok) {
       // Log interno mantém body cru para debug; resposta pública fica sanitizada.
