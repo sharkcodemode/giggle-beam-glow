@@ -1541,9 +1541,14 @@ async function handle(req: Request): Promise<Response> {
   try {
     let data: unknown;
     switch (pt.action) {
-      case "license_check":
-        data = { license: licenseRaw };
+      case "license_check": {
+        // Não devolver o payload cru do Apps Script — apenas status sanitizado.
+        const lr = licenseRaw && typeof licenseRaw === "object" ? licenseRaw as Record<string, unknown> : {};
+        const validade = typeof lr.validade === "string" ? lr.validade
+          : typeof lr.validUntil === "string" ? lr.validUntil : null;
+        data = { valid: true, status: "active", code: "license_active", valid_until: validade };
         break;
+      }
       case "lovable_proxy":
         data = await actionLovableProxy(pt.captured, pt.params);
         break;
