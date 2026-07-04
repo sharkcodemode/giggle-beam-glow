@@ -1069,8 +1069,20 @@ async function handleLegacy(
   // Se a extensão enviou session_id + license_ticket, valida HMAC + DB e
   // pula o Apps Script no envio. Latência esperada < 300ms.
   const rid = newRequestId();
-  const sessionId = isStr(body.session_id) ? (body.session_id as string) : "";
-  const licenseTicket = isStr(body.license_ticket) ? (body.license_ticket as string) : "";
+  // Aliases aceitos para compat com a extensão (acto_license_*) e nomes legados.
+  const pickStr = (...vals: unknown[]): string => {
+    for (const v of vals) if (isStr(v) && (v as string).length > 0) return v as string;
+    return "";
+  };
+  const sessionId = pickStr(
+    body.session_id,
+    (body as Record<string, unknown>).acto_license_session_id,
+    (body as Record<string, unknown>).license_session_id,
+  );
+  const licenseTicket = pickStr(
+    body.license_ticket,
+    (body as Record<string, unknown>).acto_license_ticket,
+  );
   const hasSession = !!(sessionId && licenseTicket);
   let licenseSource: "session_ticket" | "session_cache" | "apps_script" = "apps_script";
   let sessionCheckMs = 0;
