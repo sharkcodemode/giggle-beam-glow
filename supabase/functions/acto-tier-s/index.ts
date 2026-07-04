@@ -19,6 +19,14 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
+import {
+  readSessionTicket,
+  checkActiveSession,
+  updateSessionHeartbeat,
+  hmacHash,
+  newRequestId,
+  type SessionTicketPayload,
+} from "../_shared/session.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
