@@ -19,6 +19,14 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
+import {
+  readSessionTicket,
+  checkActiveSession,
+  updateSessionHeartbeat,
+  hmacHash,
+  newRequestId,
+  type SessionTicketPayload,
+} from "../_shared/session.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -941,18 +949,13 @@ async function handleGatewayStream(req: Request): Promise<Response> {
   const license = String(req.headers.get("x-acto-license-key") || body.license || body.license_id || "").trim();
   const deviceId = String(body.device_id || body.deviceId || "").trim();
   if (!license || !deviceId) {
-    return new Response(JSON.stringify({ ok: false, error: "license_ou_device_id_ausente" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonErr("missing_fields", "Faltam license ou device_id.", 400);
   }
 
   const lic = await checkLicense(license, deviceId);
   if (!lic.valid) {
-    return new Response(JSON.stringify({ ok: false, error: "license_invalid", license: lic.raw }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.warn("[acto-v2 gateway_stream] license_invalid raw=", JSON.stringify(lic.raw).slice(0, 300));
+    return jsonErr("license_invalid", "Licença inválida ou expirada.", 403);
   }
 
   const messages = Array.isArray(body.messages) ? body.messages : Array.isArray((body.params as Record<string, unknown> | undefined)?.messages) ? (body.params as Record<string, unknown>).messages : [];
@@ -1062,6 +1065,57 @@ async function handleLegacy(
     );
   }
 
+  // ========== FAST-PATH: sessão persistida + license_ticket ==========
+  // Se a extensão enviou session_id + license_ticket, valida HMAC + DB e
+  // pula o Apps Script no envio. Latência esperada < 300ms.
+  const rid = newRequestId();
+  const sessionId = isStr(body.session_id) ? (body.session_id as string) : "";
+  const licenseTicket = isStr(body.license_ticket) ? (body.license_ticket as string) : "";
+  const hasSession = !!(sessionId && licenseTicket);
+  let licenseSource: "session_ticket" | "session_cache" | "apps_script" = "apps_script";
+  let sessionCheckMs = 0;
+
+  if (hasSession) {
+    const tSess = Date.now();
+    let ticket: SessionTicketPayload | null = null;
+    try { ticket = await readSessionTicket(licenseTicket); }
+    catch (e) {
+      console.warn("[acto-v2 legacy]", rid, "ticket_invalid",
+        e instanceof Error ? e.message : String(e));
+      return jsonErr("license_ticket_invalid", "Sessão inválida. Reabra a extensão.", 401);
+    }
+    const sess = await checkActiveSession({
+      licenseKey: license, deviceId, sessionId, ticket,
+    });
+    sessionCheckMs = Date.now() - tSess;
+    if (!sess.ok) {
+      console.warn("[acto-v2 legacy]", rid, "session_check_fail",
+        "code=", sess.code, "session_check_ms=", sessionCheckMs);
+      const httpCode =
+        sess.code === "license_expired" ? 402 :
+        sess.code === "device_conflict" ? 409 :
+        401;
+      return jsonErr(sess.code, sess.message, httpCode);
+    }
+    licenseSource = "session_ticket";
+    // fire-and-forget: atualiza last_seen_at (não bloqueia)
+    try {
+      const nowIso = new Date().toISOString();
+      hmacHash("session", sessionId).then((h) =>
+        updateSessionHeartbeat(h, { last_seen_at: nowIso })
+      ).catch(() => undefined);
+    } catch { /* noop */ }
+    console.log("[acto-v2 legacy]", rid,
+      "route=direct_fix_error_no_model",
+      "license_source=", licenseSource,
+      "license_ms=", sessionCheckMs,
+      "used_gateway=false",
+      "intent=fix_error",
+      "model_omitted=true",
+      "has_files=", inlineFiles.length > 0,
+    );
+  }
+
   const captured: Captured = {
     // api.lovable.dev/projects/{id}/chat exige JWT de projeto (lovable_token).
     // auth_token é JWT de usuário (não funciona neste endpoint). Prioriza lovable_token.
@@ -1076,21 +1130,19 @@ async function handleLegacy(
   const inlineFilesForBg = inlineFiles;
   const bodyForBg = body;
 
-  // ========== BACKGROUND: license check + Lovable Chat ==========
-  // Trade-off consciente: extensão vê "Enviada" em ~50ms. Se licença estiver
-  // inválida ou Lovable falhar, a msg silenciosamente não aparece no chat
-  // nativo — usuário descobre no próximo poll. Debug depende 100% destes logs.
+  // ========== BACKGROUND: license check (fallback) + Lovable Chat ==========
   const bgTask = (async () => {
     const tLic = Date.now();
-    let license_ms = 0;
-    let license_cache: CacheLayer = "miss";
+    let license_ms = sessionCheckMs;
+    let license_cache: CacheLayer | "session" = hasSession ? "session" : "miss";
+    if (!hasSession) {
     try {
       const lic = await checkLicense(license, deviceId);
       license_ms = Date.now() - tLic;
       license_cache = lic.cached;
       if (!lic.valid) {
         console.warn(
-          "[acto-v2 legacy bg] license_invalid project_id=", projectId,
+          "[acto-v2 legacy bg]", rid, "license_invalid project_id=", projectId,
           "license_ms=", license_ms,
           "raw=", JSON.stringify(lic.raw).slice(0, 300),
         );
@@ -1098,10 +1150,11 @@ async function handleLegacy(
       }
     } catch (e) {
       console.error(
-        "[acto-v2 legacy bg] license_unreachable project_id=", projectId,
+        "[acto-v2 legacy bg]", rid, "license_unreachable project_id=", projectId,
         "err=", e instanceof Error ? e.message : String(e),
       );
       return;
+    }
     }
 
     try {
@@ -1161,7 +1214,13 @@ async function handleLegacy(
 
   const ack_ms = Date.now() - tTotal0;
   console.log(
-    "[acto-v2 legacy ack] route=direct_fix_error_no_model project_id=", projectId,
+    "[acto-v2 legacy ack]", rid,
+    "route=direct_fix_error_no_model project_id=", projectId,
+    "license_source=", licenseSource,
+    "used_gateway=false",
+    "intent=fix_error",
+    "model_omitted=true",
+    "has_files=", inlineFiles.length > 0,
     "ack_ms=", ack_ms,
   );
 
@@ -1173,6 +1232,8 @@ async function handleLegacy(
       action: "send_message",
       version: ACTO_EDGE_VERSION,
       route: "direct_fix_error_no_model",
+      license_source: licenseSource,
+      request_id: rid,
       ack_ms,
       queued: true,
     }),
@@ -1538,9 +1599,14 @@ async function handle(req: Request): Promise<Response> {
   try {
     let data: unknown;
     switch (pt.action) {
-      case "license_check":
-        data = { license: licenseRaw };
+      case "license_check": {
+        // Não devolver o payload cru do Apps Script — apenas status sanitizado.
+        const lr = licenseRaw && typeof licenseRaw === "object" ? licenseRaw as Record<string, unknown> : {};
+        const validade = typeof lr.validade === "string" ? lr.validade
+          : typeof lr.validUntil === "string" ? lr.validUntil : null;
+        data = { valid: true, status: "active", code: "license_active", valid_until: validade };
         break;
+      }
       case "lovable_proxy":
         data = await actionLovableProxy(pt.captured, pt.params);
         break;

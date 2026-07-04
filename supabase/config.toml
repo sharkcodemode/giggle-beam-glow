@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.secret-check]
 verify_jwt = false
+
+[functions.create-license-session]
+verify_jwt = false
+
+[functions.license-heartbeat]
+verify_jwt = false

@@ -35,6 +35,51 @@ export type Database = {
         }
         Relationships: []
       }
+      acto_license_sessions: {
+        Row: {
+          created_at: string
+          device_id_hash: string
+          id: string
+          last_apps_script_check_at: string | null
+          last_seen_at: string | null
+          lease_expires_at: string
+          license_key_hash: string
+          revoked_at: string | null
+          session_id_hash: string
+          status: string
+          updated_at: string
+          valid_until: string
+        }
+        Insert: {
+          created_at?: string
+          device_id_hash: string
+          id?: string
+          last_apps_script_check_at?: string | null
+          last_seen_at?: string | null
+          lease_expires_at: string
+          license_key_hash: string
+          revoked_at?: string | null
+          session_id_hash: string
+          status?: string
+          updated_at?: string
+          valid_until: string
+        }
+        Update: {
+          created_at?: string
+          device_id_hash?: string
+          id?: string
+          last_apps_script_check_at?: string | null
+          last_seen_at?: string | null
+          lease_expires_at?: string
+          license_key_hash?: string
+          revoked_at?: string | null
+          session_id_hash?: string
+          status?: string
+          updated_at?: string
+          valid_until?: string
+        }
+        Relationships: []
+      }
       acto_model_config: {
         Row: {
           fallback_models: string[]
