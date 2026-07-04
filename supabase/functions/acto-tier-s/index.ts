@@ -1214,7 +1214,13 @@ async function handleLegacy(
 
   const ack_ms = Date.now() - tTotal0;
   console.log(
-    "[acto-v2 legacy ack] route=direct_fix_error_no_model project_id=", projectId,
+    "[acto-v2 legacy ack]", rid,
+    "route=direct_fix_error_no_model project_id=", projectId,
+    "license_source=", licenseSource,
+    "used_gateway=false",
+    "intent=fix_error",
+    "model_omitted=true",
+    "has_files=", inlineFiles.length > 0,
     "ack_ms=", ack_ms,
   );
 
@@ -1226,6 +1232,8 @@ async function handleLegacy(
       action: "send_message",
       version: ACTO_EDGE_VERSION,
       route: "direct_fix_error_no_model",
+      license_source: licenseSource,
+      request_id: rid,
       ack_ms,
       queued: true,
     }),
