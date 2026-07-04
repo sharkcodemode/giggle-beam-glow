@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      acto_license_cache: {
+        Row: {
+          created_at: string
+          expires_at: string
+          key: string
+          raw: Json
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          key: string
+          raw: Json
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          key?: string
+          raw?: Json
+        }
+        Relationships: []
+      }
       acto_model_config: {
         Row: {
           fallback_models: string[]
