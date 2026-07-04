@@ -1181,18 +1181,8 @@ async function handleLegacy(
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     },
   );
-
-    );
-  } catch (e) {
-    const raw = e instanceof Error ? e.message : String(e);
-    console.error("[acto-v2 legacy] send_exception", raw);
-    return jsonErr(
-      "send_failed",
-      `Falha ao enviar mensagem: ${raw.slice(0, 160)}`,
-      200,
-    );
-  }
 }
+
 
 // Detecta shape "plain" enviado pela extensão (sem envelope, sem header de license).
 function isPlainExtensionPayload(x: unknown): x is { action: string; license: string } {
