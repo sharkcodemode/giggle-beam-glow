@@ -214,10 +214,47 @@ function asPlaintext(x: unknown): Plaintext {
 
 // ---------- license ----------
 // Contrato Apps Script: { action:"license_check", chave, deviceId }
-async function checkLicense(licenseId: string, deviceId: string): Promise<{ valid: boolean; raw: unknown }> {
+// Cache em memória do worker: só resultados válidos, TTL curto.
+// Motivo: Apps Script responde em ~2.5s; cachear 45s corta latência de
+// mensagens subsequentes do mesmo par licença+device para ~0ms.
+// Consequência se errado: janela máx de 45s entre revogar licença no Apps Script
+// e a edge parar de aceitar. Aceitável para o modelo atual.
+const LICENSE_CACHE_TTL_MS = 45_000;
+const LICENSE_CACHE_MAX = 500;
+const licenseCache = new Map<string, { raw: unknown; expires: number }>();
+
+function licenseCacheGet(key: string): { valid: true; raw: unknown } | null {
+  const hit = licenseCache.get(key);
+  if (!hit) return null;
+  if (Date.now() > hit.expires) {
+    licenseCache.delete(key);
+    return null;
+  }
+  return { valid: true, raw: hit.raw };
+}
+
+function licenseCacheSet(key: string, raw: unknown): void {
+  if (licenseCache.size >= LICENSE_CACHE_MAX) {
+    // evict oldest ~10% quando encher; simples, sem LRU real
+    const drop = Math.ceil(LICENSE_CACHE_MAX / 10);
+    let i = 0;
+    for (const k of licenseCache.keys()) {
+      licenseCache.delete(k);
+      if (++i >= drop) break;
+    }
+  }
+  licenseCache.set(key, { raw, expires: Date.now() + LICENSE_CACHE_TTL_MS });
+}
+
+async function checkLicense(licenseId: string, deviceId: string): Promise<{ valid: boolean; raw: unknown; cached?: boolean }> {
   const url = Deno.env.get("ACTO_APPS_SCRIPT_URL");
   if (!url) throw new Error("ACTO_APPS_SCRIPT_URL ausente");
   if (!deviceId) throw new Error("device_id ausente");
+
+  const cacheKey = `${licenseId}|${deviceId}`;
+  const cached = licenseCacheGet(cacheKey);
+  if (cached) return { valid: true, raw: cached.raw, cached: true };
+
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -233,8 +270,10 @@ async function checkLicense(licenseId: string, deviceId: string): Promise<{ vali
   }
   // Apps Script Acto responde { sucesso: true } em caso válido.
   const valid = !!(raw && typeof raw === "object" && ((raw as any).sucesso === true || (raw as any).valid === true));
-  return { valid, raw };
+  if (valid) licenseCacheSet(cacheKey, raw);
+  return { valid, raw, cached: false };
 }
+
 
 // ---------- dispatch ----------
 const LOVABLE_HOSTS = new Set(["lovable.dev", "api.lovable.dev"]);
