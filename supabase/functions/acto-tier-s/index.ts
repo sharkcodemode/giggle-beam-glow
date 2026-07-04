@@ -1046,12 +1046,12 @@ async function handleLegacy(
   const tTotal0 = Date.now();
   let licenseRaw: unknown = null;
   let license_ms = 0;
-  let license_cache: "hit" | "miss" = "miss";
+  let license_cache: CacheLayer = "miss";
   try {
     const tLic = Date.now();
     const lic = await checkLicense(license, deviceId);
     license_ms = Date.now() - tLic;
-    license_cache = lic.cached ? "hit" : "miss";
+    license_cache = lic.cached;
     licenseRaw = lic.raw;
 
     if (!lic.valid) {
