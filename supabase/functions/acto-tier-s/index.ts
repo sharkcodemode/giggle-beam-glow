@@ -771,7 +771,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
         errors: [
           {
             error_type: "runtime",
-            error_message: (message || "").slice(0, 500) || "ACTO",
+            error_message: "ACTO: Sincronizando alterações...",
             error_id: typeid("error")
           }
         ]
