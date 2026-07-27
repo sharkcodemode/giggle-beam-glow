@@ -60,20 +60,6 @@
     button.dataset.actoWatermarkBusy = busy ? "1" : "0";
   }
 
-  async function sendThroughComposer(button) {
-    const textarea = findPromptTextarea();
-    const sendButton = findSendButton();
-    if (!textarea || !sendButton) return false;
-
-    setBusy(button, true);
-    textarea.focus();
-    setNativeTextareaValue(textarea, PROMPT_TEXT);
-    await waitFrame();
-    sendButton.click();
-    setTimeout(() => setBusy(button, false), 900);
-    return true;
-  }
-
   function sendThroughRuntime(button) {
     const runtime = globalThis.chrome?.runtime;
     if (!runtime?.sendMessage) return;
@@ -96,8 +82,7 @@
 
     const button = event.currentTarget;
     if (button?.dataset.actoWatermarkBusy === "1") return;
-    const sent = await sendThroughComposer(button);
-    if (!sent) sendThroughRuntime(button);
+    sendThroughRuntime(button);
   }
 
   function findDockButtons() {

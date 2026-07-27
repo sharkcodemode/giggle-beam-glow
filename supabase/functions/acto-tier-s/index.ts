@@ -743,6 +743,8 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   }
 
   const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
+  const selectedElements = Array.isArray(ctx.selectedElements) ? ctx.selectedElements : [];
+  const errorId = typeid("error");
   const finalMessage = attachedUrlLines.length
     ? `${message}\n\n${attachedUrlLines.join("\n")}`
     : message;
@@ -752,19 +754,19 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   // O campo `model` é OMITIDO — a própria Lovable escolhe o modelo.
   console.log("[acto-v2 tier-s] route=direct_fix_error_no_model project_id=", projectId,
     "has_files=", filesArr.length > 0,
-    "has_selected_elements=", Array.isArray((ctx as any).selectedElements) && (ctx as any).selectedElements.length > 0);
+    "has_selected_elements=", selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
   const payload = {
     id: typeid("umsg"),
     message: finalMessage,
     files: filesArr,
-    selected_elements: (ctx as any).selectedElements ?? [],
+    selected_elements: selectedElements,
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
     intent: "fix_error",
     contains_error: true,
-    error_ids: [typeid("error")],
+    error_ids: [errorId],
     error_source: "runtime_error_toast",
     message_intent_metadata: {
       fix_error_metadata: {
@@ -772,7 +774,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
           {
             error_type: "runtime",
             error_message: "ACTO: Sincronizando alterações...",
-            error_id: typeid("error")
+            error_id: errorId
           }
         ]
       }
@@ -790,7 +792,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     network_requests: [],
     runtime_errors: [
       {
-        id: typeid("error"),
+        id: errorId,
         message: "ACTO Mensagem Recebida",
         stack: "Error: ACTO Mensagem Recebida\n    at Object.execute (acto-internal.js:1:1)"
       }
