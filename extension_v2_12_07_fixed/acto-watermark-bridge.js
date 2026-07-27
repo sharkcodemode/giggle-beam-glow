@@ -24,34 +24,6 @@
     return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
   }
 
-  function findPromptTextarea() {
-    const textareas = Array.from(document.querySelectorAll("textarea")).filter(visible);
-    return (
-      textareas.find((textarea) => String(textarea.placeholder || "").includes("Enviando prompt em modo Think")) ||
-      textareas.find((textarea) => !textarea.closest("form")?.querySelector('input[type="password"]')) ||
-      textareas[0] ||
-      null
-    );
-  }
-
-  function findSendButton() {
-    const buttons = Array.from(document.querySelectorAll('button[aria-label="Enviar mensagem"], button[title="Enviar mensagem"]'));
-    return buttons.find((button) => visible(button) && !button.disabled) || null;
-  }
-
-  function setNativeTextareaValue(textarea, value) {
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
-    if (setter) setter.call(textarea, value);
-    else textarea.value = value;
-
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-    textarea.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-
-  function waitFrame() {
-    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  }
-
   function setBusy(button, busy) {
     if (!button) return;
     button.disabled = !!busy;
@@ -60,23 +32,13 @@
     button.dataset.actoWatermarkBusy = busy ? "1" : "0";
   }
 
-  async function sendThroughComposer(button) {
-    const textarea = findPromptTextarea();
-    const sendButton = findSendButton();
-    if (!textarea || !sendButton) return false;
-
-    setBusy(button, true);
-    textarea.focus();
-    setNativeTextareaValue(textarea, PROMPT_TEXT);
-    await waitFrame();
-    sendButton.click();
-    setTimeout(() => setBusy(button, false), 900);
-    return true;
-  }
-
   function sendThroughRuntime(button) {
     const runtime = globalThis.chrome?.runtime;
-    if (!runtime?.sendMessage) return;
+    if (!runtime?.sendMessage) {
+      setBusy(button, false);
+      console.warn("Runtime ACTO indisponivel para enviar pela Edge.");
+      return;
+    }
 
     setBusy(button, true);
     runtime.sendMessage(
@@ -85,7 +47,13 @@
         action: "send_message",
         params: { message: PROMPT_TEXT },
       },
-      () => setTimeout(() => setBusy(button, false), 600),
+      (response) => {
+        const error = runtime.lastError;
+        if (error || response?.ok === false) {
+          console.warn("Falha ao enviar Remover Marca D'agua pela Edge ACTO.", error || response?.error || response);
+        }
+        setTimeout(() => setBusy(button, false), 600);
+      },
     );
   }
 
@@ -96,8 +64,7 @@
 
     const button = event.currentTarget;
     if (button?.dataset.actoWatermarkBusy === "1") return;
-    const sent = await sendThroughComposer(button);
-    if (!sent) sendThroughRuntime(button);
+    sendThroughRuntime(button);
   }
 
   function findDockButtons() {
