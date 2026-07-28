@@ -61,24 +61,6 @@ const ACTO_EDGE_VERSION = "tier-s-elite-depth-10-2026-05-31";
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const MAX_FILE_NAME_LEN = 255;
 
-// FIX RELAY: IDs únicos, anti-replay e deduplicação por ação pendente.
-const FIX_RELAY_MAX_SKEW_MS = 2 * 60 * 1000;
-const FIX_RELAY_SUCCESS_TTL_MS = 10 * 60 * 1000;
-const FIX_RELAY_REPLAY_TTL_MS = 10 * 60 * 1000;
-const fixRelayInFlight = new Set<string>();
-const fixRelaySucceeded = new Map<string, number>();
-const fixRelaySeenNonces = new Map<string, number>();
-
-function cleanupFixRelayGuards(now = Date.now()): void {
-  for (const [key, expires] of fixRelaySucceeded) if (expires <= now) fixRelaySucceeded.delete(key);
-  for (const [key, expires] of fixRelaySeenNonces) if (expires <= now) fixRelaySeenNonces.delete(key);
-}
-
-async function sha256Hex(value: string): Promise<string> {
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(value)));
-  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 const ALLOWED_ACTIONS = new Set([
   "license_check",
   "lovable_proxy",
@@ -762,67 +744,66 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
 
   const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
   const selectedElements = Array.isArray(ctx.selectedElements) ? ctx.selectedElements : [];
+  const errorId = typeid("error");
   const finalMessage = attachedUrlLines.length
     ? `${message}\n\n${attachedUrlLines.join("\n")}`
     : message;
 
-  // Roteamento DIRETO via /chat nativo com intent visual_edit.
+  // Roteamento DIRETO via /chat nativo com intent fix_error.
   // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
-  // O campo `model` é enviado como null, conforme o payload visual_edit.
-  console.log(
-    "[acto-v2 tier-s] route=direct_visual_edit project_id=",
-    projectId,
+  // O campo `model` é OMITIDO — a própria Lovable escolhe o modelo.
+  console.log("[acto-v2 tier-s] route=direct_fix_error_no_model project_id=", projectId,
     "has_files=", filesArr.length > 0,
-    "has_selected_elements=", selectedElements.length > 0
-  );
+    "has_selected_elements=", selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
   const payload = {
-    ai_message_id: "aimsg_01kykgpt1sfk2axh1qyybem291",
+    id: typeid("umsg"),
+    message: finalMessage,
+    files: filesArr,
+    selected_elements: selectedElements,
     chat_only: false,
-    client_id: "62c3cc0ed8cc85b90614f2db8f1710447160f913b7eed7cff98ebced7b793f6d",
+    optimisticImageUrls: optimisticUrls,
+    intent: "fix_error",
+    contains_error: true,
+    error_ids: [errorId],
+    error_source: "runtime_error_toast",
+    message_intent_metadata: {
+      fix_error_metadata: {
+        errors: [
+          {
+            error_type: "runtime",
+            error_message: "ACTO: Sincronizando alterações...",
+            error_id: errorId
+          }
+        ]
+      }
+    },
+    ai_message_id: typeid("aimsg"),
+    thread_id: isStr(ctx.threadId) ? ctx.threadId : "main",
+    current_page: isStr(ctx.currentPage) ? ctx.currentPage : "/",
+    current_viewport_width: typeof ctx.currentViewportWidth === "number" ? ctx.currentViewportWidth : 1260,
+    current_viewport_height: typeof ctx.currentViewportHeight === "number" ? ctx.currentViewportHeight : 750,
+    current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
+    view: isStr(ctx.view) ? ctx.view : "preview",
+    view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
+    // model: OMITIDO de propósito — deixar Lovable decidir.
     client_logs: [],
-    current_page: "/",
-    current_viewport_dpr: 0.8999999761581421,
-    current_viewport_height: 647,
-    current_viewport_width: 755,
-    files: [],
-    id: "umsg_01kykgpt1jfk2axh15fwta3gkp",
+    network_requests: [],
+    runtime_errors: [
+      {
+        id: errorId,
+        message: "ACTO Mensagem Recebida",
+        stack: "Error: ACTO Mensagem Recebida\n    at Object.execute (acto-internal.js:1:1)"
+      }
+    ],
     integration_metadata: {
       browser: {
-        auth_reason: "key-absent",
+        preview_viewport_width: typeof ctx.currentViewportWidth === "number" ? ctx.currentViewportWidth : 1260,
+        preview_viewport_height: typeof ctx.currentViewportHeight === "number" ? ctx.currentViewportHeight : 750,
         is_logged_out: true,
       },
     },
-    intent: "visual_edit",
-    message: "",
-    message_intent_metadata: {
-      visual_edit_metadata: {
-        text_replacements: [
-          {
-            old_text: [],
-            new_text: [],
-            selected_element_index: 0,
-          },
-        ],
-      },
-    },
-    model: null,
-    network_requests: [],
-    optimisticImageUrls: [],
-    runtime_errors: [],
-    selected_elements: [
-      {
-        filePath: "",
-        elementType: "h1",
-        lineNumber: 0,
-        componentName: "h1",
-      },
-    ],
-    session_replay: '[{"type":3,"data":{"source":0,"texts":[]}}]',
-    thread_id: "main",
-    view: "preview",
-    view_description: "The user is currently viewing the preview. ",
   };
 
   const sentHeaders = buildLovableHeaders(captured, {
@@ -837,12 +818,8 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   });
   const text = await res.text();
   const lovable_chat_ms = Date.now() - t0;
-  console.log(
-    "[acto-v2 send] route=direct_visual_edit status=",
-    res.status,
-    "lovable_chat_ms=", lovable_chat_ms,
-    "body=", text.slice(0, 400)
-  );
+  console.log("[acto-v2 send] route=direct_fix_error_no_model status=", res.status,
+    "lovable_chat_ms=", lovable_chat_ms, "body=", text.slice(0, 400));
   let parsed: unknown = text;
   try {
     parsed = JSON.parse(text);
@@ -1143,11 +1120,11 @@ async function handleLegacy(
       ).catch(() => undefined);
     } catch { /* noop */ }
     console.log("[acto-v2 legacy]", rid,
-      "route=direct_visual_edit",
+      "route=direct_fix_error_no_model",
       "license_source=", licenseSource,
       "license_ms=", sessionCheckMs,
       "used_gateway=false",
-      "intent=visual_edit",
+      "intent=fix_error",
       "model_omitted=true",
       "has_files=", inlineFiles.length > 0,
     );
@@ -1217,7 +1194,7 @@ async function handleLegacy(
       const ok = upstreamStatus >= 200 && upstreamStatus < 300;
 
       console.log(
-        "[acto-v2 legacy bg] route=direct_visual_edit project_id=", projectId,
+        "[acto-v2 legacy bg] route=direct_fix_error_no_model project_id=", projectId,
         "upstream_status=", upstreamStatus,
         "ok=", ok,
         "license_ms=", license_ms,
@@ -1252,10 +1229,10 @@ async function handleLegacy(
   const ack_ms = Date.now() - tTotal0;
   console.log(
     "[acto-v2 legacy ack]", rid,
-    "route=direct_visual_edit project_id=", projectId,
+    "route=direct_fix_error_no_model project_id=", projectId,
     "license_source=", licenseSource,
     "used_gateway=false",
-    "intent=visual_edit",
+    "intent=fix_error",
     "model_omitted=true",
     "has_files=", inlineFiles.length > 0,
     "ack_ms=", ack_ms,
@@ -1268,7 +1245,7 @@ async function handleLegacy(
       mode: "legacy_async",
       action: "send_message",
       version: ACTO_EDGE_VERSION,
-      route: "direct_visual_edit",
+      route: "direct_fix_error_no_model",
       license_source: licenseSource,
       request_id: rid,
       ack_ms,
@@ -1304,7 +1281,10 @@ async function handleFixRelay(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return jsonErr("fix_relay_json_invalido", "Payload do Fix Relay inválido.", 400);
+    return new Response(JSON.stringify({ ok: false, error: "fix_relay_json_invalido" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const lovableToken = String(body.lovableToken || "").trim();
@@ -1316,86 +1296,61 @@ async function handleFixRelay(req: Request): Promise<Response> {
   const prevSessionId = String(body.prevSessionId || "").trim();
   const browserSessionId = String(body.browserSessionId || "").trim();
   const clientGitSha = String(body.clientGitSha || "").trim();
-  const licenseId = String(body.licenseId || body.license_id || "").trim();
-  const deviceId = String(body.deviceId || body.device_id || "").trim();
-  const requestId = String(body.requestId || body.request_id || "").trim();
-  const attemptId = String(body.attemptId || body.attempt_id || "").trim();
-  const nonce = String(body.nonce || "").trim();
-  const sentFingerprint = String(body.actionFingerprint || body.action_fingerprint || "").trim().toLowerCase();
-  const ts = Number(body.ts);
   const viewportW = Number(body.viewportW) || 1280;
   const viewportH = Number(body.viewportH) || 720;
-  const now = Date.now();
 
-  if (!lovableToken) return jsonErr("lovable_token_ausente", "Token Lovable ausente.", 400);
-  if (!projectId) return jsonErr("project_id_ausente", "Projeto Lovable ausente.", 400);
-  if (!toolCallEventId) return jsonErr("tool_call_event_id_ausente", "Ação pendente da Lovable não encontrada.", 400);
-  if (!licenseId || !deviceId) return jsonErr("fix_relay_credentials_missing", "Licença ou dispositivo ausente.", 401);
-  if (!requestId || !attemptId || !nonce || nonce.length < 16) {
-    return jsonErr("fix_relay_identity_invalid", "Identificação da tentativa inválida.", 400);
+  if (!lovableToken) {
+    return new Response(JSON.stringify({ ok: false, error: "lovable_token_ausente" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
-  if (!Number.isFinite(ts) || Math.abs(now - ts) > FIX_RELAY_MAX_SKEW_MS) {
-    return jsonErr("fix_relay_timestamp_invalid", "Tentativa expirada. Tente novamente.", 409);
+  if (!projectId) {
+    return new Response(JSON.stringify({ ok: false, error: "project_id_ausente" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
-
-  // SHA-256 é fingerprint de deduplicação; os IDs originais da Lovable permanecem intactos.
-  const fingerprint = await sha256Hex(`${projectId}|${toolCallEventId}|${decision}`);
-  if (!/^[a-f0-9]{64}$/.test(sentFingerprint) || sentFingerprint !== fingerprint) {
-    return jsonErr("fix_relay_fingerprint_invalid", "Assinatura da ação inválida.", 400);
+  if (!toolCallEventId) {
+    return new Response(JSON.stringify({ ok: false, error: "tool_call_event_id_ausente" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
-  cleanupFixRelayGuards(now);
-  const nonceKey = `${deviceId}|${nonce}`;
-  if (fixRelaySeenNonces.has(nonceKey)) {
-    return jsonErr("fix_relay_replay", "Esta tentativa já foi recebida.", 409, { request_id: requestId });
-  }
-  fixRelaySeenNonces.set(nonceKey, now + FIX_RELAY_REPLAY_TTL_MS);
+  const msgId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  const errId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
 
-  // O Fix Relay antes ignorava a validação existente no restante da Edge.
-  try {
-    const lic = await checkLicense(licenseId, deviceId);
-    if (!lic.valid) return jsonErr("license_invalid", "Licença inválida ou vinculada a outro dispositivo.", 401);
-  } catch (error) {
-    console.error("[acto-v2 fix] license", error instanceof Error ? error.message : String(error));
-    return jsonErr("license_unreachable", "Não foi possível validar a licença agora.", 503);
-  }
-
-  if (fixRelayInFlight.has(fingerprint)) {
-    return jsonErr("fix_relay_in_flight", "Esta ação já está sendo processada.", 409, { request_id: requestId });
-  }
-  if (fixRelaySucceeded.has(fingerprint)) {
-    return jsonErr("fix_relay_already_processed", "Esta ação já foi processada.", 409, { request_id: requestId });
-  }
-  fixRelayInFlight.add(fingerprint);
-
-  // IDs da tentativa são sempre novos. O toolCallEventId não pode ser alterado:
-  // ele identifica a ação pendente no servidor da Lovable.
-  const userMessageId = typeid("umsg");
-  const aiMessageId = typeid("aimsg");
-  const errorId = typeid("error");
-
-  const payload = {
-    message: "",
-    id: userMessageId,
-    mode: "fix_error",
-    fastmode: true,
-    prev_session_id: prevSessionId,
-    tool_call_event_id: toolCallEventId,
-    tool_decision: decision,
-    user_input: {},
-    thread_id: threadId,
-    stream: true,
-    session_replay: "[]",
-    client_logs: [],
-    network_requests: [],
-    runtime_errors: [],
-    integration_metadata: {
-      browser: {
-        preview_viewport_width: viewportW,
-        preview_viewport_height: viewportH,
-      },
-    },
-  };
+  const payload = decision === "rejected"
+    ? {
+        id: msgId,
+        message: "Try to fix",
+        tool_decision: "approved",
+        tool_call_event_id: toolCallEventId,
+        user_input: { fix_error: { decision: "approved", error_id: errId } },
+        mode: "instant",
+        thread_id: threadId,
+        stream: true,
+      }
+    : {
+        message: "",
+        id: msgId,
+        mode: "fix_error",
+        fastmode: true,
+        prev_session_id: prevSessionId,
+        tool_call_event_id: toolCallEventId,
+        tool_decision: decision,
+        user_input: {},
+        thread_id: threadId,
+        stream: true,
+        session_replay: "[]",
+        client_logs: [],
+        network_requests: [],
+        runtime_errors: [],
+        integration_metadata: {
+          browser: {
+            preview_viewport_width: viewportW,
+            preview_viewport_height: viewportH,
+          },
+        },
+      };
 
   const upstreamHeaders: Record<string, string> = {
     "accept": "*/*",
@@ -1414,128 +1369,28 @@ async function handleFixRelay(req: Request): Promise<Response> {
       headers: upstreamHeaders,
       body: JSON.stringify(payload),
     });
-  } catch (error) {
-    fixRelayInFlight.delete(fingerprint);
-    const message = error instanceof Error ? error.message : String(error);
-    return jsonErr("upstream_fetch_fail", `Falha ao chamar a Lovable: ${message.slice(0, 160)}`, 502, {
-      request_id: requestId,
-      attempt_id: attemptId,
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ ok: false, error: `upstream_fetch_fail: ${msg.slice(0, 160)}` }), {
+      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  fixRelayInFlight.delete(fingerprint);
-  if (upstream.ok) fixRelaySucceeded.set(fingerprint, Date.now() + FIX_RELAY_SUCCESS_TTL_MS);
-
-  const responseHeaders = new Headers(corsHeaders);
-  responseHeaders.set("content-type", upstream.headers.get("content-type") || "application/octet-stream");
-  responseHeaders.set("cache-control", "no-cache, no-transform");
-  responseHeaders.set("x-acto-relay", "fix");
-  responseHeaders.set("x-acto-request-id", requestId);
-  responseHeaders.set("x-acto-attempt-id", attemptId);
-  responseHeaders.set("x-acto-user-message-id", userMessageId);
-  responseHeaders.set("x-acto-ai-message-id", aiMessageId);
-  responseHeaders.set("x-acto-error-id", errorId);
-
-  console.log("[acto-v2 fix]", {
-    requestId,
-    attemptId,
-    fingerprint: fingerprint.slice(0, 16),
-    status: upstream.status,
-    decision,
-  });
+  // O endpoint nativo /tools/respond costuma aceitar com 202 e body vazio.
+  // Se algum cluster devolver body, repassamos sem buffer; caso contrário o chat
+  // nativo atualiza via websocket/evento interno da Lovable.
+  const respHeaders = new Headers(corsHeaders);
+  const ct = upstream.headers.get("content-type") || "application/octet-stream";
+  respHeaders.set("content-type", ct);
+  const cc = upstream.headers.get("cache-control");
+  if (cc) respHeaders.set("cache-control", cc);
+  respHeaders.set("x-acto-relay", "fix");
+  respHeaders.set("Cache-Control", "no-cache, no-transform");
 
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: responseHeaders,
+    headers: respHeaders,
   });
-}
-
-
-// Teste seguro do shape visual_edit.
-// Monta e devolve o payload, mas NÃO encaminha a requisição à Lovable.
-async function handleVisualEditDryRun(req: Request): Promise<Response> {
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return jsonErr("dry_run_json_invalid", "JSON de teste inválido.", 400);
-  }
-
-  const projectId = String(body.projectId || body.project_id || "").trim();
-  const dependencyName = String(body.name || body.dependencyName || "react-router-dom").trim();
-  const dependencyVersion = String(body.version || body.dependencyVersion || "6.30.1").trim();
-  const deviceId = String(body.deviceId || body.device_id || "dry-run-device").trim();
-  const message = String(body.message || "Mensagem de teste — não encaminhada à Lovable.").trim().slice(0, 8000);
-
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
-    return jsonErr("dry_run_project_invalid", "Informe um projectId UUID válido.", 400);
-  }
-  if (!dependencyName || !dependencyVersion) {
-    return jsonErr("dry_run_dependency_invalid", "Informe nome e versão da dependência.", 400);
-  }
-
-  const clientId = await sha256Hex(`acto-client|${deviceId}|${projectId}`);
-  const payload = {
-    ai_message_id: "aimsg_01kykgpt1sfk2axh1qyybem291",
-    chat_only: false,
-    client_id: "62c3cc0ed8cc85b90614f2db8f1710447160f913b7eed7cff98ebced7b793f6d",
-    client_logs: [],
-    current_page: "/",
-    current_viewport_dpr: 0.8999999761581421,
-    current_viewport_height: 647,
-    current_viewport_width: 755,
-    files: [],
-    id: "umsg_01kykgpt1jfk2axh15fwta3gkp",
-    integration_metadata: {
-      browser: {
-        auth_reason: "key-absent",
-        is_logged_out: true,
-      },
-    },
-    intent: "visual_edit",
-    message: "",
-    message_intent_metadata: {
-      visual_edit_metadata: {
-        text_replacements: [
-          {
-            old_text: [],
-            new_text: [],
-            selected_element_index: 0,
-          },
-        ],
-      },
-    },
-    model: null,
-    network_requests: [],
-    optimisticImageUrls: [],
-    runtime_errors: [],
-    selected_elements: [
-      {
-        filePath: "",
-        elementType: "h1",
-        lineNumber: 0,
-        componentName: "h1",
-      },
-    ],
-    session_replay: '[{"type":3,"data":{"source":0,"texts":[]}}]',
-    thread_id: "main",
-    view: "preview",
-    view_description: "The user is currently viewing the preview. ",
-  };
-
-  return new Response(
-    JSON.stringify({
-      ok: true,
-      dryRun: true,
-      forwarded: false,
-      target: `https://api.lovable.dev/projects/${projectId}/chat`,
-      payload,
-    }),
-    {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    },
-  );
 }
 
 async function handle(req: Request): Promise<Response> {
@@ -1548,11 +1403,6 @@ async function handle(req: Request): Promise<Response> {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  }
-
-  // Dry-run explícito: só monta o payload visual_edit; nunca encaminha.
-  if (req.headers.get("x-acto-action") === "visual_edit_dry_run") {
-    return await handleVisualEditDryRun(req);
   }
 
   // ─── FIX RELAY (extensão burra) ───────────────────────────────────────
