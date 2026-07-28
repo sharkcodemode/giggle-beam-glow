@@ -61,6 +61,24 @@ const ACTO_EDGE_VERSION = "tier-s-elite-depth-10-2026-05-31";
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const MAX_FILE_NAME_LEN = 255;
 
+// FIX RELAY: IDs únicos, anti-replay e deduplicação por ação pendente.
+const FIX_RELAY_MAX_SKEW_MS = 2 * 60 * 1000;
+const FIX_RELAY_SUCCESS_TTL_MS = 10 * 60 * 1000;
+const FIX_RELAY_REPLAY_TTL_MS = 10 * 60 * 1000;
+const fixRelayInFlight = new Set<string>();
+const fixRelaySucceeded = new Map<string, number>();
+const fixRelaySeenNonces = new Map<string, number>();
+
+function cleanupFixRelayGuards(now = Date.now()): void {
+  for (const [key, expires] of fixRelaySucceeded) if (expires <= now) fixRelaySucceeded.delete(key);
+  for (const [key, expires] of fixRelaySeenNonces) if (expires <= now) fixRelaySeenNonces.delete(key);
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(value)));
+  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 const ALLOWED_ACTIONS = new Set([
   "license_check",
   "lovable_proxy",
@@ -1281,10 +1299,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: "fix_relay_json_invalido" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonErr("fix_relay_json_invalido", "Payload do Fix Relay inválido.", 400);
   }
 
   const lovableToken = String(body.lovableToken || "").trim();
@@ -1296,61 +1311,86 @@ async function handleFixRelay(req: Request): Promise<Response> {
   const prevSessionId = String(body.prevSessionId || "").trim();
   const browserSessionId = String(body.browserSessionId || "").trim();
   const clientGitSha = String(body.clientGitSha || "").trim();
+  const licenseId = String(body.licenseId || body.license_id || "").trim();
+  const deviceId = String(body.deviceId || body.device_id || "").trim();
+  const requestId = String(body.requestId || body.request_id || "").trim();
+  const attemptId = String(body.attemptId || body.attempt_id || "").trim();
+  const nonce = String(body.nonce || "").trim();
+  const sentFingerprint = String(body.actionFingerprint || body.action_fingerprint || "").trim().toLowerCase();
+  const ts = Number(body.ts);
   const viewportW = Number(body.viewportW) || 1280;
   const viewportH = Number(body.viewportH) || 720;
+  const now = Date.now();
 
-  if (!lovableToken) {
-    return new Response(JSON.stringify({ ok: false, error: "lovable_token_ausente" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (!lovableToken) return jsonErr("lovable_token_ausente", "Token Lovable ausente.", 400);
+  if (!projectId) return jsonErr("project_id_ausente", "Projeto Lovable ausente.", 400);
+  if (!toolCallEventId) return jsonErr("tool_call_event_id_ausente", "Ação pendente da Lovable não encontrada.", 400);
+  if (!licenseId || !deviceId) return jsonErr("fix_relay_credentials_missing", "Licença ou dispositivo ausente.", 401);
+  if (!requestId || !attemptId || !nonce || nonce.length < 16) {
+    return jsonErr("fix_relay_identity_invalid", "Identificação da tentativa inválida.", 400);
   }
-  if (!projectId) {
-    return new Response(JSON.stringify({ ok: false, error: "project_id_ausente" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  if (!toolCallEventId) {
-    return new Response(JSON.stringify({ ok: false, error: "tool_call_event_id_ausente" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (!Number.isFinite(ts) || Math.abs(now - ts) > FIX_RELAY_MAX_SKEW_MS) {
+    return jsonErr("fix_relay_timestamp_invalid", "Tentativa expirada. Tente novamente.", 409);
   }
 
-  const msgId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
-  const errId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  // SHA-256 é fingerprint de deduplicação; os IDs originais da Lovable permanecem intactos.
+  const fingerprint = await sha256Hex(`${projectId}|${toolCallEventId}|${decision}`);
+  if (!/^[a-f0-9]{64}$/.test(sentFingerprint) || sentFingerprint !== fingerprint) {
+    return jsonErr("fix_relay_fingerprint_invalid", "Assinatura da ação inválida.", 400);
+  }
 
-  const payload = decision === "rejected"
-    ? {
-        id: msgId,
-        message: "Try to fix",
-        tool_decision: "approved",
-        tool_call_event_id: toolCallEventId,
-        user_input: { fix_error: { decision: "approved", error_id: errId } },
-        mode: "instant",
-        thread_id: threadId,
-        stream: true,
-      }
-    : {
-        message: "",
-        id: msgId,
-        mode: "fix_error",
-        fastmode: true,
-        prev_session_id: prevSessionId,
-        tool_call_event_id: toolCallEventId,
-        tool_decision: decision,
-        user_input: {},
-        thread_id: threadId,
-        stream: true,
-        session_replay: "[]",
-        client_logs: [],
-        network_requests: [],
-        runtime_errors: [],
-        integration_metadata: {
-          browser: {
-            preview_viewport_width: viewportW,
-            preview_viewport_height: viewportH,
-          },
-        },
-      };
+  cleanupFixRelayGuards(now);
+  const nonceKey = `${deviceId}|${nonce}`;
+  if (fixRelaySeenNonces.has(nonceKey)) {
+    return jsonErr("fix_relay_replay", "Esta tentativa já foi recebida.", 409, { request_id: requestId });
+  }
+  fixRelaySeenNonces.set(nonceKey, now + FIX_RELAY_REPLAY_TTL_MS);
+
+  // O Fix Relay antes ignorava a validação existente no restante da Edge.
+  try {
+    const lic = await checkLicense(licenseId, deviceId);
+    if (!lic.valid) return jsonErr("license_invalid", "Licença inválida ou vinculada a outro dispositivo.", 401);
+  } catch (error) {
+    console.error("[acto-v2 fix] license", error instanceof Error ? error.message : String(error));
+    return jsonErr("license_unreachable", "Não foi possível validar a licença agora.", 503);
+  }
+
+  if (fixRelayInFlight.has(fingerprint)) {
+    return jsonErr("fix_relay_in_flight", "Esta ação já está sendo processada.", 409, { request_id: requestId });
+  }
+  if (fixRelaySucceeded.has(fingerprint)) {
+    return jsonErr("fix_relay_already_processed", "Esta ação já foi processada.", 409, { request_id: requestId });
+  }
+  fixRelayInFlight.add(fingerprint);
+
+  // IDs da tentativa são sempre novos. O toolCallEventId não pode ser alterado:
+  // ele identifica a ação pendente no servidor da Lovable.
+  const userMessageId = typeid("umsg");
+  const aiMessageId = typeid("aimsg");
+  const errorId = typeid("error");
+
+  const payload = {
+    message: "",
+    id: userMessageId,
+    mode: "fix_error",
+    fastmode: true,
+    prev_session_id: prevSessionId,
+    tool_call_event_id: toolCallEventId,
+    tool_decision: decision,
+    user_input: {},
+    thread_id: threadId,
+    stream: true,
+    session_replay: "[]",
+    client_logs: [],
+    network_requests: [],
+    runtime_errors: [],
+    integration_metadata: {
+      browser: {
+        preview_viewport_width: viewportW,
+        preview_viewport_height: viewportH,
+      },
+    },
+  };
 
   const upstreamHeaders: Record<string, string> = {
     "accept": "*/*",
@@ -1369,27 +1409,39 @@ async function handleFixRelay(req: Request): Promise<Response> {
       headers: upstreamHeaders,
       body: JSON.stringify(payload),
     });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return new Response(JSON.stringify({ ok: false, error: `upstream_fetch_fail: ${msg.slice(0, 160)}` }), {
-      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  } catch (error) {
+    fixRelayInFlight.delete(fingerprint);
+    const message = error instanceof Error ? error.message : String(error);
+    return jsonErr("upstream_fetch_fail", `Falha ao chamar a Lovable: ${message.slice(0, 160)}`, 502, {
+      request_id: requestId,
+      attempt_id: attemptId,
     });
   }
 
-  // O endpoint nativo /tools/respond costuma aceitar com 202 e body vazio.
-  // Se algum cluster devolver body, repassamos sem buffer; caso contrário o chat
-  // nativo atualiza via websocket/evento interno da Lovable.
-  const respHeaders = new Headers(corsHeaders);
-  const ct = upstream.headers.get("content-type") || "application/octet-stream";
-  respHeaders.set("content-type", ct);
-  const cc = upstream.headers.get("cache-control");
-  if (cc) respHeaders.set("cache-control", cc);
-  respHeaders.set("x-acto-relay", "fix");
-  respHeaders.set("Cache-Control", "no-cache, no-transform");
+  fixRelayInFlight.delete(fingerprint);
+  if (upstream.ok) fixRelaySucceeded.set(fingerprint, Date.now() + FIX_RELAY_SUCCESS_TTL_MS);
+
+  const responseHeaders = new Headers(corsHeaders);
+  responseHeaders.set("content-type", upstream.headers.get("content-type") || "application/octet-stream");
+  responseHeaders.set("cache-control", "no-cache, no-transform");
+  responseHeaders.set("x-acto-relay", "fix");
+  responseHeaders.set("x-acto-request-id", requestId);
+  responseHeaders.set("x-acto-attempt-id", attemptId);
+  responseHeaders.set("x-acto-user-message-id", userMessageId);
+  responseHeaders.set("x-acto-ai-message-id", aiMessageId);
+  responseHeaders.set("x-acto-error-id", errorId);
+
+  console.log("[acto-v2 fix]", {
+    requestId,
+    attemptId,
+    fingerprint: fingerprint.slice(0, 16),
+    status: upstream.status,
+    decision,
+  });
 
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: respHeaders,
+    headers: responseHeaders,
   });
 }
 
