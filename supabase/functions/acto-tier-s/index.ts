@@ -766,11 +766,11 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     ? `${message}\n\n${attachedUrlLines.join("\n")}`
     : message;
 
-  // Roteamento DIRETO via /chat nativo com intent fix_error.
+  // Roteamento DIRETO via /chat nativo com intent visual_edit.
   // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
-  // O campo `model` é OMITIDO — a própria Lovable escolhe o modelo.
+  // O campo `model` é enviado como null, conforme o payload visual_edit.
   console.log(
-    "[acto-v2 tier-s] route=direct_security_fix_dependency project_id=",
+    "[acto-v2 tier-s] route=direct_visual_edit project_id=",
     projectId,
     "has_files=", filesArr.length > 0,
     "has_selected_elements=", selectedElements.length > 0
@@ -778,41 +778,51 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
   const payload = {
-    id: typeid("umsg"),
-    message: finalMessage,
-
-    files: filesArr,
-
-    selected_elements: [],
-
+    ai_message_id: "aimsg_01kykgpt1sfk2axh1qyybem291",
     chat_only: false,
-
-    optimisticImageUrls: optimisticUrls,
-
-    intent: "security_fix_dependency",
-
-    message_intent_metadata: {
-      security_fix_dependency_metadata: {
-        name: "react-router-dom",
-        version: "6.30.1",
-        vulnerabilities: [],
+    client_id: "62c3cc0ed8cc85b90614f2db8f1710447160f913b7eed7cff98ebced7b793f6d",
+    client_logs: [],
+    current_page: "/",
+    current_viewport_dpr: 0.8999999761581421,
+    current_viewport_height: 647,
+    current_viewport_width: 755,
+    files: [],
+    id: "umsg_01kykgpt1jfk2axh15fwta3gkp",
+    integration_metadata: {
+      browser: {
+        auth_reason: "key-absent",
+        is_logged_out: true,
       },
     },
-
-    client_id: await sha256Hex(
-      `acto-client|${captured.device_id ?? ""}|${projectId}`,
-    ),
-
-    thread_id: isStr(ctx.threadId) ? ctx.threadId : "main",
-
-    ai_message_id: typeid("aimsg"),
-
-    view: "more",
-
-    view_description:
-      "The user is viewing the More panel which consolidates Analytics, Cloud, Payments, Security, and SEO & AI search views. ",
-
+    intent: "visual_edit",
+    message: "",
+    message_intent_metadata: {
+      visual_edit_metadata: {
+        text_replacements: [
+          {
+            old_text: [],
+            new_text: [],
+            selected_element_index: 0,
+          },
+        ],
+      },
+    },
     model: null,
+    network_requests: [],
+    optimisticImageUrls: [],
+    runtime_errors: [],
+    selected_elements: [
+      {
+        filePath: "",
+        elementType: "h1",
+        lineNumber: 0,
+        componentName: "h1",
+      },
+    ],
+    session_replay: '[{"type":3,"data":{"source":0,"texts":[]}}]',
+    thread_id: "main",
+    view: "preview",
+    view_description: "The user is currently viewing the preview. ",
   };
 
   const sentHeaders = buildLovableHeaders(captured, {
@@ -828,7 +838,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   const text = await res.text();
   const lovable_chat_ms = Date.now() - t0;
   console.log(
-    "[acto-v2 send] route=direct_security_fix_dependency status=",
+    "[acto-v2 send] route=direct_visual_edit status=",
     res.status,
     "lovable_chat_ms=", lovable_chat_ms,
     "body=", text.slice(0, 400)
@@ -1133,11 +1143,11 @@ async function handleLegacy(
       ).catch(() => undefined);
     } catch { /* noop */ }
     console.log("[acto-v2 legacy]", rid,
-      "route=direct_security_fix_dependency",
+      "route=direct_visual_edit",
       "license_source=", licenseSource,
       "license_ms=", sessionCheckMs,
       "used_gateway=false",
-      "intent=security_fix_dependency",
+      "intent=visual_edit",
       "model_omitted=true",
       "has_files=", inlineFiles.length > 0,
     );
@@ -1207,7 +1217,7 @@ async function handleLegacy(
       const ok = upstreamStatus >= 200 && upstreamStatus < 300;
 
       console.log(
-        "[acto-v2 legacy bg] route=direct_security_fix_dependency project_id=", projectId,
+        "[acto-v2 legacy bg] route=direct_visual_edit project_id=", projectId,
         "upstream_status=", upstreamStatus,
         "ok=", ok,
         "license_ms=", license_ms,
@@ -1242,10 +1252,10 @@ async function handleLegacy(
   const ack_ms = Date.now() - tTotal0;
   console.log(
     "[acto-v2 legacy ack]", rid,
-    "route=direct_security_fix_dependency project_id=", projectId,
+    "route=direct_visual_edit project_id=", projectId,
     "license_source=", licenseSource,
     "used_gateway=false",
-    "intent=security_fix_dependency",
+    "intent=visual_edit",
     "model_omitted=true",
     "has_files=", inlineFiles.length > 0,
     "ack_ms=", ack_ms,
@@ -1258,7 +1268,7 @@ async function handleLegacy(
       mode: "legacy_async",
       action: "send_message",
       version: ACTO_EDGE_VERSION,
-      route: "direct_fix_error_no_model",
+      route: "direct_visual_edit",
       license_source: licenseSource,
       request_id: rid,
       ack_ms,
@@ -1367,7 +1377,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
   const payload = {
     message: "",
     id: userMessageId,
-    mode: "security_fix_dependency",
+    mode: "fix_error",
     fastmode: true,
     prev_session_id: prevSessionId,
     tool_call_event_id: toolCallEventId,
@@ -1441,9 +1451,9 @@ async function handleFixRelay(req: Request): Promise<Response> {
 }
 
 
-// Teste seguro do shape security_fix_dependency.
+// Teste seguro do shape visual_edit.
 // Monta e devolve o payload, mas NÃO encaminha a requisição à Lovable.
-async function handleSecurityFixDependencyDryRun(req: Request): Promise<Response> {
+async function handleVisualEditDryRun(req: Request): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -1466,31 +1476,51 @@ async function handleSecurityFixDependencyDryRun(req: Request): Promise<Response
 
   const clientId = await sha256Hex(`acto-client|${deviceId}|${projectId}`);
   const payload = {
-    id: typeid("umsg"),
-    message,
-    files: [],
-    selected_elements: [],
+    ai_message_id: "aimsg_01kykgpt1sfk2axh1qyybem291",
     chat_only: false,
-    optimisticImageUrls: [],
-    intent: "security_fix_dependency",
-    message_intent_metadata: {
-      security_fix_dependency_metadata: {
-        name: dependencyName,
-        version: dependencyVersion,
-        vulnerabilities: [],
+    client_id: "62c3cc0ed8cc85b90614f2db8f1710447160f913b7eed7cff98ebced7b793f6d",
+    client_logs: [],
+    current_page: "/",
+    current_viewport_dpr: 0.8999999761581421,
+    current_viewport_height: 647,
+    current_viewport_width: 755,
+    files: [],
+    id: "umsg_01kykgpt1jfk2axh15fwta3gkp",
+    integration_metadata: {
+      browser: {
+        auth_reason: "key-absent",
+        is_logged_out: true,
       },
     },
-    client_id: clientId,
-    thread_id: "main",
-    ai_message_id: typeid("aimsg"),
-    view: "more",
-    view_description:
-      "The user is viewing the More panel which consolidates Analytics, Cloud, Payments, Security, and SEO & AI search views. ",
+    intent: "visual_edit",
+    message: "",
+    message_intent_metadata: {
+      visual_edit_metadata: {
+        text_replacements: [
+          {
+            old_text: [],
+            new_text: [],
+            selected_element_index: 0,
+          },
+        ],
+      },
+    },
     model: null,
-    session_replay: "[]",
-    client_logs: [],
     network_requests: [],
+    optimisticImageUrls: [],
     runtime_errors: [],
+    selected_elements: [
+      {
+        filePath: "",
+        elementType: "h1",
+        lineNumber: 0,
+        componentName: "h1",
+      },
+    ],
+    session_replay: '[{"type":3,"data":{"source":0,"texts":[]}}]',
+    thread_id: "main",
+    view: "preview",
+    view_description: "The user is currently viewing the preview. ",
   };
 
   return new Response(
@@ -1520,9 +1550,9 @@ async function handle(req: Request): Promise<Response> {
     });
   }
 
-  // Dry-run explícito: só monta o payload security_fix_dependency; nunca encaminha.
-  if (req.headers.get("x-acto-action") === "security_fix_dependency_dry_run") {
-    return await handleSecurityFixDependencyDryRun(req);
+  // Dry-run explícito: só monta o payload visual_edit; nunca encaminha.
+  if (req.headers.get("x-acto-action") === "visual_edit_dry_run") {
+    return await handleVisualEditDryRun(req);
   }
 
   // ─── FIX RELAY (extensão burra) ───────────────────────────────────────
