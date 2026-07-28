@@ -1445,6 +1445,74 @@ async function handleFixRelay(req: Request): Promise<Response> {
   });
 }
 
+
+// Teste seguro do shape security_fix_dependency.
+// Monta e devolve o payload, mas NÃO encaminha a requisição à Lovable.
+async function handleSecurityFixDependencyDryRun(req: Request): Promise<Response> {
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonErr("dry_run_json_invalid", "JSON de teste inválido.", 400);
+  }
+
+  const projectId = String(body.projectId || body.project_id || "").trim();
+  const dependencyName = String(body.name || body.dependencyName || "react-router-dom").trim();
+  const dependencyVersion = String(body.version || body.dependencyVersion || "6.30.1").trim();
+  const deviceId = String(body.deviceId || body.device_id || "dry-run-device").trim();
+  const message = String(body.message || "Mensagem de teste — não encaminhada à Lovable.").trim().slice(0, 8000);
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+    return jsonErr("dry_run_project_invalid", "Informe um projectId UUID válido.", 400);
+  }
+  if (!dependencyName || !dependencyVersion) {
+    return jsonErr("dry_run_dependency_invalid", "Informe nome e versão da dependência.", 400);
+  }
+
+  const clientId = await sha256Hex(`acto-client|${deviceId}|${projectId}`);
+  const payload = {
+    id: typeid("umsg"),
+    message,
+    files: [],
+    selected_elements: [],
+    chat_only: false,
+    optimisticImageUrls: [],
+    intent: "security_fix_dependency",
+    message_intent_metadata: {
+      security_fix_dependency_metadata: {
+        name: dependencyName,
+        version: dependencyVersion,
+        vulnerabilities: [],
+      },
+    },
+    client_id: clientId,
+    thread_id: "main",
+    ai_message_id: typeid("aimsg"),
+    view: "more",
+    view_description:
+      "The user is viewing the More panel which consolidates Analytics, Cloud, Payments, Security, and SEO & AI search views. ",
+    model: null,
+    session_replay: "[]",
+    client_logs: [],
+    network_requests: [],
+    runtime_errors: [],
+  };
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      dryRun: true,
+      forwarded: false,
+      target: `https://api.lovable.dev/projects/${projectId}/chat`,
+      payload,
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
+}
+
 async function handle(req: Request): Promise<Response> {
 
   console.log(`[acto-v2] ${req.method} ${req.url} - ${req.headers.get("content-type")}`);
@@ -1455,6 +1523,11 @@ async function handle(req: Request): Promise<Response> {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  // Dry-run explícito: só monta o payload security_fix_dependency; nunca encaminha.
+  if (req.headers.get("x-acto-action") === "security_fix_dependency_dry_run") {
+    return await handleSecurityFixDependencyDryRun(req);
   }
 
   // ─── FIX RELAY (extensão burra) ───────────────────────────────────────
