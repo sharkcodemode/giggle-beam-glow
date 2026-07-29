@@ -95,14 +95,15 @@
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
 
-  /* OBSIDIAN AURORA palette */
-  --obsidian: oklch(0.12 0.012 260);
-  --obsidian-2: oklch(0.17 0.018 265);
-  --aurora-mint: oklch(0.86 0.21 158);
-  --aurora-cyan: oklch(0.84 0.16 210);
-  --aurora-violet: oklch(0.68 0.24 295);
-  --aurora-plasma: oklch(0.72 0.28 335);
-  --bone: oklch(0.96 0.01 90);
+  /* BRUTALIST POP palette — white base, black ink, orange + yellow accents.
+     Token names preserved for backwards compat with existing components. */
+  --obsidian: oklch(1 0 0);            /* primary surface — white */
+  --obsidian-2: oklch(0.97 0 0);        /* elevated surface — off-white */
+  --aurora-mint: oklch(0.7 0.22 40);    /* #ff5722 pop orange */
+  --aurora-cyan: oklch(0.92 0.19 100);  /* #ffeb3b pop yellow */
+  --aurora-violet: oklch(0.13 0 0);     /* ink black as accent stop */
+  --aurora-plasma: oklch(0.7 0.22 40);  /* orange (loop) */
+  --bone: oklch(0.13 0 0);              /* ink — near-black text on white */
 }
 
 .dark {
