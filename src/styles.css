@@ -55,8 +55,8 @@
   --color-aurora-plasma: var(--aurora-plasma);
   --color-bone: var(--bone);
 
-  --font-display: "Instrument Serif", "Times New Roman", serif;
-  --font-grotesk: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-grotesk: "Work Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -95,14 +95,15 @@
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
 
-  /* OBSIDIAN AURORA palette */
-  --obsidian: oklch(0.12 0.012 260);
-  --obsidian-2: oklch(0.17 0.018 265);
-  --aurora-mint: oklch(0.86 0.21 158);
-  --aurora-cyan: oklch(0.84 0.16 210);
-  --aurora-violet: oklch(0.68 0.24 295);
-  --aurora-plasma: oklch(0.72 0.28 335);
-  --bone: oklch(0.96 0.01 90);
+  /* BRUTALIST POP palette — dark canvas + neon orange/yellow accents.
+     Token names preserved for backwards compatibility. */
+  --obsidian: oklch(0.08 0 0);          /* near-black surface */
+  --obsidian-2: oklch(0.14 0 0);        /* elevated slate */
+  --aurora-mint: oklch(0.72 0.22 40);   /* #ff5722 pop orange */
+  --aurora-cyan: oklch(0.92 0.19 100);  /* #ffeb3b pop yellow */
+  --aurora-violet: oklch(0.72 0.22 40); /* orange (loop) */
+  --aurora-plasma: oklch(0.92 0.19 100);/* yellow (loop) */
+  --bone: oklch(0.98 0 0);              /* bone white */
 }
 
 .dark {
@@ -183,7 +184,7 @@
   }
 
   .text-outline {
-    -webkit-text-stroke: 1px color-mix(in oklab, var(--bone) 35%, transparent);
+    -webkit-text-stroke: 2px var(--bone);
     color: transparent;
   }
 

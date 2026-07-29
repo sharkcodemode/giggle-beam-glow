@@ -131,7 +131,7 @@ function Index() {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--aurora-mint)]" />
             Live — sys.online
           </span>
-          <span className="hidden md:block">Obsidian Aurora · v2.0.0 · Tier S</span>
+          <span className="hidden md:block">ELITE LOVABLE BR · v2.0.0 · TIER S</span>
           <span>RJ · 21°C · ☁</span>
         </div>
       </div>
@@ -147,8 +147,8 @@ function Index() {
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-aurora text-[var(--obsidian)] shadow-[0_8px_30px_-10px_var(--aurora-cyan)]">
               <Terminal className="h-4 w-4" strokeWidth={2.5} />
             </span>
-            <span className="font-grotesk text-[15px] font-semibold tracking-tight">
-              procore<span className="text-aurora">/</span>obsidian
+            <span className="font-mono text-[13px] font-bold uppercase tracking-[0.2em]">
+              ELITE<span className="text-aurora">/</span>LOVABLE.BR
             </span>
           </Link>
           <nav className="hidden items-center gap-9 font-grotesk text-[13px] text-white/55 md:flex">
@@ -176,16 +176,19 @@ function Index() {
                 <span className="text-aurora">Index.001</span>
               </div>
 
-              <h1 className="font-display text-[clamp(64px,11vw,184px)] font-normal leading-[0.86] tracking-[-0.04em]">
-                <span className="block">Elite</span>
-                <span className="block italic text-aurora">lovable.</span>
+              <h1 className="font-display text-[clamp(56px,10.5vw,168px)] font-extrabold uppercase leading-[0.88] tracking-[-0.045em]">
+                <span className="block">ELITE</span>
+                <span className="relative inline-block">
+                  <span aria-hidden className="absolute inset-x-[-6px] inset-y-[8%] -z-0 skew-x-[-6deg] bg-[var(--aurora-cyan)]" />
+                  <span className="relative z-10 block italic text-[var(--obsidian)]">lovable.</span>
+                </span>
                 <span className="block text-outline">br</span>
               </h1>
 
-              <p className="mt-10 max-w-[44ch] font-grotesk text-[16px] leading-relaxed text-white/65">
-                Uma câmara digital onde documentos, runtimes, áudio e chaves
-                coexistem em arquitetura editorial. Densidade técnica máxima,
-                interface escultural.
+              <p className="mt-10 max-w-[46ch] font-grotesk text-[16px] font-medium leading-relaxed text-white/70">
+                Runtime editorial para operadores Lovable BR. Documentos, áudio,
+                chaves e edges empacotados em um único console — brutalismo
+                técnico, densidade máxima, zero fricção.
               </p>
 
               <div className="mt-10 flex flex-wrap items-center gap-3">
