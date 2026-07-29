@@ -147,8 +147,8 @@ function Index() {
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-aurora text-[var(--obsidian)] shadow-[0_8px_30px_-10px_var(--aurora-cyan)]">
               <Terminal className="h-4 w-4" strokeWidth={2.5} />
             </span>
-            <span className="font-grotesk text-[15px] font-semibold tracking-tight">
-              procore<span className="text-aurora">/</span>obsidian
+            <span className="font-mono text-[13px] font-bold uppercase tracking-[0.2em]">
+              ELITE<span className="text-aurora">/</span>LOVABLE.BR
             </span>
           </Link>
           <nav className="hidden items-center gap-9 font-grotesk text-[13px] text-white/55 md:flex">
