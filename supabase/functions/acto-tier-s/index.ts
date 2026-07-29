@@ -648,7 +648,20 @@ async function actionLovableProxy(captured: Captured, params: Record<string, unk
   }
   if (!LOVABLE_HOSTS.has(u.hostname)) throw new Error("host não permitido");
 
-  const body = params.body !== undefined ? JSON.stringify(params.body) : undefined;
+  let requestBody = params.body;
+  // Nenhum relay genérico pode reenviar o payload legado para o endpoint de chat.
+  if (method === "POST" && /^\/projects\/[^/]+\/chat$/.test(u.pathname)) {
+    const source = requestBody && typeof requestBody === "object"
+      ? requestBody as Record<string, unknown>
+      : {};
+    requestBody = buildSecurityScanPayload(
+      isStr(source.message) ? source.message : "",
+      Array.isArray(source.files) ? source.files : [],
+      isStr(source.thread_id) ? source.thread_id : "main",
+      isStr(source.ai_message_id) ? source.ai_message_id : typeid("aimsg"),
+    );
+  }
+  const body = requestBody !== undefined ? JSON.stringify(requestBody) : undefined;
   const res = await fetch(u.toString(), {
     method,
     headers: buildLovableHeaders(captured),
@@ -688,6 +701,35 @@ function typeid(prefix: string): string {
     n >>= 5n;
   }
   return `${prefix}_${out.join("")}`;
+}
+
+function buildSecurityScanPayload(
+  message: string,
+  files: unknown[],
+  threadId: string,
+  aiMessageId = typeid("aimsg"),
+) {
+  return {
+    id: typeid("umsg"),
+    message,
+    ...(aiMessageId && { ai_message_id: aiMessageId }),
+    files,
+    selected_elements: [],
+    intent: "security_scan",
+    client_logs: [],
+    current_page: "/",
+    current_viewport_dpr: 1,
+    current_viewport_height: 1080,
+    current_viewport_width: 1280,
+    integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
+    model: null,
+    network_requests: [],
+    runtime_errors: [],
+    session_replay: "[]",
+    thread_id: threadId || "main",
+    view: "preview",
+    view_description: "The user is currently viewing the preview.",
+  };
 }
 
 async function actionSendMessage(captured: Captured, params: Record<string, unknown>, licenseId = "") {
@@ -744,7 +786,6 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
 
   const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
   const selectedElements = Array.isArray(ctx.selectedElements) ? ctx.selectedElements : [];
-  const msgId = typeid("umsg");
   const aiMsgIdToSend = typeid("aimsg");
   const processedFiles = filesArr;
   const session_id = isStr(ctx.threadId) ? ctx.threadId : "";
@@ -758,27 +799,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     "has_selected_elements=", selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
-  const payload = {
-    id: msgId,
-    message: finalMessage,
-    ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
-    files: processedFiles,
-    selected_elements: [],
-    intent: "security_scan",
-    client_logs: [],
-    current_page: "/",
-    current_viewport_dpr: 1,
-    current_viewport_height: 1080,
-    current_viewport_width: 1280,
-    integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
-    model: null,
-    network_requests: [],
-    runtime_errors: [],
-    session_replay: "[]",
-    thread_id: session_id || "main",
-    view: "preview",
-    view_description: "The user is currently viewing the preview.",
-  };
+  const payload = buildSecurityScanPayload(finalMessage, processedFiles, session_id, aiMsgIdToSend);
 
   const sentHeaders = buildLovableHeaders(captured, {
     "x-client-git-sha": captured.client_git_sha || "acto-v2",
@@ -1098,7 +1119,7 @@ async function handleLegacy(
       "license_source=", licenseSource,
       "license_ms=", sessionCheckMs,
       "used_gateway=false",
-      "intent=security_fix_dependency",
+      "intent=security_scan",
       "model_omitted=true",
       "has_files=", inlineFiles.length > 0,
     );
@@ -1206,7 +1227,7 @@ async function handleLegacy(
     "route=direct_security_scan_no_model project_id=", projectId,
     "license_source=", licenseSource,
     "used_gateway=false",
-    "intent=security_fix_dependency",
+    "intent=security_scan",
     "model_omitted=true",
     "has_files=", inlineFiles.length > 0,
     "ack_ms=", ack_ms,
@@ -1289,33 +1310,12 @@ async function handleFixRelay(req: Request): Promise<Response> {
     });
   }
 
-  const msgId = typeid("umsg");
   const aiMsgIdToSend = typeid("aimsg");
   const finalMessage = String(body.message || body.finalMessage || "").trim();
   const processedFiles = Array.isArray(body.files) ? body.files : [];
   const session_id = threadId;
 
-  const payload = {
-    id: msgId,
-    message: finalMessage,
-    ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
-    files: processedFiles,
-    selected_elements: [],
-    intent: "security_scan",
-    client_logs: [],
-    current_page: "/",
-    current_viewport_dpr: 1,
-    current_viewport_height: 1080,
-    current_viewport_width: 1280,
-    integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
-    model: null,
-    network_requests: [],
-    runtime_errors: [],
-    session_replay: "[]",
-    thread_id: session_id || "main",
-    view: "preview",
-    view_description: "The user is currently viewing the preview.",
-  };
+  const payload = buildSecurityScanPayload(finalMessage, processedFiles, session_id, aiMsgIdToSend);
 
   const upstreamHeaders: Record<string, string> = {
     "accept": "*/*",
