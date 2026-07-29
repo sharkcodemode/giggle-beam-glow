@@ -764,7 +764,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     selected_elements: selectedElements,
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
-    intent: "security_scan",
+    intent: "security_fix_dependency",
     mode": "security_scan
     contains_error: true,
     error_ids: [errorId],
@@ -1125,7 +1125,7 @@ async function handleLegacy(
       "license_source=", licenseSource,
       "license_ms=", sessionCheckMs,
       "used_gateway=false",
-      "intent=security_scan",
+      "intent=security_fix_dependency",
       "model_omitted=true",
       "has_files=", inlineFiles.length > 0,
     );
@@ -1233,7 +1233,7 @@ async function handleLegacy(
     "route=direct_security_scan_no_model project_id=", projectId,
     "license_source=", licenseSource,
     "used_gateway=false",
-    "intent=security_scan",
+    "intent=security_fix_dependency",
     "model_omitted=true",
     "has_files=", inlineFiles.length > 0,
     "ack_ms=", ack_ms,
