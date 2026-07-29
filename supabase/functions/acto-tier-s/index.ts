@@ -57,7 +57,7 @@ const MAX_SKEW_MS = 5 * 60 * 1000;
 const UPLOAD_TICKET_TTL_MS = 10 * 60 * 1000; // 10 min — janela entre upload_init e upload_finalize
 const FILE_REF_TTL_MS = 30 * 60 * 1000; // 30 min — janela entre upload_finalize e send_message
 const MAX_FILES_PER_MESSAGE = 10;
-const ACTO_EDGE_VERSION = "tier-s-elite-depth-10-2026-05-31";
+const ACTO_EDGE_VERSION = "security-scan-payload-2026-07-29";
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const MAX_FILE_NAME_LEN = 255;
 
@@ -650,15 +650,16 @@ async function actionLovableProxy(captured: Captured, params: Record<string, unk
 
   let requestBody = params.body;
   // Nenhum relay genérico pode reenviar o payload legado para o endpoint de chat.
-  if (method === "POST" && /^\/projects\/[^/]+\/chat$/.test(u.pathname)) {
+  if (method === "POST" && /^\/projects\/[^/]+\/chat\/?$/.test(u.pathname)) {
     const source = requestBody && typeof requestBody === "object"
       ? requestBody as Record<string, unknown>
       : {};
     requestBody = buildSecurityScanPayload(
+      isStr(source.id) ? source.id : typeid("umsg"),
       isStr(source.message) ? source.message : "",
+      isStr(source.ai_message_id) ? source.ai_message_id : undefined,
       Array.isArray(source.files) ? source.files : [],
       isStr(source.thread_id) ? source.thread_id : "main",
-      isStr(source.ai_message_id) ? source.ai_message_id : undefined,
     );
   }
   const body = requestBody !== undefined ? JSON.stringify(requestBody) : undefined;
@@ -704,16 +705,17 @@ function typeid(prefix: string): string {
 }
 
 function buildSecurityScanPayload(
-  message: string,
-  files: unknown[],
-  threadId: string,
-  aiMessageId?: string,
+  msgId: string,
+  finalMessage: string,
+  aiMsgIdToSend: string | undefined,
+  processedFiles: unknown[],
+  session_id: string,
 ) {
-  return {
-    id: typeid("umsg"),
-    message,
-    ...(isStr(aiMessageId) && { ai_message_id: aiMessageId }),
-    files,
+  const lovablePayload = {
+    id: msgId,
+    message: finalMessage,
+    ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
+    files: processedFiles,
     selected_elements: [],
     intent: "security_scan",
     client_logs: [],
@@ -726,10 +728,12 @@ function buildSecurityScanPayload(
     network_requests: [],
     runtime_errors: [],
     session_replay: "[]",
-    thread_id: threadId || "main",
+    thread_id: session_id || "main",
     view: "preview",
     view_description: "The user is currently viewing the preview.",
   };
+
+  return lovablePayload;
 }
 
 async function actionSendMessage(captured: Captured, params: Record<string, unknown>, licenseId = "") {
@@ -740,8 +744,6 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   if (!captured.auth_token) throw new Error("auth_token ausente");
 
   const filesArr: Array<{ file_id: string; file_name: string; type: "user_upload" }> = [];
-  const optimisticUrls: string[] = [];
-  const attachedUrlLines: string[] = [];
 
   const inlineArr = Array.isArray((params as any).files_inline) ? (params as any).files_inline : [];
   if (inlineArr.length > MAX_FILES_PER_MESSAGE) {
@@ -758,10 +760,6 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
       file_name: fo.file_name,
       type: "user_upload",
     });
-    if (isStr(fo.download_url)) {
-      optimisticUrls.push(fo.download_url);
-      attachedUrlLines.push(`[${fo.file_name}]: ${fo.download_url}`);
-    }
   }
 
   const rawRefs = Array.isArray(params.file_refs) ? params.file_refs : [];
@@ -778,14 +776,11 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
       file_name: fr.ofn,
       type: "user_upload",
     });
-    if (fr.dl) {
-      optimisticUrls.push(fr.dl);
-      attachedUrlLines.push(`[${fr.ofn}]: ${fr.dl}`);
-    }
   }
 
   const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
   const selectedElements = Array.isArray(ctx.selectedElements) ? ctx.selectedElements : [];
+  const msgId = typeid("umsg");
   const aiMsgIdToSend = isStr(params.ai_message_id)
     ? params.ai_message_id
     : isStr(ctx.ai_message_id)
@@ -803,7 +798,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
           : "";
   const finalMessage = message;
 
-  // Roteamento DIRETO via /chat nativo com intent fix_error.
+  // Roteamento direto via /chat com intent security_scan.
   // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
   // O campo `model` é OMITIDO — a própria Lovable escolhe o modelo.
   console.log("[acto-v2 tier-s] route=direct_security_scan_no_model project_id=", projectId,
@@ -811,13 +806,19 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     "has_selected_elements=", selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
-  const payload = buildSecurityScanPayload(finalMessage, processedFiles, session_id, aiMsgIdToSend);
+  const lovablePayload = buildSecurityScanPayload(
+    msgId,
+    finalMessage,
+    aiMsgIdToSend,
+    processedFiles,
+    session_id,
+  );
   console.log(
-    "[acto-v2 payload] route=send_message intent=", payload.intent,
-    "thread_id=", payload.thread_id,
-    "has_ai_message_id=", "ai_message_id" in payload,
-    "file_count=", payload.files.length,
-    "fields=", Object.keys(payload).join(","),
+    "[acto-v2 payload] route=send_message intent=", lovablePayload.intent,
+    "thread_id=", lovablePayload.thread_id,
+    "has_ai_message_id=", "ai_message_id" in lovablePayload,
+    "file_count=", lovablePayload.files.length,
+    "fields=", Object.keys(lovablePayload).join(","),
   );
 
   const sentHeaders = buildLovableHeaders(captured, {
@@ -828,7 +829,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   const res = await fetch(url, {
     method: "POST",
     headers: sentHeaders,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(lovablePayload),
   });
   const text = await res.text();
   const lovable_chat_ms = Date.now() - t0;
@@ -1286,16 +1287,16 @@ function isPlainExtensionPayload(x: unknown): x is { action: string; license: st
 
 // ---------- handler ----------
 // ───────────────────────────────────────────────────────────────────────
-// FIX RELAY — recebe metadados burros da extensão, monta o payload nativo
-// Lovable (fix_error/fastmode/tool_decision/integration_metadata) e faz
+// Relay legado mantido apenas para compatibilidade de leitura.
+// Qualquer payload Lovable montado aqui usa security_scan.
 // passthrough SSE direto. Toda lógica "inteligente" vive aqui no servidor.
 // ───────────────────────────────────────────────────────────────────────
-async function handleFixRelay(req: Request): Promise<Response> {
+async function handleSecurityScanRelay(req: Request): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: "fix_relay_json_invalido" }), {
+    return new Response(JSON.stringify({ ok: false, error: "security_scan_relay_json_invalido" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -1303,15 +1304,9 @@ async function handleFixRelay(req: Request): Promise<Response> {
 
   const lovableToken = String(body.lovableToken || "").trim();
   const projectId = String(body.projectId || "").trim();
-  const toolCallEventId = String(body.toolCallEventId || "").trim();
-  const decisionRaw = String(body.decision || "approved").trim();
-  const decision = decisionRaw === "rejected" ? "rejected" : "approved";
   const threadId = String(body.threadId || "main").trim() || "main";
-  const prevSessionId = String(body.prevSessionId || "").trim();
   const browserSessionId = String(body.browserSessionId || "").trim();
   const clientGitSha = String(body.clientGitSha || "").trim();
-  const viewportW = Number(body.viewportW) || 1280;
-  const viewportH = Number(body.viewportH) || 720;
 
   if (!lovableToken) {
     return new Response(JSON.stringify({ ok: false, error: "lovable_token_ausente" }), {
@@ -1323,24 +1318,25 @@ async function handleFixRelay(req: Request): Promise<Response> {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  if (!toolCallEventId) {
-    return new Response(JSON.stringify({ ok: false, error: "tool_call_event_id_ausente" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
+  const msgId = typeid("umsg");
   const aiMsgIdToSend = isStr(body.ai_message_id) ? body.ai_message_id : undefined;
-  const finalMessage = String(body.message || body.finalMessage || "").trim();
+  const finalMessage = String(body.message || body.finalMessage || body.planContent || "Corrigir erro").trim();
   const processedFiles = Array.isArray(body.files) ? body.files : [];
   const session_id = threadId;
 
-  const payload = buildSecurityScanPayload(finalMessage, processedFiles, session_id, aiMsgIdToSend);
+  const lovablePayload = buildSecurityScanPayload(
+    msgId,
+    finalMessage,
+    aiMsgIdToSend,
+    processedFiles,
+    session_id,
+  );
   console.log(
-    "[acto-v2 payload] route=fix_relay intent=", payload.intent,
-    "thread_id=", payload.thread_id,
-    "has_ai_message_id=", "ai_message_id" in payload,
-    "file_count=", payload.files.length,
-    "fields=", Object.keys(payload).join(","),
+    "[acto-v2 payload] route=security_scan_relay intent=", lovablePayload.intent,
+    "thread_id=", lovablePayload.thread_id,
+    "has_ai_message_id=", "ai_message_id" in lovablePayload,
+    "file_count=", lovablePayload.files.length,
+    "fields=", Object.keys(lovablePayload).join(","),
   );
 
   const upstreamHeaders: Record<string, string> = {
@@ -1358,7 +1354,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
     upstream = await fetch(url, {
       method: "POST",
       headers: upstreamHeaders,
-      body: JSON.stringify(payload),
+      body: JSON.stringify(lovablePayload),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -1367,7 +1363,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
     });
   }
 
-  // O endpoint nativo /tools/respond costuma aceitar com 202 e body vazio.
+  // O endpoint nativo /chat costuma aceitar com 202 e body vazio.
   // Se algum cluster devolver body, repassamos sem buffer; caso contrário o chat
   // nativo atualiza via websocket/evento interno da Lovable.
   const respHeaders = new Headers(corsHeaders);
@@ -1375,7 +1371,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
   respHeaders.set("content-type", ct);
   const cc = upstream.headers.get("cache-control");
   if (cc) respHeaders.set("cache-control", cc);
-  respHeaders.set("x-acto-relay", "fix");
+  respHeaders.set("x-acto-relay", "security_scan");
   respHeaders.set("Cache-Control", "no-cache, no-transform");
 
   return new Response(upstream.body, {
@@ -1397,16 +1393,9 @@ async function handle(req: Request): Promise<Response> {
   }
 
   // ─── FIX RELAY (extensão burra) ───────────────────────────────────────
-  // A extensão NÃO monta mais o payload "mágico" fix_error/fastmode.
-  // Ela só manda { lovableToken, projectId, toolCallEventId, decision, ... }
-  // via header x-acto-action: fix_relay. A edge monta o payload e faz
-  // passthrough SSE direto do Lovable. Stream sem buffer = latência mínima.
+  // Entrada legada é normalizada para o payload security_scan atual.
   if (req.headers.get("x-acto-action") === "fix_relay") {
-    return jsonErr(
-      "legacy_fix_relay_disabled",
-      "O relay de correcao legado foi desativado. Use send_message.",
-      410,
-    );
+    return await handleSecurityScanRelay(req);
   }
 
   if (req.headers.get("x-acto-action") === "gateway_stream") {
@@ -1644,7 +1633,7 @@ async function handle(req: Request): Promise<Response> {
         data = await actionSheetsAppend(pt.params);
         break;
       case "gateway_chat": {
-        // BLOQUEADO: o envio agora usa fix_error direto. Mantemos o código de
+        // BLOQUEADO: o envio agora usa security_scan direto. Mantemos o código de
         // actionGatewayChat/handleGatewayStream vivo mas inacessível pelo dispatcher
         // para descobrir se ainda existe consumidor ativo.
         console.warn("[acto-v2] gateway_chat_disabled_hit envelope.license_id=", envelope.license_id);
