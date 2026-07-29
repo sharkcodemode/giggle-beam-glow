@@ -55,8 +55,8 @@
   --color-aurora-plasma: var(--aurora-plasma);
   --color-bone: var(--bone);
 
-  --font-display: "Instrument Serif", "Times New Roman", serif;
-  --font-grotesk: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-grotesk: "Work Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
