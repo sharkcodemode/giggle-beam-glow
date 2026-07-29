@@ -744,10 +744,11 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
 
   const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
   const selectedElements = Array.isArray(ctx.selectedElements) ? ctx.selectedElements : [];
-  const errorId = typeid("error");
-  const finalMessage = attachedUrlLines.length
-    ? `${message}\n\n${attachedUrlLines.join("\n")}`
-    : message;
+  const msgId = typeid("umsg");
+  const aiMsgIdToSend = typeid("aimsg");
+  const processedFiles = filesArr;
+  const session_id = isStr(ctx.threadId) ? ctx.threadId : "";
+  const finalMessage = message;
 
   // Roteamento DIRETO via /chat nativo com intent fix_error.
   // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
@@ -757,28 +758,26 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     "has_selected_elements=", selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
-  const lovablePayload = {
-      id: msgId,
-      message: finalMessage,
-      ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
-      files: processedFiles,
-      selected_elements: [],
-      intent: 'security_scan',
-      client_logs: [],
-      current_page: '/',
-      current_viewport_dpr: 1,
-      current_viewport_height: 1080,
-      current_viewport_width: 1280,
-      integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
-      model: null,
-      network_requests: [],
-      runtime_errors: [],
-      session_replay: '[]',
-      thread_id: session_id || 'main',
-      view: 'preview',
-      view_description: 'The user is currently viewing the preview.',
-      },
-    },
+  const payload = {
+    id: msgId,
+    message: finalMessage,
+    ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
+    files: processedFiles,
+    selected_elements: [],
+    intent: "security_scan",
+    client_logs: [],
+    current_page: "/",
+    current_viewport_dpr: 1,
+    current_viewport_height: 1080,
+    current_viewport_width: 1280,
+    integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
+    model: null,
+    network_requests: [],
+    runtime_errors: [],
+    session_replay: "[]",
+    thread_id: session_id || "main",
+    view: "preview",
+    view_description: "The user is currently viewing the preview.",
   };
 
   const sentHeaders = buildLovableHeaders(captured, {
@@ -1293,26 +1292,36 @@ async function handleFixRelay(req: Request): Promise<Response> {
   const msgId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
   const errId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
 
-  const lovablePayload = {
-      id: msgId,
-      message: finalMessage,
-      ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
-      files: processedFiles,
-      selected_elements: [],
-      intent: 'security_scan',
-      client_logs: [],
-      current_page: '/',
-      current_viewport_dpr: 1,
-      current_viewport_height: 1080,
-      current_viewport_width: 1280,
-      integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
-      model: null,
-      network_requests: [],
-      runtime_errors: [],
-      session_replay: '[]',
-      thread_id: session_id || 'main',
-      view: 'preview',
-      view_description: 'The user is currently viewing the preview.',
+  const payload = decision === "rejected"
+    ? {
+        id: msgId,
+        message: "Try to fix",
+        tool_decision: "approved",
+        tool_call_event_id: toolCallEventId,
+        user_input: { security_scan: { decision: "approved", error_id: errId } },
+        mode: "instant",
+        thread_id: threadId,
+        stream: true,
+      }
+    : {
+        message: "",
+        id: msgId,
+        mode: "security_scan",
+        fastmode: true,
+        prev_session_id: prevSessionId,
+        tool_call_event_id: toolCallEventId,
+        tool_decision: decision,
+        user_input: {},
+        thread_id: threadId,
+        stream: true,
+        session_replay: "[]",
+        client_logs: [],
+        network_requests: [],
+        runtime_errors: [],
+        integration_metadata: {
+          browser: {
+            preview_viewport_width: viewportW,
+            preview_viewport_height: viewportH,
           },
         },
       };
