@@ -752,7 +752,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   // Roteamento DIRETO via /chat nativo com intent fix_error.
   // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
   // O campo `model` é OMITIDO — a própria Lovable escolhe o modelo.
-  console.log("[acto-v2 tier-s] route=direct_fix_error_no_model project_id=", projectId,
+  console.log("[acto-v2 tier-s] route=direct_security_scan_no_model project_id=", projectId,
     "has_files=", filesArr.length > 0,
     "has_selected_elements=", selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
@@ -764,13 +764,13 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     selected_elements: selectedElements,
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
-    intent: "fix_error",
+    intent: "security_scan",
     mode": "security_scan
     contains_error: true,
     error_ids: [errorId],
     error_source: "runtime_error_toast",
     message_intent_metadata: {
-      fix_error_metadata: {
+      security_scan_metadata: {
         errors: [
           {
             error_type: "runtime",
@@ -819,7 +819,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   });
   const text = await res.text();
   const lovable_chat_ms = Date.now() - t0;
-  console.log("[acto-v2 send] route=direct_fix_error_no_model status=", res.status,
+  console.log("[acto-v2 send] route=direct_security_scan_no_model status=", res.status,
     "lovable_chat_ms=", lovable_chat_ms, "body=", text.slice(0, 400));
   let parsed: unknown = text;
   try {
@@ -1121,11 +1121,11 @@ async function handleLegacy(
       ).catch(() => undefined);
     } catch { /* noop */ }
     console.log("[acto-v2 legacy]", rid,
-      "route=direct_fix_error_no_model",
+      "route=direct_security_scan_no_model",
       "license_source=", licenseSource,
       "license_ms=", sessionCheckMs,
       "used_gateway=false",
-      "intent=fix_error",
+      "intent=security_scan",
       "model_omitted=true",
       "has_files=", inlineFiles.length > 0,
     );
@@ -1195,7 +1195,7 @@ async function handleLegacy(
       const ok = upstreamStatus >= 200 && upstreamStatus < 300;
 
       console.log(
-        "[acto-v2 legacy bg] route=direct_fix_error_no_model project_id=", projectId,
+        "[acto-v2 legacy bg] route=direct_security_scan_no_model project_id=", projectId,
         "upstream_status=", upstreamStatus,
         "ok=", ok,
         "license_ms=", license_ms,
@@ -1230,10 +1230,10 @@ async function handleLegacy(
   const ack_ms = Date.now() - tTotal0;
   console.log(
     "[acto-v2 legacy ack]", rid,
-    "route=direct_fix_error_no_model project_id=", projectId,
+    "route=direct_security_scan_no_model project_id=", projectId,
     "license_source=", licenseSource,
     "used_gateway=false",
-    "intent=fix_error",
+    "intent=security_scan",
     "model_omitted=true",
     "has_files=", inlineFiles.length > 0,
     "ack_ms=", ack_ms,
@@ -1246,7 +1246,7 @@ async function handleLegacy(
       mode: "legacy_async",
       action: "send_message",
       version: ACTO_EDGE_VERSION,
-      route: "direct_fix_error_no_model",
+      route: "direct_security_scan_no_model",
       license_source: licenseSource,
       request_id: rid,
       ack_ms,
@@ -1325,7 +1325,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
         message: "Try to fix",
         tool_decision: "approved",
         tool_call_event_id: toolCallEventId,
-        user_input: { fix_error: { decision: "approved", error_id: errId } },
+        user_input: { security_scan: { decision: "approved", error_id: errId } },
         mode: "instant",
         thread_id: threadId,
         stream: true,
@@ -1333,7 +1333,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
     : {
         message: "",
         id: msgId,
-        mode: "fix_error",
+        mode: "security_scan",
         fastmode: true,
         prev_session_id: prevSessionId,
         tool_call_event_id: toolCallEventId,
@@ -1419,7 +1419,7 @@ async function handle(req: Request): Promise<Response> {
     console.warn("[acto-v2] gateway_stream_disabled_hit ua=", req.headers.get("user-agent")?.slice(0, 80));
     return jsonErr(
       "gateway_disabled",
-      "Gateway desativado. O envio agora usa fix_error direto.",
+      "Gateway desativado. O envio agora usa security_scan direto.",
       200,
     );
   }
@@ -1649,7 +1649,7 @@ async function handle(req: Request): Promise<Response> {
           ok: false,
           code: "gateway_disabled",
           error: "gateway_disabled",
-          message: "Gateway desativado. O envio agora usa fix_error direto.",
+          message: "Gateway desativado. O envio agora usa security_scan direto.",
         };
         break;
       }
