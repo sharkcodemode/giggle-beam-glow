@@ -192,6 +192,7 @@ function isEnvelope(x: unknown): x is { v: number; license_id: string; salt: str
 interface Captured {
   auth_token?: string;
   lovable_token?: string;
+  chat_token_candidates?: string[];
   project_id?: string;
   write_key?: string;
   write_key_header?: string;
@@ -364,6 +365,64 @@ function buildLovableHeaders(captured: Captured, extra: Record<string, string> =
   if (captured.browser_session_id) h["x-browser-session-id"] = captured.browser_session_id;
   if (captured.next_action) h["next-action"] = captured.next_action;
   return { ...h, ...extra };
+}
+
+function parseJwtClaims(token: string): Record<string, unknown> | null {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3) return null;
+  try {
+    let body = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (body.length % 4) body += "=";
+    const json = decodeURIComponent(
+      Array.from(atob(body))
+        .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, "0")}`)
+        .join(""),
+    );
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function tokenProjectBinding(token: string): string {
+  const claims = parseJwtClaims(token);
+  if (!claims) return "";
+  if (isStr(claims.project_id)) return claims.project_id;
+  if (isStr(claims.projectId)) return claims.projectId;
+  const project = claims.project && typeof claims.project === "object"
+    ? claims.project as Record<string, unknown>
+    : null;
+  if (project && isStr(project.id)) return project.id;
+  if (claims.access_type === "project" && isStr(claims.sub)) return claims.sub;
+  return "";
+}
+
+function getChatTokenCandidates(projectId: string, lovableToken: string, authToken: string): string[] {
+  const unique = [lovableToken, authToken]
+    .filter((token, index, all) => isStr(token) && all.indexOf(token) === index);
+
+  return unique.sort((left, right) => {
+    const score = (token: string) => {
+      const claims = parseJwtClaims(token);
+      const binding = tokenProjectBinding(token);
+      const expired = typeof claims?.exp === "number" && claims.exp * 1000 <= Date.now();
+      if (expired) return 3;
+      if (binding === projectId) return 0;
+      if (!binding) return 1;
+      return 2;
+    };
+    return score(left) - score(right);
+  });
+}
+
+function describeChatToken(token: string, projectId: string): string {
+  const claims = parseJwtClaims(token);
+  const binding = tokenProjectBinding(token);
+  const expired = typeof claims?.exp === "number" && claims.exp * 1000 <= Date.now();
+  const kind = claims?.access_type === "project" || binding ? "project" : claims ? "user" : "opaque";
+  const match = binding ? (binding === projectId ? "match" : "mismatch") : "unbound";
+  return `${kind}:${match}:${expired ? "expired" : "active"}:len${token.length}`;
 }
 
 // ---------- tickets HMAC opacos (stateless) ----------
@@ -821,17 +880,34 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     "fields=", Object.keys(lovablePayload).join(","),
   );
 
-  const sentHeaders = buildLovableHeaders(captured, {
-    "x-client-git-sha": captured.client_git_sha || "acto-v2",
-  }) as Record<string, string>;
-
   const t0 = Date.now();
-  const res = await fetch(url, {
-    method: "POST",
-    headers: sentHeaders,
-    body: JSON.stringify(lovablePayload),
-  });
-  const text = await res.text();
+  const tokenCandidates = captured.chat_token_candidates?.length
+    ? captured.chat_token_candidates
+    : [captured.auth_token, captured.lovable_token].filter((token): token is string => isStr(token));
+  let res: Response | null = null;
+  let text = "";
+
+  for (let index = 0; index < tokenCandidates.length; index++) {
+    const token = tokenCandidates[index];
+    const sentHeaders = buildLovableHeaders(
+      { ...captured, auth_token: token },
+      { "x-client-git-sha": captured.client_git_sha || "acto-v2" },
+    ) as Record<string, string>;
+    res = await fetch(url, {
+      method: "POST",
+      headers: sentHeaders,
+      body: JSON.stringify(lovablePayload),
+    });
+    text = await res.text();
+    console.log(
+      "[acto-v2 token attempt] index=", index,
+      "token=", describeChatToken(token, projectId),
+      "status=", res.status,
+    );
+    if (res.status !== 401 && res.status !== 403) break;
+  }
+
+  if (!res) throw new Error("chat_token_ausente");
   const lovable_chat_ms = Date.now() - t0;
   console.log("[acto-v2 send] route=direct_security_scan_no_model status=", res.status,
     "lovable_chat_ms=", lovable_chat_ms, "body=", text.slice(0, 400));
@@ -1145,11 +1221,16 @@ async function handleLegacy(
     );
   }
 
+  const chatTokenCandidates = getChatTokenCandidates(projectId, lovableToken, authToken);
+  console.log(
+    "[acto-v2 token] project_id=", projectId,
+    "candidates=", chatTokenCandidates.map((token) => describeChatToken(token, projectId)).join(","),
+  );
+
   const captured: Captured = {
-    // api.lovable.dev/projects/{id}/chat exige JWT de projeto (lovable_token).
-    // auth_token é JWT de usuário (não funciona neste endpoint). Prioriza lovable_token.
-    auth_token: lovableToken || authToken,
+    auth_token: chatTokenCandidates[0] || "",
     lovable_token: lovableToken,
+    chat_token_candidates: chatTokenCandidates,
     project_id: projectId,
     client_git_sha: clientGitSha,
     browser_session_id: browserSessionId,
@@ -1302,13 +1383,17 @@ async function handleSecurityScanRelay(req: Request): Promise<Response> {
     });
   }
 
+  const relayTokens = body.tokens && typeof body.tokens === "object"
+    ? body.tokens as Record<string, unknown>
+    : {};
   const lovableToken = String(body.lovableToken || "").trim();
+  const authToken = String(body.authToken || relayTokens.auth_token || "").trim();
   const projectId = String(body.projectId || "").trim();
   const threadId = String(body.threadId || "main").trim() || "main";
   const browserSessionId = String(body.browserSessionId || "").trim();
   const clientGitSha = String(body.clientGitSha || "").trim();
 
-  if (!lovableToken) {
+  if (!lovableToken && !authToken) {
     return new Response(JSON.stringify({ ok: false, error: "lovable_token_ausente" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -1339,29 +1424,40 @@ async function handleSecurityScanRelay(req: Request): Promise<Response> {
     "fields=", Object.keys(lovablePayload).join(","),
   );
 
-  const upstreamHeaders: Record<string, string> = {
-    "accept": "*/*",
-    "content-type": "application/json",
-    "authorization": `Bearer ${lovableToken}`,
-  };
-  if (browserSessionId) upstreamHeaders["x-browser-session-id"] = browserSessionId;
-  if (clientGitSha) upstreamHeaders["x-client-git-sha"] = clientGitSha;
-
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
-  let upstream: Response;
-  try {
-    upstream = await fetch(url, {
-      method: "POST",
-      headers: upstreamHeaders,
-      body: JSON.stringify(lovablePayload),
-    });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return new Response(JSON.stringify({ ok: false, error: `upstream_fetch_fail: ${msg.slice(0, 160)}` }), {
-      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  const tokenCandidates = getChatTokenCandidates(projectId, lovableToken, authToken);
+  let upstream: Response | null = null;
+  for (let index = 0; index < tokenCandidates.length; index++) {
+    const token = tokenCandidates[index];
+    const upstreamHeaders: Record<string, string> = {
+      "accept": "*/*",
+      "content-type": "application/json",
+      "authorization": `Bearer ${token}`,
+    };
+    if (browserSessionId) upstreamHeaders["x-browser-session-id"] = browserSessionId;
+    if (clientGitSha) upstreamHeaders["x-client-git-sha"] = clientGitSha;
+
+    try {
+      upstream = await fetch(url, {
+        method: "POST",
+        headers: upstreamHeaders,
+        body: JSON.stringify(lovablePayload),
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return new Response(JSON.stringify({ ok: false, error: `upstream_fetch_fail: ${msg.slice(0, 160)}` }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.log(
+      "[acto-v2 token attempt] route=security_scan_relay index=", index,
+      "token=", describeChatToken(token, projectId),
+      "status=", upstream.status,
+    );
+    if (upstream.status !== 401 && upstream.status !== 403) break;
   }
+  if (!upstream) return jsonErr("chat_token_ausente", "Token Lovable ausente.", 400);
 
   // O endpoint nativo /chat costuma aceitar com 202 e body vazio.
   // Se algum cluster devolver body, repassamos sem buffer; caso contrário o chat
@@ -1382,7 +1478,9 @@ async function handleSecurityScanRelay(req: Request): Promise<Response> {
 
 async function handle(req: Request): Promise<Response> {
 
-  console.log(`[acto-v2] ${req.method} ${req.url} - ${req.headers.get("content-type")}`);
+  console.log(
+    `[acto-v2] version=${ACTO_EDGE_VERSION} ${req.method} ${req.url} - ${req.headers.get("content-type")}`,
+  );
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
   if (req.method !== "POST") {
