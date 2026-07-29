@@ -658,7 +658,7 @@ async function actionLovableProxy(captured: Captured, params: Record<string, unk
       isStr(source.message) ? source.message : "",
       Array.isArray(source.files) ? source.files : [],
       isStr(source.thread_id) ? source.thread_id : "main",
-      isStr(source.ai_message_id) ? source.ai_message_id : typeid("aimsg"),
+      isStr(source.ai_message_id) ? source.ai_message_id : undefined,
     );
   }
   const body = requestBody !== undefined ? JSON.stringify(requestBody) : undefined;
@@ -707,12 +707,12 @@ function buildSecurityScanPayload(
   message: string,
   files: unknown[],
   threadId: string,
-  aiMessageId = typeid("aimsg"),
+  aiMessageId?: string,
 ) {
   return {
     id: typeid("umsg"),
     message,
-    ...(aiMessageId && { ai_message_id: aiMessageId }),
+    ...(isStr(aiMessageId) && { ai_message_id: aiMessageId }),
     files,
     selected_elements: [],
     intent: "security_scan",
@@ -786,9 +786,21 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
 
   const ctx = params.context && typeof params.context === "object" ? (params.context as Record<string, unknown>) : {};
   const selectedElements = Array.isArray(ctx.selectedElements) ? ctx.selectedElements : [];
-  const aiMsgIdToSend = typeid("aimsg");
+  const aiMsgIdToSend = isStr(params.ai_message_id)
+    ? params.ai_message_id
+    : isStr(ctx.ai_message_id)
+      ? ctx.ai_message_id
+      : undefined;
   const processedFiles = filesArr;
-  const session_id = isStr(ctx.threadId) ? ctx.threadId : "";
+  const session_id = isStr(ctx.session_id)
+    ? ctx.session_id
+    : isStr(ctx.sessionId)
+      ? ctx.sessionId
+      : isStr(ctx.thread_id)
+        ? ctx.thread_id
+        : isStr(ctx.threadId)
+          ? ctx.threadId
+          : "";
   const finalMessage = message;
 
   // Roteamento DIRETO via /chat nativo com intent fix_error.
@@ -800,6 +812,13 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
   const payload = buildSecurityScanPayload(finalMessage, processedFiles, session_id, aiMsgIdToSend);
+  console.log(
+    "[acto-v2 payload] route=send_message intent=", payload.intent,
+    "thread_id=", payload.thread_id,
+    "has_ai_message_id=", "ai_message_id" in payload,
+    "file_count=", payload.files.length,
+    "fields=", Object.keys(payload).join(","),
+  );
 
   const sentHeaders = buildLovableHeaders(captured, {
     "x-client-git-sha": captured.client_git_sha || "acto-v2",
@@ -1310,12 +1329,19 @@ async function handleFixRelay(req: Request): Promise<Response> {
     });
   }
 
-  const aiMsgIdToSend = typeid("aimsg");
+  const aiMsgIdToSend = isStr(body.ai_message_id) ? body.ai_message_id : undefined;
   const finalMessage = String(body.message || body.finalMessage || "").trim();
   const processedFiles = Array.isArray(body.files) ? body.files : [];
   const session_id = threadId;
 
   const payload = buildSecurityScanPayload(finalMessage, processedFiles, session_id, aiMsgIdToSend);
+  console.log(
+    "[acto-v2 payload] route=fix_relay intent=", payload.intent,
+    "thread_id=", payload.thread_id,
+    "has_ai_message_id=", "ai_message_id" in payload,
+    "file_count=", payload.files.length,
+    "fields=", Object.keys(payload).join(","),
+  );
 
   const upstreamHeaders: Record<string, string> = {
     "accept": "*/*",
@@ -1514,6 +1540,15 @@ async function handle(req: Request): Promise<Response> {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+  if (req.headers.get("x-acto-action") === "send_message") {
+    const directBody = envelope && typeof envelope === "object" ? envelope as Record<string, unknown> : {};
+    const directLicense = legacyLicense || (isStr(directBody.license) ? directBody.license : "");
+    if (!directLicense) {
+      return jsonErr("missing_license", "Licenca ausente para enviar a mensagem.", 400);
+    }
+    console.log("[acto-v2 bridge] explicit_send_message");
+    return await handleLegacy(req, directLicense, directBody);
   }
   if (!isEnvelope(envelope)) {
     // Fallback 1: legacy painel com header x-acto-license-key
