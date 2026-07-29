@@ -1402,7 +1402,11 @@ async function handle(req: Request): Promise<Response> {
   // via header x-acto-action: fix_relay. A edge monta o payload e faz
   // passthrough SSE direto do Lovable. Stream sem buffer = latência mínima.
   if (req.headers.get("x-acto-action") === "fix_relay") {
-    return await handleFixRelay(req);
+    return jsonErr(
+      "legacy_fix_relay_disabled",
+      "O relay de correcao legado foi desativado. Use send_message.",
+      410,
+    );
   }
 
   if (req.headers.get("x-acto-action") === "gateway_stream") {
