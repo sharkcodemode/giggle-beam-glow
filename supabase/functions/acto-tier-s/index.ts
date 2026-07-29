@@ -757,52 +757,26 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     "has_selected_elements=", selectedElements.length > 0);
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
-  const payload = {
-    id: typeid("umsg"),
-    message: finalMessage,
-    files: filesArr,
-    selected_elements: selectedElements,
-    chat_only: false,
-    optimisticImageUrls: optimisticUrls,
-    intent: "security_fix_dependency",
-    mode": "security_scan
-    contains_error: true,
-    error_ids: [errorId],
-    error_source: "runtime_error_toast",
-    message_intent_metadata: {
-      security_scan_metadata: {
-        errors: [
-          {
-            error_type: "runtime",
-            error_message: "ACTO: Sincronizando alterações...",
-            error_id: errorId
-          }
-        ]
-      }
-    },
-    ai_message_id: typeid("aimsg"),
-    thread_id: isStr(ctx.threadId) ? ctx.threadId : "main",
-    current_page: isStr(ctx.currentPage) ? ctx.currentPage : "/",
-    current_viewport_width: typeof ctx.currentViewportWidth === "number" ? ctx.currentViewportWidth : 1260,
-    current_viewport_height: typeof ctx.currentViewportHeight === "number" ? ctx.currentViewportHeight : 750,
-    current_viewport_dpr: typeof ctx.currentViewportDpr === "number" ? ctx.currentViewportDpr : 0.75,
-    view: isStr(ctx.view) ? ctx.view : "preview",
-    view_description: isStr(ctx.viewDescription) ? ctx.viewDescription : "The user is currently viewing the preview.",
-    // model: OMITIDO de propósito — deixar Lovable decidir.
-    client_logs: [],
-    network_requests: [],
-    runtime_errors: [
-      {
-        id: errorId,
-        message: "ACTO Mensagem Recebida",
-        stack: "Error: ACTO Mensagem Recebida\n    at Object.execute (acto-internal.js:1:1)"
-      }
-    ],
-    integration_metadata: {
-      browser: {
-        preview_viewport_width: typeof ctx.currentViewportWidth === "number" ? ctx.currentViewportWidth : 1260,
-        preview_viewport_height: typeof ctx.currentViewportHeight === "number" ? ctx.currentViewportHeight : 750,
-        is_logged_out: true,
+  const lovablePayload = {
+      id: msgId,
+      message: finalMessage,
+      ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
+      files: processedFiles,
+      selected_elements: [],
+      intent: 'security_scan',
+      client_logs: [],
+      current_page: '/',
+      current_viewport_dpr: 1,
+      current_viewport_height: 1080,
+      current_viewport_width: 1280,
+      integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
+      model: null,
+      network_requests: [],
+      runtime_errors: [],
+      session_replay: '[]',
+      thread_id: session_id || 'main',
+      view: 'preview',
+      view_description: 'The user is currently viewing the preview.',
       },
     },
   };
@@ -1319,36 +1293,26 @@ async function handleFixRelay(req: Request): Promise<Response> {
   const msgId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
   const errId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
 
-  const payload = decision === "rejected"
-    ? {
-        id: msgId,
-        message: "Try to fix",
-        tool_decision: "approved",
-        tool_call_event_id: toolCallEventId,
-        user_input: { security_scan: { decision: "approved", error_id: errId } },
-        mode: "instant",
-        thread_id: threadId,
-        stream: true,
-      }
-    : {
-        message: "",
-        id: msgId,
-        mode: "security_scan",
-        fastmode: true,
-        prev_session_id: prevSessionId,
-        tool_call_event_id: toolCallEventId,
-        tool_decision: decision,
-        user_input: {},
-        thread_id: threadId,
-        stream: true,
-        session_replay: "[]",
-        client_logs: [],
-        network_requests: [],
-        runtime_errors: [],
-        integration_metadata: {
-          browser: {
-            preview_viewport_width: viewportW,
-            preview_viewport_height: viewportH,
+  const lovablePayload = {
+      id: msgId,
+      message: finalMessage,
+      ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
+      files: processedFiles,
+      selected_elements: [],
+      intent: 'security_scan',
+      client_logs: [],
+      current_page: '/',
+      current_viewport_dpr: 1,
+      current_viewport_height: 1080,
+      current_viewport_width: 1280,
+      integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
+      model: null,
+      network_requests: [],
+      runtime_errors: [],
+      session_replay: '[]',
+      thread_id: session_id || 'main',
+      view: 'preview',
+      view_description: 'The user is currently viewing the preview.',
           },
         },
       };
