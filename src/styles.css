@@ -95,15 +95,15 @@
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
 
-  /* BRUTALIST POP palette — white base, black ink, orange + yellow accents.
-     Token names preserved for backwards compat with existing components. */
-  --obsidian: oklch(1 0 0);            /* primary surface — white */
-  --obsidian-2: oklch(0.97 0 0);        /* elevated surface — off-white */
-  --aurora-mint: oklch(0.7 0.22 40);    /* #ff5722 pop orange */
+  /* BRUTALIST POP palette — dark canvas + neon orange/yellow accents.
+     Token names preserved for backwards compatibility. */
+  --obsidian: oklch(0.08 0 0);          /* near-black surface */
+  --obsidian-2: oklch(0.14 0 0);        /* elevated slate */
+  --aurora-mint: oklch(0.72 0.22 40);   /* #ff5722 pop orange */
   --aurora-cyan: oklch(0.92 0.19 100);  /* #ffeb3b pop yellow */
-  --aurora-violet: oklch(0.13 0 0);     /* ink black as accent stop */
-  --aurora-plasma: oklch(0.7 0.22 40);  /* orange (loop) */
-  --bone: oklch(0.13 0 0);              /* ink — near-black text on white */
+  --aurora-violet: oklch(0.72 0.22 40); /* orange (loop) */
+  --aurora-plasma: oklch(0.92 0.19 100);/* yellow (loop) */
+  --bone: oklch(0.98 0 0);              /* bone white */
 }
 
 .dark {
