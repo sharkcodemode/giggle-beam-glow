@@ -185,10 +185,10 @@ function Index() {
                 <span className="block text-outline">br</span>
               </h1>
 
-              <p className="mt-10 max-w-[44ch] font-grotesk text-[16px] leading-relaxed text-white/65">
-                Uma câmara digital onde documentos, runtimes, áudio e chaves
-                coexistem em arquitetura editorial. Densidade técnica máxima,
-                interface escultural.
+              <p className="mt-10 max-w-[46ch] font-grotesk text-[16px] font-medium leading-relaxed text-white/70">
+                Runtime editorial para operadores Lovable BR. Documentos, áudio,
+                chaves e edges empacotados em um único console — brutalismo
+                técnico, densidade máxima, zero fricção.
               </p>
 
               <div className="mt-10 flex flex-wrap items-center gap-3">
