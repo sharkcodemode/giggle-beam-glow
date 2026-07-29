@@ -177,9 +177,9 @@ function Index() {
               </div>
 
               <h1 className="font-display text-[clamp(64px,11vw,184px)] font-normal leading-[0.86] tracking-[-0.04em]">
-                <span className="block">Obsidian</span>
-                <span className="block italic text-aurora">aurora.</span>
-                <span className="block text-outline">protocol</span>
+                <span className="block">Elite</span>
+                <span className="block italic text-aurora">lovable.</span>
+                <span className="block text-outline">br</span>
               </h1>
 
               <p className="mt-10 max-w-[44ch] font-grotesk text-[16px] leading-relaxed text-white/65">
