@@ -131,7 +131,7 @@ function Index() {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--aurora-mint)]" />
             Live — sys.online
           </span>
-          <span className="hidden md:block">Obsidian Aurora · v2.0.0 · Tier S</span>
+          <span className="hidden md:block">ELITE LOVABLE BR · v2.0.0 · TIER S</span>
           <span>RJ · 21°C · ☁</span>
         </div>
       </div>
