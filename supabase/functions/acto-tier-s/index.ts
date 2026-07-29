@@ -764,7 +764,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     selected_elements: selectedElements,
     chat_only: false,
     optimisticImageUrls: optimisticUrls,
-    intent: "security_scan",
+    intent: "fix_error",
     mode": "security_scan
     contains_error: true,
     error_ids: [errorId],
