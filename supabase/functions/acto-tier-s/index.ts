@@ -1405,7 +1405,15 @@ async function handleSecurityScanRelay(req: Request): Promise<Response> {
   }
   const msgId = typeid("umsg");
   const aiMsgIdToSend = isStr(body.ai_message_id) ? body.ai_message_id : undefined;
-  const finalMessage = String(body.message || body.finalMessage || body.planContent || "Corrigir erro").trim();
+  const finalMessage = String(
+    body.message ||
+      body.finalMessage ||
+      body.prompt ||
+      body.text ||
+      body.content ||
+      body.planContent ||
+      "Corrigir erro",
+  ).trim();
   const processedFiles = Array.isArray(body.files) ? body.files : [];
   const session_id = threadId;
 
