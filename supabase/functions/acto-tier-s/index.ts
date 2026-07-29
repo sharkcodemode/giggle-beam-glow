@@ -1289,42 +1289,33 @@ async function handleFixRelay(req: Request): Promise<Response> {
     });
   }
 
-  const msgId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
-  const errId = `aimsg_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  const msgId = typeid("umsg");
+  const aiMsgIdToSend = typeid("aimsg");
+  const finalMessage = String(body.message || body.finalMessage || "").trim();
+  const processedFiles = Array.isArray(body.files) ? body.files : [];
+  const session_id = threadId;
 
-  const payload = decision === "rejected"
-    ? {
-        id: msgId,
-        message: "Try to fix",
-        tool_decision: "approved",
-        tool_call_event_id: toolCallEventId,
-        user_input: { security_scan: { decision: "approved", error_id: errId } },
-        mode: "instant",
-        thread_id: threadId,
-        stream: true,
-      }
-    : {
-        message: "",
-        id: msgId,
-        mode: "security_scan",
-        fastmode: true,
-        prev_session_id: prevSessionId,
-        tool_call_event_id: toolCallEventId,
-        tool_decision: decision,
-        user_input: {},
-        thread_id: threadId,
-        stream: true,
-        session_replay: "[]",
-        client_logs: [],
-        network_requests: [],
-        runtime_errors: [],
-        integration_metadata: {
-          browser: {
-            preview_viewport_width: viewportW,
-            preview_viewport_height: viewportH,
-          },
-        },
-      };
+  const payload = {
+    id: msgId,
+    message: finalMessage,
+    ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
+    files: processedFiles,
+    selected_elements: [],
+    intent: "security_scan",
+    client_logs: [],
+    current_page: "/",
+    current_viewport_dpr: 1,
+    current_viewport_height: 1080,
+    current_viewport_width: 1280,
+    integration_metadata: { browser: { preview_viewport_width: 1280, preview_viewport_height: 1080 } },
+    model: null,
+    network_requests: [],
+    runtime_errors: [],
+    session_replay: "[]",
+    thread_id: session_id || "main",
+    view: "preview",
+    view_description: "The user is currently viewing the preview.",
+  };
 
   const upstreamHeaders: Record<string, string> = {
     "accept": "*/*",
@@ -1334,7 +1325,7 @@ async function handleFixRelay(req: Request): Promise<Response> {
   if (browserSessionId) upstreamHeaders["x-browser-session-id"] = browserSessionId;
   if (clientGitSha) upstreamHeaders["x-client-git-sha"] = clientGitSha;
 
-  const url = `https://api.lovable.dev/tools/respond/${encodeURIComponent(toolCallEventId)}?project_id=${encodeURIComponent(projectId)}`;
+  const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
   let upstream: Response;
   try {
