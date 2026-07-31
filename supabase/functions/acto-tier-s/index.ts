@@ -57,7 +57,7 @@ const MAX_SKEW_MS = 5 * 60 * 1000;
 const UPLOAD_TICKET_TTL_MS = 10 * 60 * 1000; // 10 min — janela entre upload_init e upload_finalize
 const FILE_REF_TTL_MS = 30 * 60 * 1000; // 30 min — janela entre upload_finalize e send_message
 const MAX_FILES_PER_MESSAGE = 10;
-const ACTO_EDGE_VERSION = "thinking-visual-edit-payload-2026-07-31";
+const ACTO_EDGE_VERSION = "thinking-visual-edit-payload-2026-07-31-redeploy-1";
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const MAX_FILE_NAME_LEN = 255;
 
