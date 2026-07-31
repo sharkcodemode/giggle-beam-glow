@@ -9,65 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AudiosRouteImport } from './routes/audios'
-import { Route as ChatmodelosRouteImport } from './routes/chatmodelos'
-import { Route as ClaudeRouteImport } from './routes/claude'
-import { Route as ElitelovableRouteImport } from './routes/elitelovable'
-import { Route as ImagensRouteImport } from './routes/imagens'
-import { Route as ModelosRouteImport } from './routes/modelos'
-import { Route as PulseRouteImport } from './routes/pulse'
-import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
-import { Route as RagmodelosRouteImport } from './routes/ragmodelos'
 import { Route as VoiceRouteImport } from './routes/voice'
-import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
+import { Route as RagmodelosRouteImport } from './routes/ragmodelos'
+import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
+import { Route as PulseRouteImport } from './routes/pulse'
+import { Route as ModelosRouteImport } from './routes/modelos'
+import { Route as ImagensRouteImport } from './routes/imagens'
+import { Route as ElitelovableRouteImport } from './routes/elitelovable'
+import { Route as ClaudeRouteImport } from './routes/claude'
+import { Route as ChatmodelosRouteImport } from './routes/chatmodelos'
+import { Route as AudiosRouteImport } from './routes/audios'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiGenerateImageGoogleRouteImport } from './routes/api/generate-image-google'
-import { Route as ApiPublicSecretCheckRouteImport } from './routes/api/public/_secret-check'
+import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiPublicElitePromptRouteImport } from './routes/api/public/elite-prompt'
+import { Route as ApiPublicSecretCheckRouteImport } from './routes/api/public/_secret-check'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AudiosRoute = AudiosRouteImport.update({
-  id: '/audios',
-  path: '/audios',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChatmodelosRoute = ChatmodelosRouteImport.update({
-  id: '/chatmodelos',
-  path: '/chatmodelos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClaudeRoute = ClaudeRouteImport.update({
-  id: '/claude',
-  path: '/claude',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ElitelovableRoute = ElitelovableRouteImport.update({
-  id: '/elitelovable',
-  path: '/elitelovable',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ImagensRoute = ImagensRouteImport.update({
-  id: '/imagens',
-  path: '/imagens',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ModelosRoute = ModelosRouteImport.update({
-  id: '/modelos',
-  path: '/modelos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PulseRoute = PulseRouteImport.update({
-  id: '/pulse',
-  path: '/pulse',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RadarLovableRoute = RadarLovableRouteImport.update({
-  id: '/radar-lovable',
-  path: '/radar-lovable',
+const VoiceRoute = VoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RagmodelosRoute = RagmodelosRouteImport.update({
@@ -75,14 +35,49 @@ const RagmodelosRoute = RagmodelosRouteImport.update({
   path: '/ragmodelos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VoiceRoute = VoiceRouteImport.update({
-  id: '/voice',
-  path: '/voice',
+const RadarLovableRoute = RadarLovableRouteImport.update({
+  id: '/radar-lovable',
+  path: '/radar-lovable',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
-  id: '/api/generate-image',
-  path: '/api/generate-image',
+const PulseRoute = PulseRouteImport.update({
+  id: '/pulse',
+  path: '/pulse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModelosRoute = ModelosRouteImport.update({
+  id: '/modelos',
+  path: '/modelos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImagensRoute = ImagensRouteImport.update({
+  id: '/imagens',
+  path: '/imagens',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ElitelovableRoute = ElitelovableRouteImport.update({
+  id: '/elitelovable',
+  path: '/elitelovable',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClaudeRoute = ClaudeRouteImport.update({
+  id: '/claude',
+  path: '/claude',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatmodelosRoute = ChatmodelosRouteImport.update({
+  id: '/chatmodelos',
+  path: '/chatmodelos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AudiosRoute = AudiosRouteImport.update({
+  id: '/audios',
+  path: '/audios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateImageGoogleRoute = ApiGenerateImageGoogleRouteImport.update({
@@ -90,14 +85,19 @@ const ApiGenerateImageGoogleRoute = ApiGenerateImageGoogleRouteImport.update({
   path: '/api/generate-image-google',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicSecretCheckRoute = ApiPublicSecretCheckRouteImport.update({
-  id: '/api/public/_secret-check',
-  path: '/api/public',
+const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
+  id: '/api/generate-image',
+  path: '/api/generate-image',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicElitePromptRoute = ApiPublicElitePromptRouteImport.update({
   id: '/api/public/elite-prompt',
   path: '/api/public/elite-prompt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSecretCheckRoute = ApiPublicSecretCheckRouteImport.update({
+  id: '/api/public/_secret-check',
+  path: '/api/public',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -227,67 +227,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/audios': {
-      id: '/audios'
-      path: '/audios'
-      fullPath: '/audios'
-      preLoaderRoute: typeof AudiosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/chatmodelos': {
-      id: '/chatmodelos'
-      path: '/chatmodelos'
-      fullPath: '/chatmodelos'
-      preLoaderRoute: typeof ChatmodelosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/claude': {
-      id: '/claude'
-      path: '/claude'
-      fullPath: '/claude'
-      preLoaderRoute: typeof ClaudeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/elitelovable': {
-      id: '/elitelovable'
-      path: '/elitelovable'
-      fullPath: '/elitelovable'
-      preLoaderRoute: typeof ElitelovableRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/imagens': {
-      id: '/imagens'
-      path: '/imagens'
-      fullPath: '/imagens'
-      preLoaderRoute: typeof ImagensRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/modelos': {
-      id: '/modelos'
-      path: '/modelos'
-      fullPath: '/modelos'
-      preLoaderRoute: typeof ModelosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pulse': {
-      id: '/pulse'
-      path: '/pulse'
-      fullPath: '/pulse'
-      preLoaderRoute: typeof PulseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/radar-lovable': {
-      id: '/radar-lovable'
-      path: '/radar-lovable'
-      fullPath: '/radar-lovable'
-      preLoaderRoute: typeof RadarLovableRouteImport
+    '/voice': {
+      id: '/voice'
+      path: '/voice'
+      fullPath: '/voice'
+      preLoaderRoute: typeof VoiceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ragmodelos': {
@@ -297,18 +241,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RagmodelosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/voice': {
-      id: '/voice'
-      path: '/voice'
-      fullPath: '/voice'
-      preLoaderRoute: typeof VoiceRouteImport
+    '/radar-lovable': {
+      id: '/radar-lovable'
+      path: '/radar-lovable'
+      fullPath: '/radar-lovable'
+      preLoaderRoute: typeof RadarLovableRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/generate-image': {
-      id: '/api/generate-image'
-      path: '/api/generate-image'
-      fullPath: '/api/generate-image'
-      preLoaderRoute: typeof ApiGenerateImageRouteImport
+    '/pulse': {
+      id: '/pulse'
+      path: '/pulse'
+      fullPath: '/pulse'
+      preLoaderRoute: typeof PulseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/modelos': {
+      id: '/modelos'
+      path: '/modelos'
+      fullPath: '/modelos'
+      preLoaderRoute: typeof ModelosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/imagens': {
+      id: '/imagens'
+      path: '/imagens'
+      fullPath: '/imagens'
+      preLoaderRoute: typeof ImagensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/elitelovable': {
+      id: '/elitelovable'
+      path: '/elitelovable'
+      fullPath: '/elitelovable'
+      preLoaderRoute: typeof ElitelovableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/claude': {
+      id: '/claude'
+      path: '/claude'
+      fullPath: '/claude'
+      preLoaderRoute: typeof ClaudeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chatmodelos': {
+      id: '/chatmodelos'
+      path: '/chatmodelos'
+      fullPath: '/chatmodelos'
+      preLoaderRoute: typeof ChatmodelosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audios': {
+      id: '/audios'
+      path: '/audios'
+      fullPath: '/audios'
+      preLoaderRoute: typeof AudiosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-image-google': {
@@ -318,11 +311,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateImageGoogleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/_secret-check': {
-      id: '/api/public/_secret-check'
-      path: '/api/public'
-      fullPath: '/api/public'
-      preLoaderRoute: typeof ApiPublicSecretCheckRouteImport
+    '/api/generate-image': {
+      id: '/api/generate-image'
+      path: '/api/generate-image'
+      fullPath: '/api/generate-image'
+      preLoaderRoute: typeof ApiGenerateImageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/elite-prompt': {
@@ -330,6 +323,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/elite-prompt'
       fullPath: '/api/public/elite-prompt'
       preLoaderRoute: typeof ApiPublicElitePromptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/_secret-check': {
+      id: '/api/public/_secret-check'
+      path: '/api/public'
+      fullPath: '/api/public'
+      preLoaderRoute: typeof ApiPublicSecretCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
