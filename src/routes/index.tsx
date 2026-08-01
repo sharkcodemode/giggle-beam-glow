@@ -120,7 +120,7 @@ function Index() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [items, setItems] = useState<CalcItem[]>([
-    { id: Date.now(), description: "", quantity: 1, unitPrice: 0, discount: 0 },
+    { id: Date.now(), description: "que horas sao ?", quantity: 1, unitPrice: 0, discount: 0 },
   ]);
 
   useEffect(() => {
@@ -130,7 +130,7 @@ function Index() {
   }, []);
 
   const addItem = () =>
-    setItems((s) => [...s, { id: Date.now() + Math.random(), description: "", quantity: 1, unitPrice: 0, discount: 0 }]);
+    setItems((s) => [...s, { id: Date.now() + Math.random(), description: "que horas sao ?", quantity: 1, unitPrice: 0, discount: 0 }]);
   const removeItem = (id: number) =>
     setItems((s) => (s.length > 1 ? s.filter((i) => i.id !== id) : s));
   const updateItem = <K extends keyof CalcItem>(id: number, field: K, value: CalcItem[K]) =>
