@@ -837,7 +837,10 @@ function buildThinkingPayload(
       visual_edit_metadata: {
         text_replacements: buildTextReplacements(selectedElements, finalMessage),
       },
-      ...(sanitizeIntentMetadata(context.message_intent_metadata) ?? {}),
+      ...(context.message_intent_metadata && typeof context.message_intent_metadata === "object"
+        ? (context.message_intent_metadata as Record<string, unknown>)
+        : {}),
+
     },
     current_page: isStr(context.currentPage) ? context.currentPage : isStr(context.current_page) ? context.current_page : "/",
     current_viewport_dpr: typeof context.currentViewportDpr === "number" ? context.currentViewportDpr : typeof context.current_viewport_dpr === "number" ? context.current_viewport_dpr : 1,
