@@ -19,6 +19,8 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
+import { evaluateSend, recordOutcome } from "../_shared/anti-loop.ts";
+
 import {
   readSessionTicket,
   checkActiveSession,
@@ -924,8 +926,60 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
           ? ctx.threadId
           : "";
   const finalMessage = message;
+
+  // --- Higiene anti-loop (fix_error / relay) -------------------------------
+  const antiLoopScope = `${licenseId || "anon"}|${projectId}`;
+  const forceSend = params.force === true || ctx.force === true;
+  const verdict = await evaluateSend(antiLoopScope, finalMessage, forceSend);
+  console.log(
+    "[acto-v2 anti-loop] error_id=", verdict.error_id,
+    "similarity=", verdict.similarity,
+    "repeat=", verdict.repeat_count,
+    "blocked=", verdict.blocked,
+    "reason=", verdict.reason,
+  );
+  if (verdict.blocked) {
+    return {
+      status: 409,
+      body: {
+        error: "anti_loop_blocked",
+        reason: verdict.reason,
+        message: verdict.warning,
+        anti_loop: verdict,
+        hint: "Reenvie com force=true apenas se for realmente uma nova tentativa consciente.",
+      },
+      lovable_chat_ms: 0,
+      anti_loop: verdict,
+    };
+  }
+
+  const existingMetadata =
+    ctx.message_intent_metadata && typeof ctx.message_intent_metadata === "object"
+      ? (ctx.message_intent_metadata as Record<string, unknown>)
+      : null;
+  const fixErrorMetadata =
+    existingMetadata && typeof existingMetadata.fix_error_metadata === "object" && existingMetadata.fix_error_metadata
+      ? (existingMetadata.fix_error_metadata as Record<string, unknown>)
+      : null;
+
   const thinkingContext: Record<string, unknown> = {
     ...ctx,
+    // thread estável por assinatura: nova conversa só quando o erro é outro
+    ...(session_id ? {} : { session_id: verdict.thread_hint }),
+    ...(fixErrorMetadata
+      ? {
+          message_intent_metadata: {
+            ...existingMetadata,
+            fix_error_metadata: {
+              ...fixErrorMetadata,
+              // mesmo error_id enquanto a assinatura do erro não mudar
+              error_ids: Array.isArray(fixErrorMetadata.error_ids) && fixErrorMetadata.error_ids.length > 0
+                ? fixErrorMetadata.error_ids
+                : [verdict.error_id],
+            },
+          },
+        }
+      : {}),
     ...(isStr(params.system) ? { system: params.system } : {}),
   };
 
@@ -935,6 +989,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   console.log("[acto-v2 tier-s] route=direct_thinking_visual_edit project_id=", projectId,
     "has_files=", filesArr.length > 0,
     "has_selected_elements=", selectedElements.length > 0);
+
   const url = `https://api.lovable.dev/projects/${encodeURIComponent(projectId)}/chat`;
 
   const lovablePayload = buildThinkingPayload(
@@ -942,9 +997,10 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     finalMessage,
     aiMsgIdToSend,
     processedFiles,
-    session_id,
+    session_id || verdict.thread_hint,
     thinkingContext,
   );
+
   console.log(
     "[acto-v2 payload] route=send_message intent=", lovablePayload.intent,
     "thread_id=", lovablePayload.thread_id,
@@ -990,7 +1046,10 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   } catch {
     /* keep text */
   }
-  return { status: res.status, body: parsed, lovable_chat_ms };
+  // registra desfecho: falha bloqueia auto-retry imediato do mesmo error_id
+  recordOutcome(antiLoopScope, verdict.error_id, res.status);
+  return { status: res.status, body: parsed, lovable_chat_ms, anti_loop: verdict };
+
 }
 
 async function actionListProjects(captured: Captured) {
