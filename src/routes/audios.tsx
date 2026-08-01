@@ -6,7 +6,28 @@ import {
   Share2, Volume2, Waves,
 } from "lucide-react";
 
-export const Route = createFileRoute("/audios")({ component: AudiosPage });
+export const Route = createFileRoute("/audios")({
+  head: () => ({
+    meta: [
+      { title: "Audio Vault — Análise vocal neural · ACTO Bridge" },
+      {
+        name: "description",
+        content:
+          "Câmara de áudio ACTO Bridge: player com analisador de espectro em tempo real para faixas vocais neurais em alta fidelidade.",
+      },
+      { property: "og:title", content: "Audio Vault — Análise vocal neural" },
+      {
+        property: "og:description",
+        content:
+          "Player com analisador de espectro em tempo real para faixas vocais neurais em alta fidelidade.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/audios" },
+    ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/audios" }],
+  }),
+  component: AudiosPage,
+});
 
 const TRACKS = [
   {
