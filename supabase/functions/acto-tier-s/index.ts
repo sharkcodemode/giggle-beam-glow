@@ -887,8 +887,15 @@ function buildThinkingPayload(
     runtime_errors: [],
     session_replay: "[]",
     thread_id: session_id || "main",
-    view: isStr(context.view) ? context.view : "preview",
-    view_description: isStr(context.viewDescription) ? context.viewDescription : isStr(context.view_description) ? context.view_description : "The user is currently viewing the preview.",
+    user_timezone: isStr(context.user_timezone) ? context.user_timezone : "America/Sao_Paulo",
+    view: isStr(context.view) ? context.view : useVisualEdit ? "preview" : "more",
+    view_description: isStr(context.viewDescription)
+      ? context.viewDescription
+      : isStr(context.view_description)
+        ? context.view_description
+        : useVisualEdit
+          ? "The user is currently viewing the preview."
+          : "The user is viewing the More panel which consolidates Analytics, Cloud, Payments, Security, and SEO & AI search views. The user is currently viewing the SEO e busca por IA section in More.",
     system,
   };
 
