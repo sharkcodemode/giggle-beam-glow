@@ -810,9 +810,15 @@ function buildTextReplacements(selectedElements: unknown[], finalMessage: string
   }));
 }
 
+// Limite de caracteres da mensagem espelhada no balão (`seo_fix_metadata.audit_title`).
+// Antes: 200 (apenas 1ª linha). Agora: mensagem inteira, multi-linha, até este teto.
+const AUDIT_TITLE_MAX = 4000;
 
-
-
+function truncateForTitle(text: string, max: number): string {
+  const normalized = String(text ?? "").replace(/\r\n/g, "\n").trim();
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
 
 
 function buildThinkingPayload(
@@ -860,13 +866,13 @@ function buildThinkingPayload(
           // Máscara do balão: o prefixo "Tentar corrigir problema de SEO: " é
           // literal do front da Lovable e não vem do payload. O único campo que
           // controlamos é `audit_title` — usamos o rótulo ACTO + a mensagem.
+          // Limite ampliado: mensagem completa (multi-linha) até AUDIT_TITLE_MAX chars.
           audit_title: isStr(ctxSeo.audit_title)
             ? ctxSeo.audit_title
-            : `Acto: Msg Recebida\n\n${
-                (finalMessage.split("\n").find((l) => l.trim().length > 0) ?? "").trim().slice(0, 200)
-              }`.trim(),
+            : `Acto: Msg Recebida\n\n${truncateForTitle(finalMessage, AUDIT_TITLE_MAX)}`.trim(),
           severity,
         },
+
 
       };
 
