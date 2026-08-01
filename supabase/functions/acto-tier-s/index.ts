@@ -810,9 +810,15 @@ function buildTextReplacements(selectedElements: unknown[], finalMessage: string
   }));
 }
 
+// Limite de caracteres da mensagem espelhada no balão (`seo_fix_metadata.audit_title`).
+// Antes: 200 (apenas 1ª linha). Agora: mensagem inteira, multi-linha, até este teto.
+const AUDIT_TITLE_MAX = 4000;
 
-
-
+function truncateForTitle(text: string, max: number): string {
+  const normalized = String(text ?? "").replace(/\r\n/g, "\n").trim();
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
 
 
 function buildThinkingPayload(
