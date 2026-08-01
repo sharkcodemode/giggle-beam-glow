@@ -824,11 +824,35 @@ function buildThinkingPayload(
   context: Record<string, unknown> = {},
 ) {
   const selectedElements = getSelectedElements(context);
-  const textReplacements = buildTextReplacements(selectedElements, finalMessage);
   const requestedSystem = isStr(context.system) ? context.system.trim() : "";
   const system = requestedSystem
     ? `${requestedSystem}\n\n${DEFAULT_THINKING_SYSTEM_PROMPT}`
     : DEFAULT_THINKING_SYSTEM_PROMPT;
+
+  // Sem elemento selecionado => fix_error (mais inteligente, gratuito, com anti-loop).
+  // Com elemento selecionado => visual_edit (exige visual_edit_metadata).
+  const ctxMetadata = context.message_intent_metadata && typeof context.message_intent_metadata === "object"
+    ? (context.message_intent_metadata as Record<string, unknown>)
+    : {};
+  const useVisualEdit = selectedElements.length > 0;
+  const intent = useVisualEdit ? "visual_edit" : "fix_error";
+  const intentMetadata: Record<string, unknown> = useVisualEdit
+    ? {
+        visual_edit_metadata: {
+          text_replacements: buildTextReplacements(selectedElements, finalMessage),
+        },
+        ...ctxMetadata,
+      }
+    : {
+        fix_error_metadata: {
+          error_ids: [],
+          ...(typeof ctxMetadata.fix_error_metadata === "object" && ctxMetadata.fix_error_metadata
+            ? (ctxMetadata.fix_error_metadata as Record<string, unknown>)
+            : {}),
+        },
+        ...Object.fromEntries(Object.entries(ctxMetadata).filter(([k]) => k !== "fix_error_metadata")),
+      };
+
   const lovablePayload = {
     id: msgId,
     message: finalMessage,
@@ -839,13 +863,9 @@ function buildThinkingPayload(
     files: processedFiles,
     optimisticImageUrls: [],
     selected_elements: selectedElements,
-    intent: "visual_edit",
-    message_intent_metadata: {
-      ...(textReplacements ? { visual_edit_metadata: { text_replacements: textReplacements } } : {}),
-      ...(context.message_intent_metadata && typeof context.message_intent_metadata === "object"
-        ? (context.message_intent_metadata as Record<string, unknown>)
-        : {}),
-    },
+    intent,
+    message_intent_metadata: intentMetadata,
+
 
     current_page: isStr(context.currentPage) ? context.currentPage : isStr(context.current_page) ? context.current_page : "/",
     current_viewport_dpr: typeof context.currentViewportDpr === "number" ? context.currentViewportDpr : typeof context.current_viewport_dpr === "number" ? context.current_viewport_dpr : 1,
@@ -966,22 +986,20 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     ...ctx,
     // thread estável por assinatura: nova conversa só quando o erro é outro
     ...(session_id ? {} : { session_id: verdict.thread_hint }),
-    ...(fixErrorMetadata
-      ? {
-          message_intent_metadata: {
-            ...existingMetadata,
-            fix_error_metadata: {
-              ...fixErrorMetadata,
-              // mesmo error_id enquanto a assinatura do erro não mudar
-              error_ids: Array.isArray(fixErrorMetadata.error_ids) && fixErrorMetadata.error_ids.length > 0
-                ? fixErrorMetadata.error_ids
-                : [verdict.error_id],
-            },
-          },
-        }
-      : {}),
+    message_intent_metadata: {
+      ...(existingMetadata ?? {}),
+      fix_error_metadata: {
+        ...(fixErrorMetadata ?? {}),
+        // mesmo error_id enquanto a assinatura do erro não mudar
+        error_ids: Array.isArray(fixErrorMetadata?.error_ids) && (fixErrorMetadata.error_ids as unknown[]).length > 0
+          ? (fixErrorMetadata.error_ids as unknown[])
+          : [verdict.error_id],
+
+      },
+    },
     ...(isStr(params.system) ? { system: params.system } : {}),
   };
+
 
   // Roteamento direto via /chat com payload Thinking/Visual Edit.
   // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
