@@ -1015,7 +1015,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     finalMessage,
     aiMsgIdToSend,
     processedFiles,
-    session_id || verdict.thread_hint,
+    session_id,
     thinkingContext,
   );
 
