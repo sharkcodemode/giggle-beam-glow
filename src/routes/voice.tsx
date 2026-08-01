@@ -17,6 +17,25 @@ import {
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/voice")({
+  head: () => ({
+    meta: [
+      { title: "VoxCPM2 Forge — Síntese e clonagem de voz" },
+      {
+        name: "description",
+        content:
+          "Forge de voz neural em três modos: design zero-shot, clone controlado e replicação ultra-fiel, direto no navegador.",
+      },
+      { property: "og:title", content: "VoxCPM2 Forge — Síntese e clonagem de voz" },
+      {
+        property: "og:description",
+        content:
+          "Três modos de síntese vocal: design zero-shot, clone controlado e replicação ultra-fiel.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/voice" },
+    ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/voice" }],
+  }),
   component: VoicePage,
 });
 

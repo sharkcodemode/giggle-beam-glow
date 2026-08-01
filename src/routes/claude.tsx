@@ -36,7 +36,10 @@ export const Route = createFileRoute("/claude")({
         property: "og:description",
         content: "Painel direto pra modelos top-tier via gateway Lovable.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/claude" },
     ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/claude" }],
   }),
   component: ClaudePanel,
 });

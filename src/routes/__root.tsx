@@ -72,18 +72,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Acto PRO (BR) is an AI-powered application for generating text and images." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Acto PRO (BR) is an AI-powered application for generating text and images." },
+      { title: "ACTO Bridge — Console TIER S de IA e automação" },
+      {
+        name: "description",
+        content:
+          "Console ACTO Bridge: geração de texto e imagem por IA, modelos TIER S, RAG, voz neural e monitoramento em tempo real.",
+      },
+      { name: "author", content: "ACTO Bridge" },
+      { property: "og:site_name", content: "ACTO Bridge" },
+      { property: "og:title", content: "ACTO Bridge — Console TIER S de IA e automação" },
+      {
+        property: "og:description",
+        content:
+          "Console ACTO Bridge: geração de texto e imagem por IA, modelos TIER S, RAG, voz neural e monitoramento em tempo real.",
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "Acto PRO (BR) is an AI-powered application for generating text and images." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec918d38-a6a2-46ea-aee4-a17f6a3cdc51/id-preview-7a011620--7ef95a2d-eaac-480c-9a13-a85b4f7ade7e.lovable.app-1785520840048.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec918d38-a6a2-46ea-aee4-a17f6a3cdc51/id-preview-7a011620--7ef95a2d-eaac-480c-9a13-a85b4f7ade7e.lovable.app-1785520840048.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "ACTO Bridge — Console TIER S de IA e automação" },
+      {
+        name: "twitter:description",
+        content:
+          "Console ACTO Bridge: geração de texto e imagem por IA, modelos TIER S, RAG, voz neural e monitoramento em tempo real.",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

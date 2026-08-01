@@ -50,7 +50,10 @@ export const Route = createFileRoute("/ragmodelos")({
         content:
           "Indexe documentos, faça perguntas, receba respostas com fontes recuperadas via pgvector.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/ragmodelos" },
     ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/ragmodelos" }],
   }),
   component: RagModelosPage,
   errorComponent: ({ error, reset }) => (

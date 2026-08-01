@@ -23,7 +23,10 @@ export const Route = createFileRoute("/pulse")({
         property: "og:description",
         content: "Chat global em tempo real + mural público. Apenas texto e emoji.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/pulse" },
     ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/pulse" }],
   }),
   component: PulsePage,
   errorComponent: ({ error }) => (

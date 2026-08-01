@@ -10,7 +10,10 @@ export const Route = createFileRoute("/elitelovable")({
     meta: [
       { title: "ELITE LOVABLE · Prompt Refiner" },
       { name: "description", content: "Refinador TIER S de prompts Lovable via Gemini 2.5 Flash." },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/elitelovable" },
     ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/elitelovable" }],
   }),
 });
 
