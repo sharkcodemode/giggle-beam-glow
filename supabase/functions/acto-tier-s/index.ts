@@ -985,7 +985,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   const thinkingContext: Record<string, unknown> = {
     ...ctx,
     // thread estável por assinatura: nova conversa só quando o erro é outro
-    ...(session_id ? {} : { session_id: verdict.thread_hint }),
+    // NÃO inventar thread: a Lovable rejeita thread_id inexistente (404 unknown_thread)
     message_intent_metadata: {
       ...(existingMetadata ?? {}),
       fix_error_metadata: {
