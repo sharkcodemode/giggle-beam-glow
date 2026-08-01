@@ -995,9 +995,10 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     finalMessage,
     aiMsgIdToSend,
     processedFiles,
-    session_id,
+    session_id || verdict.thread_hint,
     thinkingContext,
   );
+
   console.log(
     "[acto-v2 payload] route=send_message intent=", lovablePayload.intent,
     "thread_id=", lovablePayload.thread_id,
