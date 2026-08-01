@@ -991,9 +991,10 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
       fix_error_metadata: {
         ...(fixErrorMetadata ?? {}),
         // mesmo error_id enquanto a assinatura do erro não mudar
-        error_ids: Array.isArray(fixErrorMetadata?.error_ids) && fixErrorMetadata!.error_ids.length > 0
-          ? fixErrorMetadata!.error_ids
+        error_ids: Array.isArray(fixErrorMetadata?.error_ids) && (fixErrorMetadata.error_ids as unknown[]).length > 0
+          ? (fixErrorMetadata.error_ids as unknown[])
           : [verdict.error_id],
+
       },
     },
     ...(isStr(params.system) ? { system: params.system } : {}),
