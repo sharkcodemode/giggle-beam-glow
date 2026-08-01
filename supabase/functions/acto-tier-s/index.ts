@@ -806,35 +806,8 @@ function buildTextReplacements(selectedElements: unknown[], finalMessage: string
   return [{ old_text: "", new_text: finalMessage, selected_element_index: 0 }];
 }
 
-const ALLOWED_SEVERITIES = new Set(["info", "minor", "warning", "error"]);
-const SEVERITY_ALIASES: Record<string, string> = {
-  low: "minor",
-  mid: "warning",
-  medium: "warning",
-  moderate: "warning",
-  high: "error",
-  critical: "error",
-};
 
-/** Normaliza/omite severity inválida em seo_fix_metadata (API só aceita info|minor|warning|error). */
-function sanitizeIntentMetadata(raw: unknown): Record<string, unknown> | undefined {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
-  const meta = { ...(raw as Record<string, unknown>) };
-  const seo = meta.seo_fix_metadata;
-  if (seo && typeof seo === "object" && !Array.isArray(seo)) {
-    const seoMeta = { ...(seo as Record<string, unknown>) };
-    const sev = typeof seoMeta.severity === "string" ? seoMeta.severity.toLowerCase().trim() : "";
-    if (ALLOWED_SEVERITIES.has(sev)) {
-      seoMeta.severity = sev;
-    } else if (SEVERITY_ALIASES[sev]) {
-      seoMeta.severity = SEVERITY_ALIASES[sev];
-    } else {
-      delete seoMeta.severity; // omite quando não mapeável
-    }
-    meta.seo_fix_metadata = seoMeta;
-  }
-  return meta;
-}
+
 
 function buildThinkingPayload(
   msgId: string,
@@ -864,7 +837,10 @@ function buildThinkingPayload(
       visual_edit_metadata: {
         text_replacements: buildTextReplacements(selectedElements, finalMessage),
       },
-      ...(sanitizeIntentMetadata(context.message_intent_metadata) ?? {}),
+      ...(context.message_intent_metadata && typeof context.message_intent_metadata === "object"
+        ? (context.message_intent_metadata as Record<string, unknown>)
+        : {}),
+
     },
     current_page: isStr(context.currentPage) ? context.currentPage : isStr(context.current_page) ? context.current_page : "/",
     current_viewport_dpr: typeof context.currentViewportDpr === "number" ? context.currentViewportDpr : typeof context.current_viewport_dpr === "number" ? context.current_viewport_dpr : 1,
