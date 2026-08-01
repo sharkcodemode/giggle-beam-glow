@@ -986,22 +986,19 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
     ...ctx,
     // thread estável por assinatura: nova conversa só quando o erro é outro
     ...(session_id ? {} : { session_id: verdict.thread_hint }),
-    ...(fixErrorMetadata
-      ? {
-          message_intent_metadata: {
-            ...existingMetadata,
-            fix_error_metadata: {
-              ...fixErrorMetadata,
-              // mesmo error_id enquanto a assinatura do erro não mudar
-              error_ids: Array.isArray(fixErrorMetadata.error_ids) && fixErrorMetadata.error_ids.length > 0
-                ? fixErrorMetadata.error_ids
-                : [verdict.error_id],
-            },
-          },
-        }
-      : {}),
+    message_intent_metadata: {
+      ...(existingMetadata ?? {}),
+      fix_error_metadata: {
+        ...(fixErrorMetadata ?? {}),
+        // mesmo error_id enquanto a assinatura do erro não mudar
+        error_ids: Array.isArray(fixErrorMetadata?.error_ids) && fixErrorMetadata!.error_ids.length > 0
+          ? fixErrorMetadata!.error_ids
+          : [verdict.error_id],
+      },
+    },
     ...(isStr(params.system) ? { system: params.system } : {}),
   };
+
 
   // Roteamento direto via /chat com payload Thinking/Visual Edit.
   // Zero Lovable Gateway. Zero model-chain. Zero fallback de modelo.
