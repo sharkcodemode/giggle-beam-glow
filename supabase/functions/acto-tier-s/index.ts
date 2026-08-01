@@ -829,29 +829,39 @@ function buildThinkingPayload(
     ? `${requestedSystem}\n\n${DEFAULT_THINKING_SYSTEM_PROMPT}`
     : DEFAULT_THINKING_SYSTEM_PROMPT;
 
-  // Sem elemento selecionado => fix_error (mais inteligente, gratuito, com anti-loop).
+  // Sem elemento selecionado => seo_fix (aceito pela Lovable, prompt neutro).
   // Com elemento selecionado => visual_edit (exige visual_edit_metadata).
   const ctxMetadata = context.message_intent_metadata && typeof context.message_intent_metadata === "object"
     ? (context.message_intent_metadata as Record<string, unknown>)
     : {};
   const useVisualEdit = selectedElements.length > 0;
-  const intent = useVisualEdit ? "visual_edit" : "fix_error";
+  const intent = useVisualEdit ? "visual_edit" : "seo_fix";
+
+  const ALLOWED_SEVERITIES = ["info", "minor", "warning", "error"];
+  const ctxSeo = typeof ctxMetadata.seo_fix_metadata === "object" && ctxMetadata.seo_fix_metadata
+    ? (ctxMetadata.seo_fix_metadata as Record<string, unknown>)
+    : {};
+  const severity = isStr(ctxSeo.severity) && ALLOWED_SEVERITIES.includes(ctxSeo.severity)
+    ? ctxSeo.severity
+    : "warning";
+
   const intentMetadata: Record<string, unknown> = useVisualEdit
     ? {
         visual_edit_metadata: {
           text_replacements: buildTextReplacements(selectedElements, finalMessage),
         },
-        ...ctxMetadata,
+        ...Object.fromEntries(
+          Object.entries(ctxMetadata).filter(([k]) => k !== "fix_error_metadata" && k !== "seo_fix_metadata"),
+        ),
       }
     : {
-        fix_error_metadata: {
-          error_ids: [],
-          ...(typeof ctxMetadata.fix_error_metadata === "object" && ctxMetadata.fix_error_metadata
-            ? (ctxMetadata.fix_error_metadata as Record<string, unknown>)
-            : {}),
+        seo_fix_metadata: {
+          audit_key: isStr(ctxSeo.audit_key) ? ctxSeo.audit_key : "meta-description",
+          audit_title: isStr(ctxSeo.audit_title) ? ctxSeo.audit_title : "Meta Description",
+          severity,
         },
-        ...Object.fromEntries(Object.entries(ctxMetadata).filter(([k]) => k !== "fix_error_metadata")),
       };
+
 
   const lovablePayload = {
     id: msgId,
@@ -877,8 +887,15 @@ function buildThinkingPayload(
     runtime_errors: [],
     session_replay: "[]",
     thread_id: session_id || "main",
-    view: isStr(context.view) ? context.view : "preview",
-    view_description: isStr(context.viewDescription) ? context.viewDescription : isStr(context.view_description) ? context.view_description : "The user is currently viewing the preview.",
+    user_timezone: isStr(context.user_timezone) ? context.user_timezone : "America/Sao_Paulo",
+    view: isStr(context.view) ? context.view : useVisualEdit ? "preview" : "more",
+    view_description: isStr(context.viewDescription)
+      ? context.viewDescription
+      : isStr(context.view_description)
+        ? context.view_description
+        : useVisualEdit
+          ? "The user is currently viewing the preview."
+          : "The user is viewing the More panel which consolidates Analytics, Cloud, Payments, Security, and SEO & AI search views. The user is currently viewing the SEO e busca por IA section in More.",
     system,
   };
 
