@@ -796,15 +796,18 @@ function getElementText(element: unknown): string {
 }
 
 function buildTextReplacements(selectedElements: unknown[], finalMessage: string) {
-  // Sem elemento selecionado não existe "troca de texto" real: devolver null faz
-  // o payload omitir visual_edit_metadata em vez de forçar um replacement vazio.
-  if (selectedElements.length === 0) return null;
+  // A Lovable exige visual_edit_metadata sempre que intent === "visual_edit".
+  // Sem elemento selecionado usamos um replacement sintético para manter o payload válido.
+  if (selectedElements.length === 0) {
+    return [{ old_text: "", new_text: finalMessage, selected_element_index: 0 }];
+  }
   return selectedElements.map((element, index) => ({
     old_text: getElementText(element),
     new_text: finalMessage,
     selected_element_index: index,
   }));
 }
+
 
 
 
