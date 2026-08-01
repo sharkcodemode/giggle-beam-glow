@@ -94,8 +94,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Console ACTO Bridge: geração de texto e imagem por IA, modelos TIER S, RAG, voz neural e monitoramento em tempo real.",
       },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec918d38-a6a2-46ea-aee4-a17f6a3cdc51/id-preview-7a011620--7ef95a2d-eaac-480c-9a13-a85b4f7ade7e.lovable.app-1785520840048.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec918d38-a6a2-46ea-aee4-a17f6a3cdc51/id-preview-7a011620--7ef95a2d-eaac-480c-9a13-a85b4f7ade7e.lovable.app-1785520840048.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
