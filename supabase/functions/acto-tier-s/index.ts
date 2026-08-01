@@ -819,6 +819,7 @@ function buildThinkingPayload(
   context: Record<string, unknown> = {},
 ) {
   const selectedElements = getSelectedElements(context);
+  const textReplacements = buildTextReplacements(selectedElements, finalMessage);
   const requestedSystem = isStr(context.system) ? context.system.trim() : "";
   const system = requestedSystem
     ? `${requestedSystem}\n\n${DEFAULT_THINKING_SYSTEM_PROMPT}`
@@ -835,14 +836,12 @@ function buildThinkingPayload(
     selected_elements: selectedElements,
     intent: "visual_edit",
     message_intent_metadata: {
-      visual_edit_metadata: {
-        text_replacements: buildTextReplacements(selectedElements, finalMessage),
-      },
+      ...(textReplacements ? { visual_edit_metadata: { text_replacements: textReplacements } } : {}),
       ...(context.message_intent_metadata && typeof context.message_intent_metadata === "object"
         ? (context.message_intent_metadata as Record<string, unknown>)
         : {}),
-
     },
+
     current_page: isStr(context.currentPage) ? context.currentPage : isStr(context.current_page) ? context.current_page : "/",
     current_viewport_dpr: typeof context.currentViewportDpr === "number" ? context.currentViewportDpr : typeof context.current_viewport_dpr === "number" ? context.current_viewport_dpr : 1,
     current_viewport_height: typeof context.currentViewportHeight === "number" ? context.currentViewportHeight : typeof context.current_viewport_height === "number" ? context.current_viewport_height : 1080,
