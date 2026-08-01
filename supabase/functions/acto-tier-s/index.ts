@@ -857,10 +857,17 @@ function buildThinkingPayload(
     : {
         seo_fix_metadata: {
           audit_key: isStr(ctxSeo.audit_key) ? ctxSeo.audit_key : "meta-description",
-          audit_title: isStr(ctxSeo.audit_title) ? ctxSeo.audit_title : "Meta Description",
+          // Máscara: o balão da Lovable renderiza `audit_title`. Usar a própria
+          // mensagem (1ª linha, até 90 chars) em vez do rótulo genérico.
+          audit_title: isStr(ctxSeo.audit_title)
+            ? ctxSeo.audit_title
+            : (finalMessage.split("\n").find((l) => l.trim().length > 0) ?? "Meta Description")
+                .trim()
+                .slice(0, 90),
           severity,
         },
       };
+
 
 
   const lovablePayload = {
