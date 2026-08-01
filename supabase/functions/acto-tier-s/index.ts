@@ -19,6 +19,8 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
+import { evaluateSend, recordOutcome } from "../_shared/anti-loop.ts";
+
 import {
   readSessionTicket,
   checkActiveSession,
