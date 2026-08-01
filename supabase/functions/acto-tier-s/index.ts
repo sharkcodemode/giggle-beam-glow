@@ -829,29 +829,39 @@ function buildThinkingPayload(
     ? `${requestedSystem}\n\n${DEFAULT_THINKING_SYSTEM_PROMPT}`
     : DEFAULT_THINKING_SYSTEM_PROMPT;
 
-  // Sem elemento selecionado => fix_error (mais inteligente, gratuito, com anti-loop).
+  // Sem elemento selecionado => seo_fix (aceito pela Lovable, prompt neutro).
   // Com elemento selecionado => visual_edit (exige visual_edit_metadata).
   const ctxMetadata = context.message_intent_metadata && typeof context.message_intent_metadata === "object"
     ? (context.message_intent_metadata as Record<string, unknown>)
     : {};
   const useVisualEdit = selectedElements.length > 0;
-  const intent = useVisualEdit ? "visual_edit" : "fix_error";
+  const intent = useVisualEdit ? "visual_edit" : "seo_fix";
+
+  const ALLOWED_SEVERITIES = ["info", "minor", "warning", "error"];
+  const ctxSeo = typeof ctxMetadata.seo_fix_metadata === "object" && ctxMetadata.seo_fix_metadata
+    ? (ctxMetadata.seo_fix_metadata as Record<string, unknown>)
+    : {};
+  const severity = isStr(ctxSeo.severity) && ALLOWED_SEVERITIES.includes(ctxSeo.severity)
+    ? ctxSeo.severity
+    : "warning";
+
   const intentMetadata: Record<string, unknown> = useVisualEdit
     ? {
         visual_edit_metadata: {
           text_replacements: buildTextReplacements(selectedElements, finalMessage),
         },
-        ...ctxMetadata,
+        ...Object.fromEntries(
+          Object.entries(ctxMetadata).filter(([k]) => k !== "fix_error_metadata" && k !== "seo_fix_metadata"),
+        ),
       }
     : {
-        fix_error_metadata: {
-          error_ids: [],
-          ...(typeof ctxMetadata.fix_error_metadata === "object" && ctxMetadata.fix_error_metadata
-            ? (ctxMetadata.fix_error_metadata as Record<string, unknown>)
-            : {}),
+        seo_fix_metadata: {
+          audit_key: isStr(ctxSeo.audit_key) ? ctxSeo.audit_key : "meta-description",
+          audit_title: isStr(ctxSeo.audit_title) ? ctxSeo.audit_title : "Meta Description",
+          severity,
         },
-        ...Object.fromEntries(Object.entries(ctxMetadata).filter(([k]) => k !== "fix_error_metadata")),
       };
+
 
   const lovablePayload = {
     id: msgId,
