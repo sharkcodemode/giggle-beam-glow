@@ -120,7 +120,7 @@ function Index() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [items, setItems] = useState<CalcItem[]>([
-    { id: Date.now(), description: "", quantity: 1, unitPrice: 0, discount: 0 },
+    { id: Date.now(), description: "que horas sao ?", quantity: 1, unitPrice: 0, discount: 0 },
   ]);
 
   useEffect(() => {
