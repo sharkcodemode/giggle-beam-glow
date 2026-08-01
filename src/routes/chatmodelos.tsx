@@ -25,7 +25,10 @@ export const Route = createFileRoute("/chatmodelos")({
         property: "og:description",
         content: "9 modelos Gemini/GPT via Lovable AI Gateway. Escolha o default do console /claude.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/chatmodelos" },
     ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/chatmodelos" }],
   }),
   component: ChatModelosPage,
   errorComponent: ({ error, reset }) => (

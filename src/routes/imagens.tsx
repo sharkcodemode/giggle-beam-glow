@@ -18,7 +18,10 @@ export const Route = createFileRoute("/imagens")({
         content:
           "Geração streaming com blur progressivo. Cobertura: openai/gpt-image-2, google/gemini-3-pro-image-preview e variantes Flash.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/imagens" },
     ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/imagens" }],
   }),
   component: ImagensPage,
   errorComponent: ({ error, reset }) => (

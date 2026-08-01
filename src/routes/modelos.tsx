@@ -26,7 +26,10 @@ export const Route = createFileRoute("/modelos")({
         property: "og:description",
         content: "Selecione o modelo primário e ordene fallbacks da cadeia RAG.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/modelos" },
     ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/modelos" }],
   }),
   component: ModelosPage,
   errorComponent: ({ error }) => (

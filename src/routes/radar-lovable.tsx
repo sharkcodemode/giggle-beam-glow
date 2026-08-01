@@ -36,7 +36,10 @@ export const Route = createFileRoute("/radar-lovable")({
         property: "og:description",
         content: "Monitor em tempo real da comunidade Lovable.dev.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/radar-lovable" },
     ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/radar-lovable" }],
   }),
   component: RadarLovablePage,
 });
