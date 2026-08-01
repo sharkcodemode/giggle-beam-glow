@@ -25,6 +25,35 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "ACTO Bridge — Hub de assets, IA e automação" },
+      {
+        name: "description",
+        content:
+          "Hub ACTO Bridge: downloads auditados, extensão Chrome TIER S, console de IA, vault de áudio e radar da comunidade em tempo real.",
+      },
+      { property: "og:title", content: "ACTO Bridge — Hub de assets, IA e automação" },
+      {
+        property: "og:description",
+        content:
+          "Hub ACTO Bridge: downloads auditados, extensão Chrome TIER S, console de IA, vault de áudio e radar da comunidade em tempo real.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://actobredge.lovable.app/" },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec918d38-a6a2-46ea-aee4-a17f6a3cdc51/id-preview-7a011620--7ef95a2d-eaac-480c-9a13-a85b4f7ade7e.lovable.app-1785520840048.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec918d38-a6a2-46ea-aee4-a17f6a3cdc51/id-preview-7a011620--7ef95a2d-eaac-480c-9a13-a85b4f7ade7e.lovable.app-1785520840048.png",
+      },
+    ],
+    links: [{ rel: "canonical", href: "https://actobredge.lovable.app/" }],
+  }),
   component: Index,
 });
 
