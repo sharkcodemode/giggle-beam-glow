@@ -1044,7 +1044,10 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   } catch {
     /* keep text */
   }
-  return { status: res.status, body: parsed, lovable_chat_ms };
+  // registra desfecho: falha bloqueia auto-retry imediato do mesmo error_id
+  recordOutcome(antiLoopScope, verdict.error_id, res.status);
+  return { status: res.status, body: parsed, lovable_chat_ms, anti_loop: verdict };
+
 }
 
 async function actionListProjects(captured: Captured) {
