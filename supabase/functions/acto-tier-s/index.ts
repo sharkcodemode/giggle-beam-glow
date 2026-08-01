@@ -860,13 +860,13 @@ function buildThinkingPayload(
           // Máscara do balão: o prefixo "Tentar corrigir problema de SEO: " é
           // literal do front da Lovable e não vem do payload. O único campo que
           // controlamos é `audit_title` — usamos o rótulo ACTO + a mensagem.
+          // Limite ampliado: mensagem completa (multi-linha) até AUDIT_TITLE_MAX chars.
           audit_title: isStr(ctxSeo.audit_title)
             ? ctxSeo.audit_title
-            : `Acto: Msg Recebida\n\n${
-                (finalMessage.split("\n").find((l) => l.trim().length > 0) ?? "").trim().slice(0, 200)
-              }`.trim(),
+            : `Acto: Msg Recebida\n\n${truncateForTitle(finalMessage, AUDIT_TITLE_MAX)}`.trim(),
           severity,
         },
+
 
       };
 
