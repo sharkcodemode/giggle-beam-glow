@@ -796,15 +796,16 @@ function getElementText(element: unknown): string {
 }
 
 function buildTextReplacements(selectedElements: unknown[], finalMessage: string) {
-  if (selectedElements.length > 0) {
-    return selectedElements.map((element, index) => ({
-      old_text: getElementText(element),
-      new_text: finalMessage,
-      selected_element_index: index,
-    }));
-  }
-  return [{ old_text: "", new_text: finalMessage, selected_element_index: 0 }];
+  // Sem elemento selecionado não existe "troca de texto" real: devolver null faz
+  // o payload omitir visual_edit_metadata em vez de forçar um replacement vazio.
+  if (selectedElements.length === 0) return null;
+  return selectedElements.map((element, index) => ({
+    old_text: getElementText(element),
+    new_text: finalMessage,
+    selected_element_index: index,
+  }));
 }
+
 
 
 
