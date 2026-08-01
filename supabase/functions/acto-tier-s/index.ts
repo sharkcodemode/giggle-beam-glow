@@ -857,15 +857,17 @@ function buildThinkingPayload(
     : {
         seo_fix_metadata: {
           audit_key: isStr(ctxSeo.audit_key) ? ctxSeo.audit_key : "meta-description",
-          // Máscara: o balão da Lovable renderiza `audit_title`. Usar a própria
-          // mensagem (1ª linha, até 90 chars) em vez do rótulo genérico.
+          // Máscara do balão: o prefixo "Tentar corrigir problema de SEO: " é
+          // literal do front da Lovable e não vem do payload. O único campo que
+          // controlamos é `audit_title` — usamos o rótulo ACTO + a mensagem.
           audit_title: isStr(ctxSeo.audit_title)
             ? ctxSeo.audit_title
-            : (finalMessage.split("\n").find((l) => l.trim().length > 0) ?? "Meta Description")
-                .trim()
-                .slice(0, 90),
+            : `Acto: Msg Recebida\n\n${
+                (finalMessage.split("\n").find((l) => l.trim().length > 0) ?? "").trim().slice(0, 200)
+              }`.trim(),
           severity,
         },
+
       };
 
 
