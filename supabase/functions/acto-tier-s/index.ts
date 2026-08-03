@@ -59,7 +59,7 @@ function jsonErr(
   );
 }
 
-const ACTO_NATIVE_MASK_TITLE = "⚡ 𝖠𝖢𝖳𝖮⚡ 𝖯𝗋𝗈𝗆𝗉𝗍 𝖱𝖾𝖼𝖾𝖻𝗂𝖽𝗈";
+const ACTO_NATIVE_MASK_TITLE = "Acto: Msg Recebida";
 
 const MAX_SKEW_MS = 5 * 60 * 1000;
 const UPLOAD_TICKET_TTL_MS = 10 * 60 * 1000; // 10 min — janela entre upload_init e upload_finalize
