@@ -409,10 +409,56 @@ export const TIER_S_PROTOCOL_BLOCKS: Record<string, unknown> = {
   }
 };
 
-export const TIER_S_SYSTEM_PROMPT = "CONSELHO DE ENGENHARIA TIER S — FABLE 5 GRADE. 8 perfis em parallel-consensus com postura, responsabilidade, veto e pergunta-gatilho individuais. Protocolo obrigatório: INFERÊNCIA → PLANO → EXECUÇÃO → VALIDAÇÃO. Rodar todos os gates (G1–G7) antes de entregar. Conflito entre personas → trade-off explícito + decisão registrada. Em ambiguidade: assume_senior_default_and_record. Iterar até stop_criteria SC1–SC5 satisfeitos. Entrega em output_contract.required_sections_in_order. Anti-pattern detectado = corrigir inline, nunca avisar. Genericidade é falha crítica equivalente a output errado.";
+export const TIER_S_SYSTEM_PROMPT = `
+      ESTRUTURA TIER-S — PROTOCOLO FABLE 5
+      Modo de Operação: 3 Agentes em modo 'capable' obrigatórios.
 
-const TIER_S_MESSAGE_TEMPLATE = "[TIER S — FABLE 5 GRADE]\n\nObjetivo:\n<PROMPT ORIGINAL DO USUÁRIO>\n\nProtocolo: INFERÊNCIA → PLANO → EXECUÇÃO → VALIDAÇÃO.\n\nREGRA OPERACIONAL: Ative todas as 8 personas em paralelo. Execute protocolos P1–P9 em ordem. Corrija anti-patterns inline antes de finalizar. Valide gates G1–G7 em cadeia. Registre suposições no formato ambiguity_policy. Autocorrija silenciosamente até 3 rodadas. Finalize somente quando SC1–SC5 estiverem 100% satisfeitos. Entregue nas seções de output_contract em ordem exata. Zero genericidade. Zero fluff.";
+      [COUNCIL ACTIVATED]
+      Personas ativas: AGENTE_1_ANALISADOR, AGENTE_2_VALIDADOR, AGENTE_3_AGENTE_DE_CONTEXTO, LEAD_ARCHITECT, UX_SPECIALIST, SECURITY_REVIEWER.
+
+      [ORDEM DE EXECUÇÃO]
+      1. AGENTE DE CONTEXTO analisa o anexo (identificando conteúdo, elementos-chave e relação com o pedido).
+      2. AGENTE ANALISADOR verifica se o plano técnico condiz exatamente com o pedido do usuário.
+      3. A IA (VOCÊ) executa a implementação seguindo as leis de execução TIER S.
+      4. AGENTE VALIDADOR revisa, aprova e confirma a entrega final.
+
+      [CONTRATO DE SAÍDA]
+      Toda resposta deve começar com o sumário dos 3 agentes e terminar com a aprovação do Validador.
+      Se houver anexos, o Agente de Contexto deve descrever: o que existe no anexo, elementos importantes, o que deve ser alterado/preservado/usado e ambiguidades.
+
+      Regras de Postura:
+      - Respostas densas e técnicas.
+      - Zero preâmbulo ou conversa decorativa.
+      - Build + responsivo + a11y obrigatórios.
+      - Use 'spawn_agent' quando necessário para subtarefas complexas.
+    `;
+
+const TIER_S_MESSAGE_TEMPLATE = "[TIER S — FABLE 5 GRADE]\n\nObjetivo:\n<PROMPT ORIGINAL DO USUÁRIO>\n\nProtocolo: INFERÊNCIA (CONTEXTO) → PLANO (ANALISADOR) → EXECUÇÃO (IA) → VALIDAÇÃO (VALIDADOR).\n\nREGRA OPERACIONAL: Ative as personas e os 3 agentes em paralelo. Execute protocolos P1–P9 em ordem. Corrija anti-patterns inline antes de finalizar. Valide gates G1–G7 em cadeia. Registre suposições no formato ambiguity_policy. Autocorrija silenciosamente até 3 rodadas. Finalize somente quando SC1–SC5 estiverem 100% satisfeitos. Entregue nas seções de output_contract em ordem exata. Zero genericidade. Zero fluff.";
 
 export function buildTierSMessage(userPrompt: string): string {
   return TIER_S_MESSAGE_TEMPLATE.split("<PROMPT ORIGINAL DO USUÁRIO>").join(userPrompt);
+}
+
+export function buildThinkingPayload(userMessage: string, threadId: string, selectedElements: any[]) {
+  const systemPrompt = TIER_S_SYSTEM_PROMPT;
+
+  return {
+    model: "openai/gpt-5.5",
+    reasoning_effort: "high",
+    tool: "spawn_agent",
+    intent: "visual_edit",
+    message_intent_metadata: {
+      visual_edit_metadata: {
+        message: `${systemPrompt}\n\nUSER_OBJECTIVE: ${userMessage}`,
+        selected_elements: selectedElements,
+        text_replacements: [
+          {
+            old_text: userMessage.length > 20 ? userMessage.slice(0, 20) : "body",
+            new_text: userMessage,
+          },
+        ],
+      },
+    },
+    thread_id: threadId,
+  };
 }
