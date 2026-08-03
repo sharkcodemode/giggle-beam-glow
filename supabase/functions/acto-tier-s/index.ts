@@ -19,7 +19,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
-import { evaluateSend, recordOutcome } from "../_shared/anti-loop.ts";
+// import { evaluateSend, recordOutcome } from "../_shared/anti-loop.ts";
 import {
   TIER_S_PROTOCOL_BLOCKS,
   TIER_S_SYSTEM_PROMPT,
@@ -961,10 +961,13 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
           : "";
   const finalMessage = message;
 
-  // --- Higiene anti-loop (fix_error / relay) -------------------------------
+  // --- Higiene anti-loop (DESATIVADA via user request) ---------------------
   const antiLoopScope = `${licenseId || "anon"}|${projectId}`;
-  const forceSend = params.force === true || ctx.force === true;
-  const verdict = await evaluateSend(antiLoopScope, finalMessage, forceSend);
+  // const forceSend = params.force === true || ctx.force === true;
+  // const verdict = await evaluateSend(antiLoopScope, finalMessage, forceSend);
+  const verdict = { error_id: "disabled", blocked: false, similarity: 0, repeat_count: 0, reason: null, warning: null };
+  
+  /* 
   console.log(
     "[acto-v2 anti-loop] error_id=", verdict.error_id,
     "similarity=", verdict.similarity,
@@ -986,6 +989,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
       anti_loop: verdict,
     };
   }
+  */
 
   const existingMetadata =
     ctx.message_intent_metadata && typeof ctx.message_intent_metadata === "object"
@@ -1078,8 +1082,8 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
   } catch {
     /* keep text */
   }
-  // registra desfecho: falha bloqueia auto-retry imediato do mesmo error_id
-  recordOutcome(antiLoopScope, verdict.error_id, res.status);
+  // registra desfecho: (anti-loop desativado)
+  // recordOutcome(antiLoopScope, verdict.error_id, res.status);
   return { status: res.status, body: parsed, lovable_chat_ms, anti_loop: verdict };
 
 }
