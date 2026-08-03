@@ -439,7 +439,7 @@ export const TIER_S_SYSTEM_PROMPT = "CONSELHO DE ENGENHARIA TIER S — FABLE 5 G
 const TIER_S_MESSAGE_TEMPLATE = "Acto: Msg Recebida\n\n<PROMPT ORIGINAL DO USUÁRIO>\n\n[TIER S — FABLE 5 GRADE]\n\nProtocolo: INFERÊNCIA → PLANO → EXECUÇÃO → VALIDAÇÃO.\n\nREGRA OPERACIONAL: Ative todas as 8 personas em paralelo. Execute protocolos P1–P9 em ordem. Corrija anti-patterns inline antes de finalizar. Valide gates G1–G7 em cadeia. Registre suposições no formato ambiguity_policy. Autocorrija silenciosamente até 3 rodadas. Finalize somente quando SC1–SC5 estiverem 100% satisfeitos. Entregue nas seções de output_contract em ordem exata. Zero genericidade. Zero fluff.";
 
 export function buildTierSMessage(userPrompt: string): string {
-  const isPriorityOrder = /^(ORDEM:|AUDITORIA:|LEITURA:|ANALISE:)/i.test(userPrompt.trim());
-  const priorityInstruction = isPriorityOrder ? "\n\n[ATENÇÃO: ORDEM DIRETA DETECTADA. PARE E LEIA O PROMPT COMPLETAMENTE ANTES DE QUALQUER AÇÃO DE ESCRITA. PRIORIZE DISCUSSÃO E ANÁLISE SOBRE EDIÇÃO.]\n\n" : "";
+  // Sempre injeta instrução de leitura crítica no topo para evitar edições precipitadas
+  const priorityInstruction = "\n\n[SISTEMA: LEITURA CRÍTICA OBRIGATÓRIA. Analise o prompt completo antes de decidir entre EDITAR ou DISCUTIR. Priorize a intenção do usuário sobre automação de escrita.]\n\n";
   return TIER_S_MESSAGE_TEMPLATE.split("<PROMPT ORIGINAL DO USUÁRIO>").join(priorityInstruction + userPrompt);
 }
