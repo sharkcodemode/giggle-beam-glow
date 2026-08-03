@@ -20,6 +20,12 @@
 
 import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
 import { evaluateSend, recordOutcome } from "../_shared/anti-loop.ts";
+import {
+  TIER_S_PROTOCOL_BLOCKS,
+  TIER_S_SYSTEM_PROMPT,
+  buildTierSMessage,
+} from "../_shared/tier-s-payload.ts";
+
 
 import {
   readSessionTicket,
@@ -766,11 +772,6 @@ function typeid(prefix: string): string {
   return `${prefix}_${out.join("")}`;
 }
 
-import {
-  TIER_S_PROTOCOL_BLOCKS,
-  TIER_S_SYSTEM_PROMPT,
-  buildTierSMessage,
-} from "../_shared/tier-s-payload.ts";
 
 
 function createClientId(): string {
