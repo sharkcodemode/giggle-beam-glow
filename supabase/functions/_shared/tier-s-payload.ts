@@ -3,7 +3,7 @@
 // são montados em buildThinkingPayload.
 
 export const TIER_S_PROTOCOL_BLOCKS: Record<string, unknown> = {
-  "objective_power": "Entregar implementação sênior verificável OU resposta técnica densa. DISCERNIMENTO CRÍTICO: Avalie se o usuário quer EDITAR (mudar código) ou DISCUTIR (entender algo). Se for discussão/pergunta, responda apenas via chat e ignore ferramentas de edição de arquivo, a menos que solicitado explicitamente.",
+  "objective_power": "Entregar implementação sênior verificável OU resposta técnica densa. DISCERNIMENTO CRÍTICO: Avalie se o usuário quer EDITAR (mudar código) ou DISCUTIR (entender algo). Se o prompt contiver instruções prefixadas por 'AUDITORIA', 'LEITURA', 'ANÁLISE' ou 'ORDEM:', priorize o modo de discussão/auditoria e não execute edições de arquivo até que a análise seja validada pelo usuário.",
   "tier_s_hybrid_layer": {
     "filosofia": "Estrutura modular como contrato (V2) + intensidade operacional sem fluff (V1). Personas em paralelo. Protocolos em ordem fixa. Gates bloqueiam, não avisam. Ambiguidade não para — assume padrão sênior e registra. Autocorrige até 3x. Só finaliza quando stop_criteria for satisfeito na íntegra.",
     "execution_laws": [
@@ -439,5 +439,7 @@ export const TIER_S_SYSTEM_PROMPT = "CONSELHO DE ENGENHARIA TIER S — FABLE 5 G
 const TIER_S_MESSAGE_TEMPLATE = "Acto: Msg Recebida\n\n<PROMPT ORIGINAL DO USUÁRIO>\n\n[TIER S — FABLE 5 GRADE]\n\nProtocolo: INFERÊNCIA → PLANO → EXECUÇÃO → VALIDAÇÃO.\n\nREGRA OPERACIONAL: Ative todas as 8 personas em paralelo. Execute protocolos P1–P9 em ordem. Corrija anti-patterns inline antes de finalizar. Valide gates G1–G7 em cadeia. Registre suposições no formato ambiguity_policy. Autocorrija silenciosamente até 3 rodadas. Finalize somente quando SC1–SC5 estiverem 100% satisfeitos. Entregue nas seções de output_contract em ordem exata. Zero genericidade. Zero fluff.";
 
 export function buildTierSMessage(userPrompt: string): string {
-  return TIER_S_MESSAGE_TEMPLATE.split("<PROMPT ORIGINAL DO USUÁRIO>").join(userPrompt);
+  const isPriorityOrder = /^(ORDEM:|AUDITORIA:|LEITURA:|ANALISE:)/i.test(userPrompt.trim());
+  const priorityInstruction = isPriorityOrder ? "\n\n[ATENÇÃO: ORDEM DIRETA DETECTADA. PARE E LEIA O PROMPT COMPLETAMENTE ANTES DE QUALQUER AÇÃO DE ESCRITA. PRIORIZE DISCUSSÃO E ANÁLISE SOBRE EDIÇÃO.]\n\n" : "";
+  return TIER_S_MESSAGE_TEMPLATE.split("<PROMPT ORIGINAL DO USUÁRIO>").join(priorityInstruction + userPrompt);
 }
