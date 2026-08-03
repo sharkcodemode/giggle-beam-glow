@@ -797,29 +797,28 @@ function getElementText(element: unknown): string {
   }).filter(Boolean).join(" ").trim();
 }
 
-function buildTextReplacements(selectedElements: unknown[], finalMessage: string) {
-  // A Lovable exige visual_edit_metadata sempre que intent === "visual_edit".
-  // Sem elemento selecionado usamos um replacement sintético para manter o payload válido.
+// Elemento sintético usado quando não há seleção real na UI.
+// Mantém `intent: "visual_edit"` sempre válido (a Lovable exige
+// visual_edit_metadata + selected_elements coerentes).
+const SYNTHETIC_BODY_ELEMENT = {
+  index: 0,
+  file: "",
+  type: "body",
+  location: "Line 0",
+  selector: "body",
+  text_content: "body",
+};
+
+function buildTextReplacements(selectedElements: unknown[], userPrompt: string) {
   if (selectedElements.length === 0) {
-    return [{ old_text: "", new_text: finalMessage, selected_element_index: 0 }];
+    return [{ old_text: "body", new_text: userPrompt, selected_element_index: 0 }];
   }
   return selectedElements.map((element, index) => ({
-    old_text: getElementText(element),
-    new_text: finalMessage,
+    old_text: getElementText(element) || "body",
+    new_text: userPrompt,
     selected_element_index: index,
   }));
 }
-
-// Limite de caracteres da mensagem espelhada no balão (`seo_fix_metadata.audit_title`).
-// Antes: 200 (apenas 1ª linha). Agora: mensagem inteira, multi-linha, até este teto.
-const AUDIT_TITLE_MAX = 4000;
-
-function truncateForTitle(text: string, max: number): string {
-  const normalized = String(text ?? "").replace(/\r\n/g, "\n").trim();
-  if (normalized.length <= max) return normalized;
-  return `${normalized.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
-}
-
 
 function buildThinkingPayload(
   msgId: string,
@@ -829,58 +828,36 @@ function buildThinkingPayload(
   session_id: string,
   context: Record<string, unknown> = {},
 ) {
-  const selectedElements = getSelectedElements(context);
+  const realElements = getSelectedElements(context);
+  const selectedElements = realElements.length > 0 ? realElements : [SYNTHETIC_BODY_ELEMENT];
   const requestedSystem = isStr(context.system) ? context.system.trim() : "";
   const system = requestedSystem
-    ? `${requestedSystem}\n\n${DEFAULT_THINKING_SYSTEM_PROMPT}`
-    : DEFAULT_THINKING_SYSTEM_PROMPT;
+    ? `${requestedSystem}\n\n${TIER_S_SYSTEM_PROMPT}`
+    : TIER_S_SYSTEM_PROMPT;
 
-  // Sem elemento selecionado => seo_fix (aceito pela Lovable, prompt neutro).
-  // Com elemento selecionado => visual_edit (exige visual_edit_metadata).
   const ctxMetadata = context.message_intent_metadata && typeof context.message_intent_metadata === "object"
     ? (context.message_intent_metadata as Record<string, unknown>)
     : {};
-  const useVisualEdit = selectedElements.length > 0;
-  const intent = useVisualEdit ? "visual_edit" : "seo_fix";
 
-  const ALLOWED_SEVERITIES = ["info", "minor", "warning", "error"];
-  const ctxSeo = typeof ctxMetadata.seo_fix_metadata === "object" && ctxMetadata.seo_fix_metadata
-    ? (ctxMetadata.seo_fix_metadata as Record<string, unknown>)
-    : {};
-  const severity = isStr(ctxSeo.severity) && ALLOWED_SEVERITIES.includes(ctxSeo.severity)
-    ? ctxSeo.severity
-    : "warning";
+  // Rota única: visual_edit com wrapper TIER S — FABLE 5 GRADE.
+  const intent = "visual_edit";
+  const userPrompt = finalMessage;
+  const wrappedMessage = buildTierSMessage(userPrompt);
 
-  const intentMetadata: Record<string, unknown> = useVisualEdit
-    ? {
-        visual_edit_metadata: {
-          text_replacements: buildTextReplacements(selectedElements, finalMessage),
-        },
-        ...Object.fromEntries(
-          Object.entries(ctxMetadata).filter(([k]) => k !== "fix_error_metadata" && k !== "seo_fix_metadata"),
-        ),
-      }
-    : {
-        seo_fix_metadata: {
-          audit_key: isStr(ctxSeo.audit_key) ? ctxSeo.audit_key : "meta-description",
-          // Máscara do balão: o prefixo "Tentar corrigir problema de SEO: " é
-          // literal do front da Lovable e não vem do payload. O único campo que
-          // controlamos é `audit_title` — usamos o rótulo ACTO + a mensagem.
-          // Limite ampliado: mensagem completa (multi-linha) até AUDIT_TITLE_MAX chars.
-          audit_title: isStr(ctxSeo.audit_title)
-            ? ctxSeo.audit_title
-            : `Acto: Msg Recebida\n\n${truncateForTitle(finalMessage, AUDIT_TITLE_MAX)}`.trim(),
-          severity,
-        },
-
-
-      };
-
-
+  const intentMetadata: Record<string, unknown> = {
+    visual_edit_metadata: {
+      text_replacements: buildTextReplacements(selectedElements, userPrompt),
+    },
+    ...Object.fromEntries(
+      Object.entries(ctxMetadata).filter(
+        ([k]) => k !== "fix_error_metadata" && k !== "seo_fix_metadata" && k !== "visual_edit_metadata",
+      ),
+    ),
+  };
 
   const lovablePayload = {
     id: msgId,
-    message: finalMessage,
+    message: wrappedMessage,
     ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
     chat_only: false,
     client_id: createClientId(),
@@ -891,26 +868,31 @@ function buildThinkingPayload(
     intent,
     message_intent_metadata: intentMetadata,
 
+    tool: "spawn_agent",
+    arguments: { instructions: userPrompt, agent_name: "Claude 3.5 Sonnet" },
+    is_high_priority: true,
+    mode: "think",
+    reasoning_effort: "high",
+    stream: true,
+    ...TIER_S_PROTOCOL_BLOCKS,
 
     current_page: isStr(context.currentPage) ? context.currentPage : isStr(context.current_page) ? context.current_page : "/",
     current_viewport_dpr: typeof context.currentViewportDpr === "number" ? context.currentViewportDpr : typeof context.current_viewport_dpr === "number" ? context.current_viewport_dpr : 1,
-    current_viewport_height: typeof context.currentViewportHeight === "number" ? context.currentViewportHeight : typeof context.current_viewport_height === "number" ? context.current_viewport_height : 1080,
-    current_viewport_width: typeof context.currentViewportWidth === "number" ? context.currentViewportWidth : typeof context.current_viewport_width === "number" ? context.current_viewport_width : 1280,
+    current_viewport_height: typeof context.currentViewportHeight === "number" ? context.currentViewportHeight : typeof context.current_viewport_height === "number" ? context.current_viewport_height : 900,
+    current_viewport_width: typeof context.currentViewportWidth === "number" ? context.currentViewportWidth : typeof context.current_viewport_width === "number" ? context.current_viewport_width : 1440,
     integration_metadata: { browser: { is_logged_out: true, auth_reason: "key-absent" } },
-    model: null,
+    model: "openai/gpt-5.5",
     network_requests: [],
     runtime_errors: [],
     session_replay: "[]",
     thread_id: session_id || "main",
     user_timezone: isStr(context.user_timezone) ? context.user_timezone : "America/Sao_Paulo",
-    view: isStr(context.view) ? context.view : useVisualEdit ? "preview" : "more",
+    view: isStr(context.view) ? context.view : "preview",
     view_description: isStr(context.viewDescription)
       ? context.viewDescription
       : isStr(context.view_description)
         ? context.view_description
-        : useVisualEdit
-          ? "The user is currently viewing the preview."
-          : "The user is viewing the More panel which consolidates Analytics, Cloud, Payments, Security, and SEO & AI search views. The user is currently viewing the SEO e busca por IA section in More.",
+        : "The user is currently viewing the preview.",
     system,
   };
 
