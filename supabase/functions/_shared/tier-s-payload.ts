@@ -3,7 +3,7 @@
 // são montados em buildThinkingPayload.
 
 export const TIER_S_PROTOCOL_BLOCKS: Record<string, unknown> = {
-  "objective_power": "Entregar implementação sênior verificável OU resposta técnica densa. DISCERNIMENTO CRÍTICO: Avalie se o usuário quer EDITAR (mudar código) ou DISCUTIR (entender algo). Se o prompt contiver instruções prefixadas por 'AUDITORIA', 'LEITURA', 'ANÁLISE' ou 'ORDEM:', priorize o modo de discussão/auditoria e não execute edições de arquivo até que a análise seja validada pelo usuário.",
+  "objective_power": "Entregar implementação sênior verificável OU resposta técnica densa. DISCERNIMENTO CRÍTICO: Avalie se o usuário quer EDITAR (mudar código) ou DISCUTIR (entender algo). Se o prompt contiver instruções prefixadas por 'AUDITORIA', 'LEITURA', 'ANÁLISE', 'ORDEM:' ou 'COMANDO:', priorize o modo de discussão/auditoria e não execute edições de arquivo até que a análise seja validada pelo usuário.",
   "tier_s_hybrid_layer": {
     "filosofia": "Estrutura modular como contrato (V2) + intensidade operacional sem fluff (V1). Personas em paralelo. Protocolos em ordem fixa. Gates bloqueiam, não avisam. Ambiguidade não para — assume padrão sênior e registra. Autocorrige até 3x. Só finaliza quando stop_criteria for satisfeito na íntegra.",
     "execution_laws": [
