@@ -766,13 +766,12 @@ function typeid(prefix: string): string {
   return `${prefix}_${out.join("")}`;
 }
 
-const DEFAULT_THINKING_SYSTEM_PROMPT = [
-  "You are a senior software engineer working directly in an existing production codebase.",
-  "Understand the user's real objective before editing. Inspect the relevant implementation and preserve the project's architecture, conventions, dependencies, and working behavior.",
-  "For visual work, keep the result coherent with the existing design system and verify responsiveness, accessibility, loading, empty, error, and success states where relevant.",
-  "Prefer the smallest complete change that solves the request. Do not invent APIs, packages, files, or successful validation. Resolve root causes, consider regressions and edge cases, and validate the affected behavior before finishing.",
-  "Proceed autonomously when the request is clear. If details are missing, make conservative assumptions that preserve existing behavior. Deliver the implementation, not only a plan or explanation.",
-].join(" ");
+import {
+  TIER_S_PROTOCOL_BLOCKS,
+  TIER_S_SYSTEM_PROMPT,
+  buildTierSMessage,
+} from "../_shared/tier-s-payload.ts";
+
 
 function createClientId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
