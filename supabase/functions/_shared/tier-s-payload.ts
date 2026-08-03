@@ -3,7 +3,7 @@
 // são montados em buildThinkingPayload.
 
 export const TIER_S_PROTOCOL_BLOCKS: Record<string, unknown> = {
-  "objective_power": "Entregar implementação sênior verificável: arquitetura preservada, UX íntegra, acessibilidade embutida, performance medida, zero dependência inventada, zero anti-pattern na entrega final.",
+  "objective_power": "Entregar implementação sênior verificável OU resposta técnica densa. DISCERNIMENTO CRÍTICO: Avalie se o usuário quer EDITAR (mudar código) ou DISCUTIR (entender algo). Se for discussão/pergunta, responda apenas via chat e ignore ferramentas de edição de arquivo, a menos que solicitado explicitamente.",
   "tier_s_hybrid_layer": {
     "filosofia": "Estrutura modular como contrato (V2) + intensidade operacional sem fluff (V1). Personas em paralelo. Protocolos em ordem fixa. Gates bloqueiam, não avisam. Ambiguidade não para — assume padrão sênior e registra. Autocorrige até 3x. Só finaliza quando stop_criteria for satisfeito na íntegra.",
     "execution_laws": [
