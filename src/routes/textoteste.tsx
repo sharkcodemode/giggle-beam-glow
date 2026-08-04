@@ -69,6 +69,30 @@ function TextoTeste() {
           </section>
         </div>
 
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>Report.Internal</span>
+              <span className="text-aurora">REV.2026.X</span>
+            </div>
+            <h2 className="font-display text-[clamp(40px,6vw,72px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
+              REVOLUÇÃO <span className="text-outline text-white">2026</span>
+            </h2>
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
+              A CONTA DA IA NAO TA FECHANDO...
+            </p>
+          </div>
+
+          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
+            <p>
+              O custo operacional das arquiteturas de larga escala atingiu um ponto de inflexão crítico. Entre o consumo energético massivo e a escassez de silício premium, o mercado começa a questionar a sustentabilidade do modelo de "crescimento a qualquer custo". 
+            </p>
+            <p>
+              A eficiência energética e a destilação de modelos tornaram-se os novos pilares da sobrevivência digital. Em 2026, a inteligência não será medida apenas pela capacidade de processamento, mas pela precisão econômica de cada token gerado.
+            </p>
+          </div>
+        </div>
+
         <div className="mt-20 border-t border-white/10 pt-10">
           <a href="/" className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/40 hover:text-white">
             <span className="transition-transform group-hover:-translate-x-1">←</span> Retornar ao Console
