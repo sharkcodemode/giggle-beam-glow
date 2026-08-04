@@ -201,8 +201,7 @@ function Index() {
           <div className="mx-auto grid max-w-[1600px] grid-cols-12 gap-6">
             <div className="col-span-12 lg:col-span-7">
               <div className="mb-10 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
-                <span>—— 2026 / Q2</span>
-                <span className="text-aurora">Index.001</span>
+                <span>[ACTO] VERSION AGO 3.0</span>
               </div>
 
               <h1 className="font-display text-[clamp(56px,10.5vw,168px)] font-extrabold uppercase leading-[0.88] tracking-[-0.045em]">
