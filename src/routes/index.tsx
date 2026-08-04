@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import heroBannerAsset from "@/assets/main-hero-banner.png.asset.json";
+import heroBannerAsset from "@/assets/hero-aurora-monolith.jpg";
 import {
   ArrowUpRight,
   Calculator,
