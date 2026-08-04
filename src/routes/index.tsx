@@ -264,7 +264,7 @@ function Index() {
                 </div>
                 <div className="absolute inset-x-0 bottom-0 p-6">
                   <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--aurora-mint)]">Organic Synthesis</p>
-                  <p className="mt-2 font-display text-3xl italic leading-tight">status: radiating</p>
+                  <p className="mt-2 font-display text-3xl italic leading-tight">mas sao pagas</p>
                 </div>
               </div>
 
