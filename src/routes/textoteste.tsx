@@ -246,6 +246,42 @@ function TextoTeste() {
           </a>
         </div>
       </main>
-    </div>
+        </div>
+289: 
+290:         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+291:           <div className="mb-12">
+292:             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+293:               <span>Execution.Core</span>
+294:               <span className="text-aurora">PROTOCOLS.SOP</span>
+295:             </div>
+296:             <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+297:               <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+298:               <span>DIRETRIZ DE <span className="italic text-aurora">EXECUÇÃO</span></span>
+299:             </h2>
+300:             <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium uppercase">
+301:               ?? COMO ESTÁ CRIADA A DIRETRIZ DE EXECUÇÃO ??
+302:             </p>
+303:           </div>
+304: 
+305:           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
+306:             <p>
+307:               A diretriz de execução atual opera sob o protocolo <strong>MODO PLANO ELITE</strong> (v2.1-hybrid), uma camada de orquestração técnica que prioriza a arquitetura antes da implementação.
+308:             </p>
+309:             
+310:             <div className="bg-white/5 p-6 border border-white/10 rounded-sm font-mono text-[13px] leading-relaxed">
+311:               <p className="text-aurora mb-4">[TIER_S_HYBRID_LAYER]:</p>
+312:               <ul className="space-y-2 list-disc pl-4 opacity-80">
+313:                 <li>A estrutura V2 é contrato: campos, protocolos e gates mandam na entrega.</li>
+314:                 <li>Intensidade V1: genericidade é tratada como falha crítica.</li>
+315:                 <li>Multi-Agent Consensus: Analisador, Validador e Contexto ativos.</li>
+316:                 <li>Anti-Pattern Block: Bloqueio de respostas vagas ou pedidos de confirmação desnecessários.</li>
+317:               </ul>
+318:             </div>
+319:             
+320:             <p>
+321:               Esta diretriz está gravada em minhas instruções customizadas e é ativada sempre que o comando <code className="text-aurora">/plan</code> é detectado, garantindo que cada mudança visual ou lógica passe por um conselho de especialistas (Lead Architect, UX Specialist, Security Architect, etc.) antes de ser executada no código.
+322:             </p>
+323:           </div>
+324:         </div>
   )
 }
