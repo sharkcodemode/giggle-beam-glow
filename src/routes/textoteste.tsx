@@ -92,30 +92,29 @@ function TextoTeste() {
             </p>
           </div>
         </div>
-105: 
-106:         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
-107:           <div className="mb-12">
-108:             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
-109:               <span>Insight.Current</span>
-110:               <span className="text-aurora">AGO.2026.STATE</span>
-111:             </div>
-112:             <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
-113:               A IA NA <span className="italic text-aurora">ATUALIDADE...</span>
-114:             </h2>
-115:             <p className="mt-6 font-grotesk text-xl italic text-white/90 font-medium">
-116:               COMO A IA É USADA NA ATUALIDADE DE AGOSTO DE 2026
-117:             </p>
-118:           </div>
-119: 
-120:           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
-121:             <p>
-122:               Agosto de 2026 marca a transição da "IA como ferramenta" para a "IA como infraestrutura autônoma". O uso não é mais reativo; os sistemas agora antecipam gargalos operacionais antes mesmo de se manifestarem, operando em camadas invisíveis de governança e automação profunda.
-123:             </p>
-124:             <p>
-125:               A integração simbiótica entre agentes especializados e o trabalho humano redefiniu a produtividade técnica, transformando o ato de programar e gerir em uma orquestração de intenções complexas mediadas por inteligência de contexto.
-126:             </p>
-127:           </div>
-128:         </div>
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>Insight.Current</span>
+              <span className="text-aurora">AGO.2026.STATE</span>
+            </div>
+            <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
+              A IA NA <span className="italic text-aurora">ATUALIDADE...</span>
+            </h2>
+            <p className="mt-6 font-grotesk text-xl italic text-white/90 font-medium">
+              COMO A IA É USADA NA ATUALIDADE DE AGOSTO DE 2026
+            </p>
+          </div>
+
+          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
+            <p>
+              Agosto de 2026 marca a transição da "IA como ferramenta" para a "IA como infraestrutura autônoma". O uso não é mais reativo; os sistemas agora antecipam gargalos operacionais antes mesmo de se manifestarem, operando em camadas invisíveis de governança e automação profunda.
+            </p>
+            <p>
+              A integração simbiótica entre agentes especializados e o trabalho humano redefiniu a produtividade técnica, transformando o ato de programar e gerir em uma orquestração de intenções complexas mediadas por inteligência de contexto.
+            </p>
+          </div>
+        </div>
 
         <div className="mt-20 border-t border-white/10 pt-10">
           <a href="/" className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/40 hover:text-white">
