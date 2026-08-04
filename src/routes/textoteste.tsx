@@ -30,9 +30,12 @@ function TextoTeste() {
             <span>Audit.Report</span>
             <span className="text-aurora">AI.Evolution.001</span>
           </div>
-          <h1 className="font-display text-[clamp(40px,6vw,72px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
-            O Conceito e a <br />
-            <span className="italic text-aurora">Evolução</span>
+          <h1 className="font-display text-[clamp(40px,6vw,72px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-start gap-4">
+            <img src={actoLogo.url} alt="ACTO" className="w-12 h-12 md:w-16 md:h-16 object-contain mt-1" />
+            <div>
+              O Conceito e a <br />
+              <span className="italic text-aurora">Evolução</span>
+            </div>
           </h1>
         </div>
 
@@ -50,7 +53,10 @@ function TextoTeste() {
           </section>
 
           <section>
-            <h2 className="mb-4 font-display text-2xl font-bold uppercase tracking-tight text-aurora">A Fase Atual no Mercado Global</h2>
+            <h2 className="mb-4 font-display text-2xl font-bold uppercase tracking-tight text-aurora flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              A Fase Atual no Mercado Global
+            </h2>
             <p>
               Nos dias atuais, o ecossistema da inteligência artificial superou a fase inicial de puro deslumbramento e marketing agressivo. Grandes corporações de tecnologia concentram investimentos bilionários em infraestrutura digital, redes de transmissão de dados e supercomputadores baseados em semicondutores de alta performance. A IA deixou de ser vista como um diferencial futurista raro para se incorporar de forma invisível e natural às rotinas corporativas, ferramentas de produtividade e sistemas operacionais de uso cotidiano.
             </p>
@@ -63,7 +69,10 @@ function TextoTeste() {
           </section>
 
           <section>
-            <h2 className="mb-4 font-display text-2xl font-bold uppercase tracking-tight text-aurora">Desafios Éticos e Perspectivas Futuras</h2>
+            <h2 className="mb-4 font-display text-2xl font-bold uppercase tracking-tight text-aurora flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              Desafios Éticos e Perspectivas Futuras
+            </h2>
             <p>
               Apesar dos inúmeros benefícios associados à produtividade e à aceleração de pesquisas científicas, a expansão acelerada da IA impõe debates urgentes sobre governança, segurança da informação e autenticidade do conteúdo gerado online. A regulamentação ética e a necessidade de barreiras operacionais claras tornaram-se fundamentais para mitigar riscos de desinformação e garantir que a automação beneficie a sociedade de forma equilibrada. O futuro aponta para uma integração ainda mais profunda entre o trabalho humano e os sistemas autônomos, redefinindo o papel das competências digitais no mercado de trabalho global.
             </p>
@@ -76,8 +85,9 @@ function TextoTeste() {
               <span>Report.Internal</span>
               <span className="text-aurora">REV.2026.X</span>
             </div>
-            <h2 className="font-display text-[clamp(40px,6vw,72px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
-              REVOLUÇÃO <span className="text-outline text-white">2026</span>
+            <h2 className="font-display text-[clamp(40px,6vw,72px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-4">
+              <img src={actoLogo.url} alt="" className="w-10 h-10 md:w-12 md:h-12 object-contain" aria-hidden="true" />
+              <span>REVOLUÇÃO <span className="text-outline text-white">2026</span></span>
             </h2>
             <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
               A CONTA DA IA NAO TA FECHANDO...
@@ -99,8 +109,9 @@ function TextoTeste() {
               <span>Insight.Current</span>
               <span className="text-aurora">AGO.2026.STATE</span>
             </div>
-            <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
-              A IA NA <span className="italic text-aurora">ATUALIDADE...</span>
+            <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-4">
+              <img src={actoLogo.url} alt="" className="w-8 h-8 md:w-10 md:h-10 object-contain" aria-hidden="true" />
+              <span>A IA NA <span className="italic text-aurora">ATUALIDADE...</span></span>
             </h2>
             <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
               COMO A IA É USADA NA ATUALIDADE DE AGOSTO DE 2026
@@ -122,8 +133,9 @@ function TextoTeste() {
               <span>System.Ping</span>
               <span className="text-aurora">NOISE.DETECTED</span>
             </div>
-            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
-              FRAGMENTO <span className="text-outline text-white">ALEATÓRIO</span>
+            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              <span>FRAGMENTO <span className="text-outline text-white">ALEATÓRIO</span></span>
             </h2>
             <p className="mt-6 font-grotesk text-lg italic text-aurora font-medium">
               DADOS NÃO ESTRUTURADOS DETECTADOS NA CAMADA 7
