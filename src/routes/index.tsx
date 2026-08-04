@@ -208,7 +208,7 @@ function Index() {
               <h1 className="font-display text-[clamp(56px,10.5vw,168px)] font-extrabold uppercase leading-[0.88] tracking-[-0.045em]">
                 <span className="block">ELITE</span>
                 <span className="relative inline-block">
-                  <span aria-hidden className="absolute inset-x-[-6px] inset-y-[8%] -z-0 skew-x-[-6deg] bg-[var(--aurora-cyan)]" />
+                  <span aria-hidden className="absolute inset-x-[-6px] inset-y-[8%] -z-0 skew-x-[-6deg] bg-[var(--aurora-mint)]" />
                   <span className="relative z-10 block italic text-[var(--obsidian)]">lovable.</span>
                 </span>
                 <span className="block text-outline">br</span>
