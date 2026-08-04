@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "e21ad714-48e7-4fc7-984f-ecd707ad2641",
+  "asset_id": "acto-neural-network-generated",
   "project_id": "7ef95a2d-eaac-480c-9a13-a85b4f7ade7e",
-  "url": "/__l5e/assets-v1/e21ad714-48e7-4fc7-984f-ecd707ad2641/main-hero-banner.png",
-  "r2_key": "a/v1/7ef95a2d-eaac-480c-9a13-a85b4f7ade7e/e21ad714-48e7-4fc7-984f-ecd707ad2641/main-hero-banner.png",
-  "original_filename": "main-hero-banner.png",
-  "size": 71205,
-  "content_type": "image/png",
-  "created_at": "2026-08-04T21:40:18Z"
+  "url": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1600",
+  "r2_key": "static-fallback",
+  "original_filename": "neural-network.jpg",
+  "size": 0,
+  "content_type": "image/jpeg",
+  "created_at": "2026-08-04T23:00:00Z"
 }
