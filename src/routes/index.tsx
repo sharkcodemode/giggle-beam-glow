@@ -59,7 +59,7 @@ export const Route = createFileRoute("/")({
 });
 
 // ─── assets (preservados) ──────────────────────────────────────
-const HERO_IMG = heroBannerAsset.url;
+const HERO_IMG = heroBannerAsset;
 const EDITAL_PDF =
   "https://storage.googleapis.com/gpt-engineer-file-uploads/MphejG7h8fgG39b2AeUzsfwMlmm1/1f1e064e-4f19-4845-84b0-d804eb92534e?Expires=1779777312&GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&Signature=GzXznk57FYF47QARGxKK6kSje7q7wasYClpQ7nr%2F4h9FDrcD%2FInKFdrdZtCIx2jvnZIEBOIcjlbjKXOzOE%2Fy76Un5CWI5xrk8f0F%2FwlmgtkMC2rULdjMDZsjyPfq29FvtzbDSUdWYalC1SdA98w3u%2BHHfQsiffYo9gc3CwRuc%2BIoVuDzqFauXBmmVSV%2Fo0kqQVLJHC%2BA4yNZvNHv0oqIY%2Ff502Wrazw%2BtfasVNgyfwLtNSn1zSk%2BnA89984em5POPhBANAb8xvFmmwbgwkPYToJYN5uT%2B74%2BdRj7EbObZ%2FAtQX70N2t%2BCjXY%2F6xSyGpjQvbln6bAhV8kkDMm1vry9Q%3D%3D";
 const NODE_MSI =
