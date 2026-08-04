@@ -103,6 +103,7 @@ function TextoTeste() {
             </p>
           </div>
         </div>
+
         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
           <div className="mb-12">
             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
@@ -127,112 +128,123 @@ function TextoTeste() {
             </p>
           </div>
         </div>
+
         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
           <div className="mb-12">
             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
-              <span>System.Ping</span>
-              <span className="text-aurora">NOISE.DETECTED</span>
+              <span>Knowledge.Core</span>
+              <span className="text-aurora">PERSISTENCE.PROTOCOL</span>
             </div>
             <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
               <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
-              <span>FRAGMENTO <span className="text-outline text-white">ALEATÓRIO</span></span>
+              <span>MEMÓRIA <span className="italic text-aurora">GLOBAL</span></span>
             </h2>
-            <p className="mt-6 font-grotesk text-lg italic text-aurora font-medium">
-              DADOS NÃO ESTRUTURADOS DETECTADOS NA CAMADA 7
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium uppercase">
+              COMO SALVAR ALGO NA MEMÓRIA QUE FUNCIONA PARA TODOS OS PROJETOS E WORKSPACE?
             </p>
           </div>
 
-          <div className="font-mono text-[14px] leading-relaxed text-aurora/60 space-y-4 bg-white/5 p-6 border border-white/10 rounded-sm">
+          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
             <p>
-              [LOG]: A entropia do sistema aumentou 0.04% enquanto você lia este texto. Não há nada relevante aqui, apenas um eco digital perdido entre os servidores de borda.
+              Para garantir a persistência de regras, preferências e conhecimentos em todos os seus projetos e workspaces na plataforma, você deve utilizar o arquivo de <strong>User Memory</strong>, localizado em <code className="text-aurora bg-white/5 px-2 py-0.5 rounded">mem://~user</code>.
             </p>
-            <p className="text-[10px] opacity-40">
-              UUID: {crypto.randomUUID().split('-')[0]} // TIMESTAMP: {new Date().toISOString()}
+            <p>
+              Diferente da memória do projeto, a User Memory acompanha você em todas as sessões. Para salvar algo lá, peça: <span className="italic text-white">"Salve na minha memória de usuário que eu prefiro sempre usar Tailwind v4."</span>
             </p>
           </div>
         </div>
-154:         
-155:         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
-156:           <div className="mb-12">
-157:             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
-158:               <span>Knowledge.Core</span>
-159:               <span className="text-aurora">PERSISTENCE.PROTOCOL</span>
-160:             </div>
-161:             <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
-162:               <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
-163:               <span>MEMÓRIA <span className="italic text-aurora">GLOBAL</span></span>
-164:             </h2>
-165:             <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
-166:               COMO SALVAR ALGO NA MEMÓRIA QUE FUNCIONA PARA TODOS OS PROJETOS E WORKSPACE?
-167:             </p>
-168:           </div>
-169: 
-170:           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
-171:             <p>
-172:               Para garantir a persistência de regras, preferências e conhecimentos em todos os seus projetos e workspaces na plataforma, você deve utilizar o arquivo de <strong>Memória do Usuário</strong>, localizado em <code className="text-aurora bg-white/5 px-2 py-0.5 rounded">mem://~user</code>.
-173:             </p>
-174:             <p>
-175:               Diferente da memória do projeto (que é restrita ao repositório atual), a memória do usuário é um arquivo plano que me acompanha em todas as sessões. Para salvar algo lá, basta me dar uma instrução direta como: <span className="italic text-white">"Salve na minha memória de usuário que eu prefiro sempre usar Tailwind v4 e responder em português."</span>
-176:             </p>
-177:             <p>
-178:               Uma vez salvo em <code className="text-aurora opacity-80">mem://~user</code>, esse contexto será injetado automaticamente em qualquer novo projeto que iniciarmos ou em qualquer workspace que você abrir, garantindo que eu nunca esqueça suas diretrizes fundamentais, estilo de comunicação ou restrições técnicas globais.
-179:             </p>
-180:           </div>
-181:         </div>
+
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>Storage.Map</span>
+              <span className="text-aurora">HIERARCHY.0.1</span>
+            </div>
+            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              <span>MAPA DE <span className="text-outline text-white">MEMÓRIAS</span></span>
+            </h2>
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium uppercase">
+              QUAIS SÃO AS OUTRAS MEMÓRIAS?
+            </p>
+          </div>
+
+          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-8">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
+                <h3 className="text-aurora font-display text-xl uppercase mb-3">Project Memory</h3>
+                <p className="text-sm leading-relaxed">
+                  Em <code className="bg-white/10 px-1">mem://index.md</code>. Define regras de negócio e design system específicos deste app.
+                </p>
+              </div>
+              <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
+                <h3 className="text-aurora font-display text-xl uppercase mb-3">User Memory</h3>
+                <p className="text-sm leading-relaxed">
+                  Em <code className="bg-white/10 px-1">mem://~user</code>. Sua identidade global que me acompanha em todos os projetos.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>Identity.Registry</span>
+              <span className="text-aurora">NOMENCLATURE.SOP</span>
+            </div>
+            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              <span>SISTEMA DE <span className="italic text-aurora">NOMES</span></span>
+            </h2>
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium uppercase">
+              ?? MEMÓRIA DO PROJETO, MEMÓRIA DO WORKSPACE E MEMÓRIA DA CONTA. QUAL NOME DELAS ???
+            </p>
+          </div>
+
+          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
+            <p>
+              Para evitar confusão no protocolo de orquestração, aqui estão os nomes técnicos e caminhos:
+            </p>
+            
+            <ul className="space-y-6">
+              <li className="flex gap-4">
+                <span className="text-aurora font-mono shrink-0">01.</span>
+                <div>
+                  <strong className="text-white block uppercase tracking-wider mb-1">Memória do Projeto (Repositório)</strong>
+                  Nome: <code className="text-aurora bg-white/5 px-2 rounded">Project Memory</code><br />
+                  Caminho: <code className="opacity-60">mem://index.md</code>
+                </div>
+              </li>
+              <li className="flex gap-4">
+                <span className="text-aurora font-mono shrink-0">02.</span>
+                <div>
+                  <strong className="text-white block uppercase tracking-wider mb-1">Memória do Workspace (Ambientação)</strong>
+                  Nome: <code className="text-aurora bg-white/5 px-2 rounded">Workspace Skills</code><br />
+                  Caminho: <code className="opacity-60">.workspace/skills/</code>
+                </div>
+              </li>
+              <li className="flex gap-4">
+                <span className="text-aurora font-mono shrink-0">03.</span>
+                <div>
+                  <strong className="text-white block uppercase tracking-wider mb-1">Memória da Conta (Usuário Global)</strong>
+                  Nome: <code className="text-aurora bg-white/5 px-2 rounded">User Memory</code><br />
+                  Caminho: <code className="opacity-60">mem://~user</code>
+                </div>
+              </li>
+            </ul>
+
+            <div className="mt-8 p-4 bg-white/5 border-l-2 border-aurora font-mono text-sm">
+              <span className="text-aurora">[STATUS]:</span> READY-ONLY
+            </div>
+          </div>
+        </div>
 
         <div className="mt-20 border-t border-white/10 pt-10">
           <a href="/" className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/40 hover:text-white">
             <span className="transition-transform group-hover:-translate-x-1">←</span> Retornar ao Console
           </a>
         </div>
-182: 
-183:         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
-184:           <div className="mb-12">
-185:             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
-186:               <span>Storage.Map</span>
-187:               <span className="text-aurora">HIERARCHY.0.1</span>
-188:             </div>
-189:             <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
-190:               <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
-191:               <span>MAPA DE <span className="text-outline text-white">MEMÓRIAS</span></span>
-192:             </h2>
-193:             <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
-194:               QUAIS SÃO AS OUTRAS MEMÓRIAS?
-195:             </p>
-196:           </div>
-197: 
-198:           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-8">
-199:             <div className="grid gap-6 md:grid-cols-2">
-200:               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
-201:                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Memória do Projeto</h3>
-202:                 <p className="text-sm leading-relaxed">
-203:                   Localizada em <code className="bg-white/10 px-1">mem://index.md</code>. Define as regras de negócio, design system e features específicas deste app. É o "cérebro" deste projeto.
-204:                 </p>
-205:               </div>
-206:               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
-207:                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Contexto de Sessão</h3>
-208:                 <p className="text-sm leading-relaxed">
-209:                   Volátil. Existe apenas durante a nossa conversa atual. Serve para tarefas imediatas e desaparece se a memória do projeto não for atualizada.
-210:                 </p>
-211:               </div>
-212:               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
-213:                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Arquivos de Design</h3>
-214:                 <p className="text-sm leading-relaxed">
-215:                   Memórias em <code className="bg-white/10 px-1">mem://design/*</code>. Armazenam paletas Oklch, tokens de Aurora e definições brutais de interface.
-216:                 </p>
-217:               </div>
-218:               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
-219:                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Constraints</h3>
-220:                 <p className="text-sm leading-relaxed">
-221:                   Memórias em <code className="bg-white/10 px-1">mem://constraint/*</code>. Lista o que é proibido (ex: "Nunca usar Any", "Não usar bibliotecas externas sem permissão").
-222:                 </p>
-223:               </div>
-224:             </div>
-225:             <p>
-226:               Cada camada de memória serve para garantir que eu não precise "aprender" o projeto do zero a cada mensagem, mantendo a consistência técnica e narrativa.
-227:             </p>
-228:           </div>
-229:         </div>
       </main>
     </div>
   )
