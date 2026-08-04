@@ -79,56 +79,7 @@ function TextoTeste() {
           </section>
         </div>
 
-        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
-          <div className="mb-12">
-            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
-              <span>Report.Internal</span>
-              <span className="text-aurora">REV.2026.X</span>
-            </div>
-            <h2 className="font-display text-[clamp(40px,6vw,72px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-4">
-              <img src={actoLogo.url} alt="" className="w-10 h-10 md:w-12 md:h-12 object-contain" aria-hidden="true" />
-              <span>REVOLUÇÃO <span className="text-outline text-white">2026</span></span>
-            </h2>
-            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
-              A CONTA DA IA NAO TA FECHANDO...
-            </p>
-          </div>
-
-          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
-            <p>
-              O custo operacional das arquiteturas de larga escala atingiu um ponto de inflexão crítico. Entre o consumo energético massivo e a escassez de silício premium, o mercado começa a questionar a sustentabilidade do modelo de "crescimento a qualquer custo". 
-            </p>
-            <p>
-              A eficiência energética e a destilação de modelos tornaram-se os novos pilares da sobrevivência digital. Em 2026, a inteligência não será medida apenas pela capacidade de processamento, mas pela precisão econômica de cada token gerado.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
-          <div className="mb-12">
-            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
-              <span>Insight.Current</span>
-              <span className="text-aurora">AGO.2026.STATE</span>
-            </div>
-            <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-4">
-              <img src={actoLogo.url} alt="" className="w-8 h-8 md:w-10 md:h-10 object-contain" aria-hidden="true" />
-              <span>A IA NA <span className="italic text-aurora">ATUALIDADE...</span></span>
-            </h2>
-            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
-              COMO A IA É USADA NA ATUALIDADE DE AGOSTO DE 2026
-            </p>
-          </div>
-
-          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
-            <p>
-              Agosto de 2026 marca a transição da "IA como ferramenta" para a "IA como infraestrutura autônoma". O uso não é mais reativo; os sistemas agora antecipam gargalos operacionais antes mesmo de se manifestarem, operando em camadas invisíveis de governança e automação profunda.
-            </p>
-            <p>
-              A integração simbiótica entre agentes especializados e o trabalho humano redefiniu a produtividade técnica, transformando o ato de programar e gerir em uma orquestração de intenções complexas mediadas por inteligência de contexto.
-            </p>
-          </div>
-        </div>
-
+        {/* Persistência Global */}
         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
           <div className="mb-12">
             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
@@ -143,17 +94,14 @@ function TextoTeste() {
               COMO SALVAR ALGO NA MEMÓRIA QUE FUNCIONA PARA TODOS OS PROJETOS E WORKSPACE?
             </p>
           </div>
-
           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
             <p>
-              Para garantir a persistência de regras, preferências e conhecimentos em todos os seus projetos e workspaces na plataforma, você deve utilizar o arquivo de <strong>User Memory</strong>, localizado em <code className="text-aurora bg-white/5 px-2 py-0.5 rounded">mem://~user</code>.
-            </p>
-            <p>
-              Diferente da memória do projeto, a User Memory acompanha você em todas as sessões. Para salvar algo lá, peça: <span className="italic text-white">"Salve na minha memória de usuário que eu prefiro sempre usar Tailwind v4."</span>
+              Utilize o arquivo de <strong>User Memory</strong> em <code className="text-aurora bg-white/5 px-2 py-0.5 rounded">mem://~user</code>. Peça: <span className="italic text-white">"Salve na minha memória de usuário que eu prefiro sempre usar Tailwind v4."</span>
             </p>
           </div>
         </div>
 
+        {/* Mapa de Memórias */}
         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
           <div className="mb-12">
             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
@@ -168,25 +116,21 @@ function TextoTeste() {
               QUAIS SÃO AS OUTRAS MEMÓRIAS?
             </p>
           </div>
-
           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-8">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Project Memory</h3>
-                <p className="text-sm leading-relaxed">
-                  Em <code className="bg-white/10 px-1">mem://index.md</code>. Define regras de negócio e design system específicos deste app.
-                </p>
+                <p className="text-sm leading-relaxed">Em <code className="bg-white/10 px-1">mem://index.md</code>. Regras específicas deste app.</p>
               </div>
               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
                 <h3 className="text-aurora font-display text-xl uppercase mb-3">User Memory</h3>
-                <p className="text-sm leading-relaxed">
-                  Em <code className="bg-white/10 px-1">mem://~user</code>. Sua identidade global que me acompanha em todos os projetos.
-                </p>
+                <p className="text-sm leading-relaxed">Em <code className="bg-white/10 px-1">mem://~user</code>. Identidade global.</p>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Nomenclatura */}
         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
           <div className="mb-12">
             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
@@ -201,41 +145,44 @@ function TextoTeste() {
               ?? MEMÓRIA DO PROJETO, MEMÓRIA DO WORKSPACE E MEMÓRIA DA CONTA. QUAL NOME DELAS ???
             </p>
           </div>
-
           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
-            <p>
-              Para evitar confusão no protocolo de orquestração, aqui estão os nomes técnicos e caminhos:
-            </p>
-            
-            <ul className="space-y-6">
-              <li className="flex gap-4">
-                <span className="text-aurora font-mono shrink-0">01.</span>
-                <div>
-                  <strong className="text-white block uppercase tracking-wider mb-1">Memória do Projeto (Repositório)</strong>
-                  Nome: <code className="text-aurora bg-white/5 px-2 rounded">Project Memory</code><br />
-                  Caminho: <code className="opacity-60">mem://index.md</code>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="text-aurora font-mono shrink-0">02.</span>
-                <div>
-                  <strong className="text-white block uppercase tracking-wider mb-1">Memória do Workspace (Ambientação)</strong>
-                  Nome: <code className="text-aurora bg-white/5 px-2 rounded">Workspace Skills</code><br />
-                  Caminho: <code className="opacity-60">.workspace/skills/</code>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="text-aurora font-mono shrink-0">03.</span>
-                <div>
-                  <strong className="text-white block uppercase tracking-wider mb-1">Memória da Conta (Usuário Global)</strong>
-                  Nome: <code className="text-aurora bg-white/5 px-2 rounded">User Memory</code><br />
-                  Caminho: <code className="opacity-60">mem://~user</code>
-                </div>
-              </li>
+            <ul className="space-y-4">
+              <li><strong className="text-white uppercase tracking-wider">Project Memory:</strong> <code className="text-aurora">mem://index.md</code></li>
+              <li><strong className="text-white uppercase tracking-wider">Workspace Skills:</strong> <code className="text-aurora">.workspace/skills/</code></li>
+              <li><strong className="text-white uppercase tracking-wider">User Memory:</strong> <code className="text-aurora">mem://~user</code></li>
             </ul>
-
             <div className="mt-8 p-4 bg-white/5 border-l-2 border-aurora font-mono text-sm">
               <span className="text-aurora">[STATUS]:</span> READY-ONLY
+            </div>
+          </div>
+        </div>
+
+        {/* Diretriz de Execução */}
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>Execution.Core</span>
+              <span className="text-aurora">PROTOCOLS.SOP</span>
+            </div>
+            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              <span>DIRETRIZ DE <span className="italic text-aurora">EXECUÇÃO</span></span>
+            </h2>
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium uppercase">
+              ?? COMO ESTÁ CRIADA A DIRETRIZ DE EXECUÇÃO ??
+            </p>
+          </div>
+          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
+            <p>
+              A execução opera sob o protocolo <strong>MODO PLANO ELITE</strong> (v2.1-hybrid), priorizando blueprint antes de código.
+            </p>
+            <div className="bg-white/5 p-6 border border-white/10 rounded-sm font-mono text-[13px] leading-relaxed">
+              <p className="text-aurora mb-4">[TIER_S_HYBRID_LAYER]:</p>
+              <ul className="space-y-2 list-disc pl-4 opacity-80">
+                <li>V2 Contract: Estrutura modular e gates obrigatórios.</li>
+                <li>V1 Intensity: Genericidade zero; foco em utilidade operacional.</li>
+                <li>Multi-Agent Consensus: 7 personas em paralelo.</li>
+              </ul>
             </div>
           </div>
         </div>
