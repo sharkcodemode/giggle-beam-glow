@@ -49,7 +49,7 @@ function TextoTeste() {
           </section>
 
           <section>
-            <h2 className="mb-4 font-display text-2xl font-bold uppercase tracking-tight text-white">A Fase Atual no Mercado Global</h2>
+            <h2 className="mb-4 font-display text-2xl font-bold uppercase tracking-tight text-aurora">A Fase Atual no Mercado Global</h2>
             <p>
               Nos dias atuais, o ecossistema da inteligência artificial superou a fase inicial de puro deslumbramento e marketing agressivo. Grandes corporações de tecnologia concentram investimentos bilionários em infraestrutura digital, redes de transmissão de dados e supercomputadores baseados em semicondutores de alta performance. A IA deixou de ser vista como um diferencial futurista raro para se incorporar de forma invisível e natural às rotinas corporativas, ferramentas de produtividade e sistemas operacionais de uso cotidiano.
             </p>
@@ -62,7 +62,7 @@ function TextoTeste() {
           </section>
 
           <section>
-            <h2 className="mb-4 font-display text-2xl font-bold uppercase tracking-tight text-white">Desafios Éticos e Perspectivas Futuras</h2>
+            <h2 className="mb-4 font-display text-2xl font-bold uppercase tracking-tight text-aurora">Desafios Éticos e Perspectivas Futuras</h2>
             <p>
               Apesar dos inúmeros benefícios associados à produtividade e à aceleração de pesquisas científicas, a expansão acelerada da IA impõe debates urgentes sobre governança, segurança da informação e autenticidade do conteúdo gerado online. A regulamentação ética e a necessidade de barreiras operacionais claras tornaram-se fundamentais para mitigar riscos de desinformação e garantir que a automação beneficie a sociedade de forma equilibrada. O futuro aponta para uma integração ainda mais profunda entre o trabalho humano e os sistemas autônomos, redefinindo o papel das competências digitais no mercado de trabalho global.
             </p>
