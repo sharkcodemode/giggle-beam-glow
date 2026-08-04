@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import actoLogo from "@/assets/acto-logo.png.asset.json"
 
 export const Route = createFileRoute('/textoteste')({
   head: () => ({
