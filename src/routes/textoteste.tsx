@@ -185,6 +185,54 @@ function TextoTeste() {
             <span className="transition-transform group-hover:-translate-x-1">←</span> Retornar ao Console
           </a>
         </div>
+182: 
+183:         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+184:           <div className="mb-12">
+185:             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+186:               <span>Storage.Map</span>
+187:               <span className="text-aurora">HIERARCHY.0.1</span>
+188:             </div>
+189:             <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+190:               <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+191:               <span>MAPA DE <span className="text-outline text-white">MEMÓRIAS</span></span>
+192:             </h2>
+193:             <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
+194:               QUAIS SÃO AS OUTRAS MEMÓRIAS?
+195:             </p>
+196:           </div>
+197: 
+198:           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-8">
+199:             <div className="grid gap-6 md:grid-cols-2">
+200:               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
+201:                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Memória do Projeto</h3>
+202:                 <p className="text-sm leading-relaxed">
+203:                   Localizada em <code className="bg-white/10 px-1">mem://index.md</code>. Define as regras de negócio, design system e features específicas deste app. É o "cérebro" deste projeto.
+204:                 </p>
+205:               </div>
+206:               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
+207:                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Contexto de Sessão</h3>
+208:                 <p className="text-sm leading-relaxed">
+209:                   Volátil. Existe apenas durante a nossa conversa atual. Serve para tarefas imediatas e desaparece se a memória do projeto não for atualizada.
+210:                 </p>
+211:               </div>
+212:               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
+213:                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Arquivos de Design</h3>
+214:                 <p className="text-sm leading-relaxed">
+215:                   Memórias em <code className="bg-white/10 px-1">mem://design/*</code>. Armazenam paletas Oklch, tokens de Aurora e definições brutais de interface.
+216:                 </p>
+217:               </div>
+218:               <div className="bg-white/5 p-6 border border-white/10 rounded-sm">
+219:                 <h3 className="text-aurora font-display text-xl uppercase mb-3">Constraints</h3>
+220:                 <p className="text-sm leading-relaxed">
+221:                   Memórias em <code className="bg-white/10 px-1">mem://constraint/*</code>. Lista o que é proibido (ex: "Nunca usar Any", "Não usar bibliotecas externas sem permissão").
+222:                 </p>
+223:               </div>
+224:             </div>
+225:             <p>
+226:               Cada camada de memória serve para garantir que eu não precise "aprender" o projeto do zero a cada mensagem, mantendo a consistência técnica e narrativa.
+227:             </p>
+228:           </div>
+229:         </div>
       </main>
     </div>
   )
