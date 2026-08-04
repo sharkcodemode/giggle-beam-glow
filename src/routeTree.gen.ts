@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoiceRouteImport } from './routes/voice'
+import { Route as TextotesteRouteImport } from './routes/textoteste'
 import { Route as RagmodelosRouteImport } from './routes/ragmodelos'
 import { Route as RadarLovableRouteImport } from './routes/radar-lovable'
 import { Route as PulseRouteImport } from './routes/pulse'
@@ -28,6 +29,11 @@ import { Route as ApiPublicSecretCheckRouteImport } from './routes/api/public/_s
 const VoiceRoute = VoiceRouteImport.update({
   id: '/voice',
   path: '/voice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TextotesteRoute = TextotesteRouteImport.update({
+  id: '/textoteste',
+  path: '/textoteste',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RagmodelosRoute = RagmodelosRouteImport.update({
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
+  '/textoteste': typeof TextotesteRoute
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
+  '/textoteste': typeof TextotesteRoute
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/pulse': typeof PulseRoute
   '/radar-lovable': typeof RadarLovableRoute
   '/ragmodelos': typeof RagmodelosRoute
+  '/textoteste': typeof TextotesteRoute
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/pulse'
     | '/radar-lovable'
     | '/ragmodelos'
+    | '/textoteste'
     | '/voice'
     | '/api/generate-image'
     | '/api/generate-image-google'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/pulse'
     | '/radar-lovable'
     | '/ragmodelos'
+    | '/textoteste'
     | '/voice'
     | '/api/generate-image'
     | '/api/generate-image-google'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/pulse'
     | '/radar-lovable'
     | '/ragmodelos'
+    | '/textoteste'
     | '/voice'
     | '/api/generate-image'
     | '/api/generate-image-google'
@@ -218,6 +230,7 @@ export interface RootRouteChildren {
   PulseRoute: typeof PulseRoute
   RadarLovableRoute: typeof RadarLovableRoute
   RagmodelosRoute: typeof RagmodelosRoute
+  TextotesteRoute: typeof TextotesteRoute
   VoiceRoute: typeof VoiceRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiGenerateImageGoogleRoute: typeof ApiGenerateImageGoogleRoute
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/voice'
       fullPath: '/voice'
       preLoaderRoute: typeof VoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/textoteste': {
+      id: '/textoteste'
+      path: '/textoteste'
+      fullPath: '/textoteste'
+      preLoaderRoute: typeof TextotesteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ragmodelos': {
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   PulseRoute: PulseRoute,
   RadarLovableRoute: RadarLovableRoute,
   RagmodelosRoute: RagmodelosRoute,
+  TextotesteRoute: TextotesteRoute,
   VoiceRoute: VoiceRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiGenerateImageGoogleRoute: ApiGenerateImageGoogleRoute,
@@ -355,13 +376,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
