@@ -115,6 +115,29 @@ function TextoTeste() {
             </p>
           </div>
         </div>
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>System.Ping</span>
+              <span className="text-aurora">NOISE.DETECTED</span>
+            </div>
+            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
+              FRAGMENTO <span className="text-outline text-white">ALEATÓRIO</span>
+            </h2>
+            <p className="mt-6 font-grotesk text-lg italic text-aurora font-medium">
+              DADOS NÃO ESTRUTURADOS DETECTADOS NA CAMADA 7
+            </p>
+          </div>
+
+          <div className="font-mono text-[14px] leading-relaxed text-aurora/60 space-y-4 bg-white/5 p-6 border border-white/10 rounded-sm">
+            <p>
+              [LOG]: A entropia do sistema aumentou 0.04% enquanto você lia este texto. Não há nada relevante aqui, apenas um eco digital perdido entre os servidores de borda.
+            </p>
+            <p className="text-[10px] opacity-40">
+              UUID: {crypto.randomUUID().split('-')[0]} // TIMESTAMP: {new Date().toISOString()}
+            </p>
+          </div>
+        </div>
 
         <div className="mt-20 border-t border-white/10 pt-10">
           <a href="/" className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/40 hover:text-white">
