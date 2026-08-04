@@ -101,7 +101,7 @@ function TextoTeste() {
             <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
               A IA NA <span className="italic text-aurora">ATUALIDADE...</span>
             </h2>
-            <p className="mt-6 font-grotesk text-xl italic text-white/90 font-medium">
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
               COMO A IA É USADA NA ATUALIDADE DE AGOSTO DE 2026
             </p>
           </div>
