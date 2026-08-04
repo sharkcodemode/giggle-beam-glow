@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "acto-neural-network-generated",
+  "asset_id": "acto-dog-sunflower-banner",
   "project_id": "7ef95a2d-eaac-480c-9a13-a85b4f7ade7e",
-  "url": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1600",
+  "url": "https://images.unsplash.com/photo-1591768575198-88dac53fbd0a?auto=format&fit=crop&q=80&w=1600",
   "r2_key": "static-fallback",
-  "original_filename": "neural-network.jpg",
+  "original_filename": "dog-sunflower.jpg",
   "size": 0,
   "content_type": "image/jpeg",
-  "created_at": "2026-08-04T23:00:00Z"
+  "created_at": "2026-08-04T23:30:00Z"
 }
