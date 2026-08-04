@@ -151,6 +151,34 @@ function TextoTeste() {
             </p>
           </div>
         </div>
+154:         
+155:         <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+156:           <div className="mb-12">
+157:             <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+158:               <span>Knowledge.Core</span>
+159:               <span className="text-aurora">PERSISTENCE.PROTOCOL</span>
+160:             </div>
+161:             <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+162:               <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+163:               <span>MEMÓRIA <span className="italic text-aurora">GLOBAL</span></span>
+164:             </h2>
+165:             <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium">
+166:               COMO SALVAR ALGO NA MEMÓRIA QUE FUNCIONA PARA TODOS OS PROJETOS E WORKSPACE?
+167:             </p>
+168:           </div>
+169: 
+170:           <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
+171:             <p>
+172:               Para garantir a persistência de regras, preferências e conhecimentos em todos os seus projetos e workspaces na plataforma, você deve utilizar o arquivo de <strong>Memória do Usuário</strong>, localizado em <code className="text-aurora bg-white/5 px-2 py-0.5 rounded">mem://~user</code>.
+173:             </p>
+174:             <p>
+175:               Diferente da memória do projeto (que é restrita ao repositório atual), a memória do usuário é um arquivo plano que me acompanha em todas as sessões. Para salvar algo lá, basta me dar uma instrução direta como: <span className="italic text-white">"Salve na minha memória de usuário que eu prefiro sempre usar Tailwind v4 e responder em português."</span>
+176:             </p>
+177:             <p>
+178:               Uma vez salvo em <code className="text-aurora opacity-80">mem://~user</code>, esse contexto será injetado automaticamente em qualquer novo projeto que iniciarmos ou em qualquer workspace que você abrir, garantindo que eu nunca esqueça suas diretrizes fundamentais, estilo de comunicação ou restrições técnicas globais.
+179:             </p>
+180:           </div>
+181:         </div>
 
         <div className="mt-20 border-t border-white/10 pt-10">
           <a href="/" className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/40 hover:text-white">
