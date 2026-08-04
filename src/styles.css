@@ -97,8 +97,8 @@
 
   /* BRUTALIST POP palette — dark canvas + neon orange/yellow accents.
      Token names preserved for backwards compatibility. */
-  --obsidian: oklch(0.72 0.18 350);     /* pink surface */
-  --obsidian-2: oklch(0.78 0.14 350);   /* elevated pink */
+  --obsidian: oklch(0.12 0.012 260);     /* obsidian black surface */
+  --obsidian-2: oklch(0.18 0.015 260);   /* elevated obsidian */
   --aurora-mint: oklch(0.72 0.22 40);   /* #ff5722 pop orange */
   --aurora-cyan: oklch(0.92 0.19 100);  /* #ffeb3b pop yellow */
   --aurora-violet: oklch(0.72 0.22 40); /* orange (loop) */
