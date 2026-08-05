@@ -176,6 +176,9 @@ export const Route = createFileRoute("/api/generate-image-google")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const rl = await checkRateLimit(request, "generate-image-google", RL_MAX, RL_WINDOW);
+        if (!rl.allowed) return rateLimitResponse(rl, RL_WINDOW);
+
         const key = process.env.GOOGLE_AI_STUDIO_API_KEY;
         if (!key) {
           return new Response(
