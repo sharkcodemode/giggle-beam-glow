@@ -866,7 +866,7 @@ function buildThinkingPayload(
     visual_edit_metadata: {
       text_replacements: isImageGenerationRequest(userPrompt)
         ? []
-        : buildTextReplacements(selectedElements, userPrompt),
+        : buildTextReplacements(selectedElements),
     },
     ...Object.fromEntries(
       Object.entries(ctxMetadata).filter(
@@ -875,21 +875,30 @@ function buildThinkingPayload(
     ),
   };
 
+  // U4 — telemetria real quando a extensão envia; default só como fallback.
+  const browserCtx = context.integration_metadata && typeof context.integration_metadata === "object"
+    ? (context.integration_metadata as Record<string, unknown>)
+    : null;
+  const integrationMetadata = browserCtx ?? {
+    browser: { is_logged_out: true, auth_reason: "key-absent" },
+  };
+  const sessionReplay = isStr(context.session_replay) ? context.session_replay : "[]";
+
   const lovablePayload = {
     id: msgId,
     message: wrappedMessage,
     ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
     chat_only: false,
     client_id: createClientId(),
-    client_logs: [],
+    client_logs: arrayFromContext(context, "client_logs", "clientLogs"),
     files: processedFiles,
-    optimisticImageUrls: [],
+    optimisticImageUrls: arrayFromContext(context, "optimisticImageUrls", "optimistic_image_urls"),
     selected_elements: selectedElements,
     intent,
     message_intent_metadata: intentMetadata,
 
-    tool: "spawn_agent",
-    arguments: { instructions: userPrompt, agent_name: "Claude 3.5 Sonnet" },
+    // U5 — `tool`/`arguments` não são o contrato de tool-calling da Lovable:
+    // não selecionavam agente, só somavam ruído ao envelope. Removidos.
     is_high_priority: true,
     mode: "think",
     reasoning_effort: "high",
@@ -900,11 +909,12 @@ function buildThinkingPayload(
     current_viewport_dpr: typeof context.currentViewportDpr === "number" ? context.currentViewportDpr : typeof context.current_viewport_dpr === "number" ? context.current_viewport_dpr : 1,
     current_viewport_height: typeof context.currentViewportHeight === "number" ? context.currentViewportHeight : typeof context.current_viewport_height === "number" ? context.current_viewport_height : 900,
     current_viewport_width: typeof context.currentViewportWidth === "number" ? context.currentViewportWidth : typeof context.current_viewport_width === "number" ? context.current_viewport_width : 1440,
-    integration_metadata: { browser: { is_logged_out: true, auth_reason: "key-absent" } },
-    model: "openai/gpt-5.5",
-    network_requests: [],
-    runtime_errors: [],
-    session_replay: "[]",
+    integration_metadata: integrationMetadata,
+    // U5 — `model: null` preserva o formato do payload Thinking capturado.
+    model: isStr(context.model) ? context.model : null,
+    network_requests: arrayFromContext(context, "network_requests", "networkRequests"),
+    runtime_errors: arrayFromContext(context, "runtime_errors", "runtimeErrors"),
+    session_replay: sessionReplay,
     thread_id: session_id || "main",
     user_timezone: isStr(context.user_timezone) ? context.user_timezone : "America/Sao_Paulo",
     view: isStr(context.view) ? context.view : "preview",
@@ -915,6 +925,7 @@ function buildThinkingPayload(
         : "The user is currently viewing the preview.",
     system,
   };
+
 
   return lovablePayload;
 }
