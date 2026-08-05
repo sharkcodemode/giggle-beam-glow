@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import actoLogo from "@/assets/acto-logo.png.asset.json"
+import catImage from "@/assets/cat-sunflower.json"
 
 export const Route = createFileRoute('/textoteste')({
   head: () => ({
@@ -184,6 +185,39 @@ function TextoTeste() {
                 <li>Multi-Agent Consensus: 7 personas em paralelo.</li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        {/* Gato com Girassol - Síntese Orgânica */}
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>Organic.Synthesis</span>
+              <span className="text-aurora">CONCEPT.VISUAL.0.2</span>
+            </div>
+            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              <span>SÍNTESE <span className="italic text-aurora">ORGÂNICA</span></span>
+            </h2>
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium uppercase">
+              USE IMAGE-GEN PARA GERAR UMA FOTO DE UM GATO COM UMA FLOR DE GIRASSOL NA BOCA.
+            </p>
+          </div>
+          <div className="relative group overflow-hidden rounded-sm border border-white/10 bg-white/5 p-2">
+             <div className="absolute inset-0 bg-gradient-to-t from-[var(--obsidian)] to-transparent opacity-60 z-10" />
+             <img 
+               src={catImage.url} 
+               alt="Gato com Girassol" 
+               className="w-full aspect-video object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-105"
+             />
+             <div className="absolute bottom-6 left-6 z-20">
+               <span className="font-mono text-[10px] uppercase tracking-widest text-aurora bg-black/80 px-2 py-1">
+                 [IMAGE_GENERATED_BY_ACTO_AI]
+               </span>
+             </div>
+          </div>
+          <div className="font-grotesk text-[16px] leading-relaxed text-white/60 italic">
+            Visual representativo da convergência entre a natureza biológica e a precisão algorítmica. O girassol atua como o vetor de dados, enquanto o felino representa a agilidade da infraestrutura TIER S.
           </div>
         </div>
 
