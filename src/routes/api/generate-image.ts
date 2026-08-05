@@ -65,6 +65,9 @@ export const Route = createFileRoute("/api/generate-image")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const rl = await checkRateLimit(request, "generate-image", RL_MAX, RL_WINDOW);
+        if (!rl.allowed) return rateLimitResponse(rl, RL_WINDOW);
+
         const key = process.env.LOVABLE_API_KEY;
         if (!key) {
           return new Response(
