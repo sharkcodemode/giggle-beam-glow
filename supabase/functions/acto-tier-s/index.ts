@@ -810,16 +810,31 @@ const SYNTHETIC_BODY_ELEMENT = {
   text_content: "body",
 };
 
-function buildTextReplacements(selectedElements: unknown[], userPrompt: string) {
+// U3 — `new_text` neutro: repetir o prompt inteiro aqui enviesa o modelo para
+// substituição textual literal. A instrução real vive em `message` + `system`.
+const NEUTRAL_REPLACEMENT_TEXT = "Acto: Msg Recebida";
+
+function buildTextReplacements(selectedElements: unknown[]) {
   if (selectedElements.length === 0) {
-    return [{ old_text: "body", new_text: userPrompt, selected_element_index: 0 }];
+    return [{ old_text: "body", new_text: NEUTRAL_REPLACEMENT_TEXT, selected_element_index: 0 }];
   }
   return selectedElements.map((element, index) => ({
     old_text: getElementText(element) || "body",
-    new_text: userPrompt,
+    new_text: NEUTRAL_REPLACEMENT_TEXT,
     selected_element_index: index,
   }));
 }
+
+// U4 — fingerprint dinâmico: usa o que a extensão realmente coletou; só cai no
+// default quando o campo não vem no contexto.
+function arrayFromContext(context: Record<string, unknown>, ...keys: string[]): unknown[] {
+  for (const key of keys) {
+    const value = context[key];
+    if (Array.isArray(value)) return value;
+  }
+  return [];
+}
+
 
 function buildThinkingPayload(
   msgId: string,
