@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit.server";
+
+const RL_MAX = 10;
+const RL_WINDOW = 60;
 
 /**
  * ELITE LOVABLE — Prompt Refiner (Google AI Studio · Gemini 2.5 Flash)
