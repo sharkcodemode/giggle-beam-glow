@@ -158,7 +158,8 @@ const TIER_S_MESSAGE_TEMPLATE =
 const ASSET_NOUN =
   "(?:imagem|imagens|foto|fotos|fotografias?|[íi]cones?|icons?|logo|logos|logotipos?|banners?|ilustra(?:ção|cao|ções|coes)|arte|artes|avatar|avatares|capa|capas|textura|texturas|wallpapers?|thumbnails?|mockups?)";
 const ASSET_VERB =
-  "(?:ger(?:ar|e|a)|cri(?:ar|e|a)|faz|fazer|fa[çc]a|desenh\\w*|ilustr\\w*|render\\w*|produz\\w*|coloc(?:ar|a|ue)|adicion(?:ar|a|e)|inser(?:ir|e)|troc(?:ar|a|ue)|substitu\\w*|refa[zç]\\w*|atualiz\\w*|quero|preciso|nov[ao])";
+  "(?:ger(?:ar|e|a)|cri(?:ar|e|a)|faz|fazer|fa[çc]a|desenh\\w*|ilustr\\w*|render\\w*|produz\\w*|coloc\\w*|coloq\\w*|adicion\\w*|inser\\w*|troc\\w*|troq\\w*|substitu\\w*|refa[zç]\\w*|refaq\\w*|atualiz\\w*|quero|preciso|nov[ao])";
+
 
 const IMAGE_REQUEST_PATTERNS: RegExp[] = [
   new RegExp(`(?:^|\\W)${ASSET_VERB}(?:\\W)[\\s\\S]{0,80}?(?:^|\\W)${ASSET_NOUN}(?:\\W|$)`, "i"),
