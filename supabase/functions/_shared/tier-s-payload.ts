@@ -155,7 +155,7 @@ const TIER_S_MESSAGE_TEMPLATE =
 // U6 — cobertura ampliada: verbo + alvo em qualquer ordem, ou alvo + qualificador
 // de novidade ("banner novo", "uma foto de", "ícone pro hero").
 const ASSET_NOUN =
-  "(?:imagens?|foto(?:grafia)?s?|ícones?|icones?|icons?|logo(?:tipo)?s?|banners?|ilustra(?:ção|cao|ções|coes)|artes?|avatares?|avatar|capas?|texturas?|wallpapers?|thumbnails?|mockups?|背景)";
+  "(?:imagens?|foto(?:grafia)?s?|ícones?|icones?|icons?|logo(?:tipo)?s?|banners?|ilustra(?:ção|cao|ções|coes)|artes?|avatares?|avatar|capas?|texturas?|wallpapers?|thumbnails?|mockups?)";
 const ASSET_VERB =
   "(?:ger(?:ar|e|a)|cri(?:ar|e|a)|faz(?:er|\\b)|faça|faca|desenh\\w*|ilustr\\w*|render\\w*|produz\\w*|coloc(?:ar|a|ue)|adicion(?:ar|a|e)|inser(?:ir|e)|troc(?:ar|a|ue)|substitu\\w*|refaz\\w*|refaç\\w*|atualiz\\w*|nov[ao])";
 
