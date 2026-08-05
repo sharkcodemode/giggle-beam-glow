@@ -152,18 +152,20 @@ export const TIER_S_SYSTEM_PROMPT = [
 const TIER_S_MESSAGE_TEMPLATE =
   "Acto: Msg Recebida\n\n<PROMPT ORIGINAL DO USUÁRIO>\n\n[TIER S] Execute o PRE-FLIGHT TRIAGE antes de qualquer escrita, mantenha FOCUS LOCK no pedido acima, valide G1–G7 e entregue no output contract. Zero genericidade, zero fluff.";
 
-// U6 — cobertura ampliada: verbo + alvo em qualquer ordem, ou alvo + qualificador
-// de novidade ("banner novo", "uma foto de", "ícone pro hero").
+// U6 — cobertura ampliada: verbo + alvo, ou alvo + qualificador de novidade
+// ("banner novo", "coloque uma foto", "faz um ícone"). Sem `\b` colado a
+// acentos: em JS, `\b` não reconhece 'í'/'ç' como caractere de palavra.
 const ASSET_NOUN =
-  "(?:imagens?|foto(?:grafia)?s?|ícones?|icones?|icons?|logo(?:tipo)?s?|banners?|ilustra(?:ção|cao|ções|coes)|artes?|avatares?|avatar|capas?|texturas?|wallpapers?|thumbnails?|mockups?)";
+  "(?:imagem|imagens|foto|fotos|fotografias?|[íi]cones?|icons?|logo|logos|logotipos?|banners?|ilustra(?:ção|cao|ções|coes)|arte|artes|avatar|avatares|capa|capas|textura|texturas|wallpapers?|thumbnails?|mockups?)";
 const ASSET_VERB =
-  "(?:ger(?:ar|e|a)|cri(?:ar|e|a)|faz(?:er|\\b)|faça|faca|desenh\\w*|ilustr\\w*|render\\w*|produz\\w*|coloc(?:ar|a|ue)|adicion(?:ar|a|e)|inser(?:ir|e)|troc(?:ar|a|ue)|substitu\\w*|refaz\\w*|refaç\\w*|atualiz\\w*|nov[ao])";
+  "(?:ger(?:ar|e|a)|cri(?:ar|e|a)|faz|fazer|fa[çc]a|desenh\\w*|ilustr\\w*|render\\w*|produz\\w*|coloc(?:ar|a|ue)|adicion(?:ar|a|e)|inser(?:ir|e)|troc(?:ar|a|ue)|substitu\\w*|refa[zç]\\w*|atualiz\\w*|quero|preciso|nov[ao])";
 
 const IMAGE_REQUEST_PATTERNS: RegExp[] = [
-  new RegExp(`\\b${ASSET_VERB}\\b[\\s\\S]{0,80}?\\b${ASSET_NOUN}\\b`, "i"),
-  new RegExp(`\\b${ASSET_NOUN}\\b[\\s\\S]{0,40}?\\b(?:nov[ao]s?|diferente|do zero|gerad[ao])\\b`, "i"),
-  new RegExp(`\\b(?:image[- ]?gen|imagegen|generate_image|edit_image)\\b`, "i"),
+  new RegExp(`(?:^|\\W)${ASSET_VERB}(?:\\W)[\\s\\S]{0,80}?(?:^|\\W)${ASSET_NOUN}(?:\\W|$)`, "i"),
+  new RegExp(`(?:^|\\W)${ASSET_NOUN}\\W[\\s\\S]{0,40}?(?:nov[ao]s?|diferente|do zero|gerad[ao])`, "i"),
+  new RegExp(`(?:image[- ]?gen|imagegen|generate_image|edit_image)`, "i"),
 ];
+
 
 export function isImageGenerationRequest(userPrompt: string): boolean {
   return IMAGE_REQUEST_PATTERNS.some((pattern) => pattern.test(userPrompt));
