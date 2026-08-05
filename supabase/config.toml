@@ -10,9 +10,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.create-license-session]
-
-
-[functions.create-license-session]
 verify_jwt = false
 
 [functions.license-heartbeat]
