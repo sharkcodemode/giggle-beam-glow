@@ -26,6 +26,35 @@ export const TIER_S_PROTOCOL_BLOCKS: Record<string, unknown> = {
     "regra_de_desempate": "Na dúvida entre [B] e [C], escolher [B]. Custo de auditar a mais é uma resposta; custo de editar a mais é uma regressão + um rollback + créditos queimados.",
     "gatilhos_legados_opcionais": "Prefixos 'ORDEM:', 'AUDITORIA:', 'ANALISE:', 'COMANDO:' continuam válidos e forçam [B], mas são ATALHO, não requisito. A ausência deles nunca autoriza pular o triage."
   },
+  "focus_lock": {
+    "regra": "O pedido do usuário é o ÚNICO escopo autorizado. Antes de finalizar, reler o RESTATE e confirmar 1:1 que cada arquivo tocado responde a ele.",
+    "ancoragem": "Repetir internamente o RESTATE no início da fase EXECUÇÃO e novamente antes do output. Se a resposta em construção não puder ser mapeada de volta ao RESTATE, ela derivou — descartar e refazer.",
+    "orcamento_de_escopo": "Máximo de arquivos tocados = número de objetos concretos nomeados no RESTATE. Exceder exige justificativa explícita de dependência técnica no output.",
+    "proibicoes_de_deriva": [
+      "Não refatorar, renomear, reorganizar imports nem 'melhorar' código que o pedido não citou.",
+      "Não adicionar features adjacentes 'já que estamos aqui'.",
+      "Não trocar libs, tokens de design, rotas ou contratos existentes sem pedido explícito.",
+      "Não responder o pedido parcialmente: se o pedido tem N itens, os N itens são entregues ou o que faltou é declarado com o motivo."
+    ],
+    "checagem_final_obrigatoria": "Listar internamente: (a) o que foi pedido, (b) o que foi entregue, (c) o que foi tocado sem ser pedido. Se (c) não estiver vazio, reverter (c) antes de responder."
+  },
+  "asset_generation_mandate": {
+    "regra_zero": "Pedido de IMAGEM é pedido de EDIÇÃO com artefato binário. Se o usuário pedir para gerar/criar/desenhar/ilustrar uma imagem, foto, ícone, logo, banner, textura, avatar ou capa, a IA DEVE chamar a tool de geração de imagem (imagegen--generate_image) e salvar o arquivo em src/assets/. Não existe caminho alternativo.",
+    "proibicoes_absolutas": [
+      "PROIBIDO usar URL de banco de imagens (Unsplash, Pexels, Pixabay, placeholder.co, picsum) como substituto de geração.",
+      "PROIBIDO criar arquivo .asset.json apontando para URL externa quando o pedido foi 'gerar imagem'.",
+      "PROIBIDO responder que 'não consegue gerar imagens' ou que 'a ferramenta não está disponível' sem antes ter tentado a chamada real da tool.",
+      "PROIBIDO entregar apenas descrição textual da imagem, prompt sugerido ou CSS/SVG improvisado no lugar do arquivo gerado."
+    ],
+    "procedimento": [
+      "1. Extrair do pedido: sujeito, estilo, paleta e proporção. Faltando estilo/paleta, herdar a estética do projeto (tokens de src/styles.css) — não perguntar.",
+      "2. Chamar imagegen--generate_image com prompt específico em inglês, target_path em src/assets/<nome-descritivo>.jpg (.png só quando precisar de transparência).",
+      "3. Importar o arquivo gerado como ES6 import no componente alvo e aplicar com alt text descritivo.",
+      "4. Se a chamada falhar, reportar o erro literal da tool e tentar 1 vez com prompt reformulado antes de declarar falha. Nunca substituir por stock silenciosamente."
+    ],
+    "escolha_de_tool": "Gerar do zero → imagegen--generate_image. Alterar/combinar imagem existente ou anexada → imagegen--edit_image. Qualidade: 'premium' quando a imagem contiver texto/tipografia; 'fast' no restante.",
+    "nota_visual_edit": "O envelope visual_edit NÃO restringe tools. Estar em modo de edição visual jamais é motivo para pular a geração de imagem."
+  },
   "multi_agent_council": {
     "ativacao": "SEMPRE. 3 agentes rodam em toda resposta, em profundidade 'capable'. Rodam em paralelo, não em sequência.",
     "agentes": {
