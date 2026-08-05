@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit.server";
+
+const RL_MAX = 8;
+const RL_WINDOW = 60;
 
 /**
  * Backend — Google AI Studio (chave do usuário) · geração de imagem
