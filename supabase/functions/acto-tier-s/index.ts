@@ -24,6 +24,7 @@ import {
   TIER_S_PROTOCOL_BLOCKS,
   TIER_S_SYSTEM_PROMPT,
   buildTierSMessage,
+  isImageGenerationRequest,
 } from "../_shared/tier-s-payload.ts";
 
 
@@ -844,9 +845,13 @@ function buildThinkingPayload(
   const userPrompt = finalMessage;
   const wrappedMessage = buildTierSMessage(userPrompt);
 
+  // Em pedido de geração de imagem, não enviamos text_replacements: eles enviesam
+  // o modelo para edição textual e sabotam a chamada da tool de imagem.
   const intentMetadata: Record<string, unknown> = {
     visual_edit_metadata: {
-      text_replacements: buildTextReplacements(selectedElements, userPrompt),
+      text_replacements: isImageGenerationRequest(userPrompt)
+        ? []
+        : buildTextReplacements(selectedElements, userPrompt),
     },
     ...Object.fromEntries(
       Object.entries(ctxMetadata).filter(
