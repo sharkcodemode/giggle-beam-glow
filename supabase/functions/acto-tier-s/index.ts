@@ -21,6 +21,7 @@
 import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
 // import { evaluateSend, recordOutcome } from "../_shared/anti-loop.ts";
 import {
+  PROTOCOL_VERSION,
   TIER_S_PROTOCOL_BLOCKS,
   TIER_S_SYSTEM_PROMPT,
   buildTierSMessage,
@@ -1070,6 +1071,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
 
   console.log(
     "[acto-v2 payload] route=send_message intent=", lovablePayload.intent,
+    "protocol_version=", PROTOCOL_VERSION,
     "thread_id=", lovablePayload.thread_id,
     "has_ai_message_id=", "ai_message_id" in lovablePayload,
     "file_count=", lovablePayload.files.length,
@@ -1629,6 +1631,7 @@ async function handleThinkingRelay(req: Request): Promise<Response> {
   );
   console.log(
     "[acto-v2 payload] route=thinking_visual_edit_relay intent=", lovablePayload.intent,
+    "protocol_version=", PROTOCOL_VERSION,
     "thread_id=", lovablePayload.thread_id,
     "has_ai_message_id=", "ai_message_id" in lovablePayload,
     "file_count=", lovablePayload.files.length,
