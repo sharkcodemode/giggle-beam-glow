@@ -21,6 +21,7 @@
 import { loadModelChain, DEFAULT_MODEL_CHAIN } from "../_shared/model-chain.ts";
 // import { evaluateSend, recordOutcome } from "../_shared/anti-loop.ts";
 import {
+  PROTOCOL_VERSION,
   TIER_S_PROTOCOL_BLOCKS,
   TIER_S_SYSTEM_PROMPT,
   buildTierSMessage,
@@ -810,16 +811,31 @@ const SYNTHETIC_BODY_ELEMENT = {
   text_content: "body",
 };
 
-function buildTextReplacements(selectedElements: unknown[], userPrompt: string) {
+// U3 — `new_text` neutro: repetir o prompt inteiro aqui enviesa o modelo para
+// substituição textual literal. A instrução real vive em `message` + `system`.
+const NEUTRAL_REPLACEMENT_TEXT = "Acto: Msg Recebida";
+
+function buildTextReplacements(selectedElements: unknown[]) {
   if (selectedElements.length === 0) {
-    return [{ old_text: "body", new_text: userPrompt, selected_element_index: 0 }];
+    return [{ old_text: "body", new_text: NEUTRAL_REPLACEMENT_TEXT, selected_element_index: 0 }];
   }
   return selectedElements.map((element, index) => ({
     old_text: getElementText(element) || "body",
-    new_text: userPrompt,
+    new_text: NEUTRAL_REPLACEMENT_TEXT,
     selected_element_index: index,
   }));
 }
+
+// U4 — fingerprint dinâmico: usa o que a extensão realmente coletou; só cai no
+// default quando o campo não vem no contexto.
+function arrayFromContext(context: Record<string, unknown>, ...keys: string[]): unknown[] {
+  for (const key of keys) {
+    const value = context[key];
+    if (Array.isArray(value)) return value;
+  }
+  return [];
+}
+
 
 function buildThinkingPayload(
   msgId: string,
@@ -851,7 +867,7 @@ function buildThinkingPayload(
     visual_edit_metadata: {
       text_replacements: isImageGenerationRequest(userPrompt)
         ? []
-        : buildTextReplacements(selectedElements, userPrompt),
+        : buildTextReplacements(selectedElements),
     },
     ...Object.fromEntries(
       Object.entries(ctxMetadata).filter(
@@ -860,21 +876,30 @@ function buildThinkingPayload(
     ),
   };
 
+  // U4 — telemetria real quando a extensão envia; default só como fallback.
+  const browserCtx = context.integration_metadata && typeof context.integration_metadata === "object"
+    ? (context.integration_metadata as Record<string, unknown>)
+    : null;
+  const integrationMetadata = browserCtx ?? {
+    browser: { is_logged_out: true, auth_reason: "key-absent" },
+  };
+  const sessionReplay = isStr(context.session_replay) ? context.session_replay : "[]";
+
   const lovablePayload = {
     id: msgId,
     message: wrappedMessage,
     ...(aiMsgIdToSend && { ai_message_id: aiMsgIdToSend }),
     chat_only: false,
     client_id: createClientId(),
-    client_logs: [],
+    client_logs: arrayFromContext(context, "client_logs", "clientLogs"),
     files: processedFiles,
-    optimisticImageUrls: [],
+    optimisticImageUrls: arrayFromContext(context, "optimisticImageUrls", "optimistic_image_urls"),
     selected_elements: selectedElements,
     intent,
     message_intent_metadata: intentMetadata,
 
-    tool: "spawn_agent",
-    arguments: { instructions: userPrompt, agent_name: "Claude 3.5 Sonnet" },
+    // U5 — `tool`/`arguments` não são o contrato de tool-calling da Lovable:
+    // não selecionavam agente, só somavam ruído ao envelope. Removidos.
     is_high_priority: true,
     mode: "think",
     reasoning_effort: "high",
@@ -885,11 +910,12 @@ function buildThinkingPayload(
     current_viewport_dpr: typeof context.currentViewportDpr === "number" ? context.currentViewportDpr : typeof context.current_viewport_dpr === "number" ? context.current_viewport_dpr : 1,
     current_viewport_height: typeof context.currentViewportHeight === "number" ? context.currentViewportHeight : typeof context.current_viewport_height === "number" ? context.current_viewport_height : 900,
     current_viewport_width: typeof context.currentViewportWidth === "number" ? context.currentViewportWidth : typeof context.current_viewport_width === "number" ? context.current_viewport_width : 1440,
-    integration_metadata: { browser: { is_logged_out: true, auth_reason: "key-absent" } },
-    model: "openai/gpt-5.5",
-    network_requests: [],
-    runtime_errors: [],
-    session_replay: "[]",
+    integration_metadata: integrationMetadata,
+    // U5 — `model: null` preserva o formato do payload Thinking capturado.
+    model: isStr(context.model) ? context.model : null,
+    network_requests: arrayFromContext(context, "network_requests", "networkRequests"),
+    runtime_errors: arrayFromContext(context, "runtime_errors", "runtimeErrors"),
+    session_replay: sessionReplay,
     thread_id: session_id || "main",
     user_timezone: isStr(context.user_timezone) ? context.user_timezone : "America/Sao_Paulo",
     view: isStr(context.view) ? context.view : "preview",
@@ -900,6 +926,7 @@ function buildThinkingPayload(
         : "The user is currently viewing the preview.",
     system,
   };
+
 
   return lovablePayload;
 }
@@ -1044,6 +1071,7 @@ async function actionSendMessage(captured: Captured, params: Record<string, unkn
 
   console.log(
     "[acto-v2 payload] route=send_message intent=", lovablePayload.intent,
+    "protocol_version=", PROTOCOL_VERSION,
     "thread_id=", lovablePayload.thread_id,
     "has_ai_message_id=", "ai_message_id" in lovablePayload,
     "file_count=", lovablePayload.files.length,
@@ -1603,6 +1631,7 @@ async function handleThinkingRelay(req: Request): Promise<Response> {
   );
   console.log(
     "[acto-v2 payload] route=thinking_visual_edit_relay intent=", lovablePayload.intent,
+    "protocol_version=", PROTOCOL_VERSION,
     "thread_id=", lovablePayload.thread_id,
     "has_ai_message_id=", "ai_message_id" in lovablePayload,
     "file_count=", lovablePayload.files.length,
