@@ -187,6 +187,32 @@ function TextoTeste() {
           </div>
         </div>
 
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>Time.Sync</span>
+              <span className="text-aurora">LOCAL.CLOCK.0.1</span>
+            </div>
+            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              <span>SINCRONIA DE <span className="italic text-aurora">TEMPO</span></span>
+            </h2>
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium uppercase">
+              ?? QUE HORAS SAO??
+            </p>
+          </div>
+          <div className="font-grotesk text-[18px] leading-relaxed text-white/70 space-y-6">
+            <div className="bg-white/5 p-8 border border-white/10 rounded-sm text-center">
+              <div className="text-aurora font-mono text-5xl md:text-7xl font-bold tracking-tighter mb-4">
+                {new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
+              </div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.3em] opacity-40">
+                Brasília Time (UTC-3) • {new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-20 border-t border-white/10 pt-10">
           <a href="/" className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/40 hover:text-white">
             <span className="transition-transform group-hover:-translate-x-1">←</span> Retornar ao Console
