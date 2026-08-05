@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiGenerateImageGoogleRouteImport } from './routes/api/generate-image-google'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiPublicElitePromptRouteImport } from './routes/api/public/elite-prompt'
+import { Route as ApiPublicSecretCheckRouteImport } from './routes/api/public/_secret-check'
 
 const VoiceRoute = VoiceRouteImport.update({
   id: '/voice',
@@ -100,6 +101,11 @@ const ApiPublicElitePromptRoute = ApiPublicElitePromptRouteImport.update({
   path: '/api/public/elite-prompt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSecretCheckRoute = ApiPublicSecretCheckRouteImport.update({
+  id: '/api/public/_secret-check',
+  path: '/api/public',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
+  '/api/public': typeof ApiPublicSecretCheckRoute
   '/api/public/elite-prompt': typeof ApiPublicElitePromptRoute
 }
 export interface FileRoutesByTo {
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
+  '/api/public': typeof ApiPublicSecretCheckRoute
   '/api/public/elite-prompt': typeof ApiPublicElitePromptRoute
 }
 export interface FileRoutesById {
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/voice': typeof VoiceRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/generate-image-google': typeof ApiGenerateImageGoogleRoute
+  '/api/public/_secret-check': typeof ApiPublicSecretCheckRoute
   '/api/public/elite-prompt': typeof ApiPublicElitePromptRoute
 }
 export interface FileRouteTypes {
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/generate-image'
     | '/api/generate-image-google'
+    | '/api/public'
     | '/api/public/elite-prompt'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/generate-image'
     | '/api/generate-image-google'
+    | '/api/public'
     | '/api/public/elite-prompt'
   id:
     | '__root__'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/voice'
     | '/api/generate-image'
     | '/api/generate-image-google'
+    | '/api/public/_secret-check'
     | '/api/public/elite-prompt'
   fileRoutesById: FileRoutesById
 }
@@ -222,6 +234,7 @@ export interface RootRouteChildren {
   VoiceRoute: typeof VoiceRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiGenerateImageGoogleRoute: typeof ApiGenerateImageGoogleRoute
+  ApiPublicSecretCheckRoute: typeof ApiPublicSecretCheckRoute
   ApiPublicElitePromptRoute: typeof ApiPublicElitePromptRoute
 }
 
@@ -332,6 +345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicElitePromptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/_secret-check': {
+      id: '/api/public/_secret-check'
+      path: '/api/public'
+      fullPath: '/api/public'
+      preLoaderRoute: typeof ApiPublicSecretCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -350,6 +370,7 @@ const rootRouteChildren: RootRouteChildren = {
   VoiceRoute: VoiceRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiGenerateImageGoogleRoute: ApiGenerateImageGoogleRoute,
+  ApiPublicSecretCheckRoute: ApiPublicSecretCheckRoute,
   ApiPublicElitePromptRoute: ApiPublicElitePromptRoute,
 }
 export const routeTree = rootRouteImport
