@@ -24,6 +24,7 @@ import {
   TIER_S_PROTOCOL_BLOCKS,
   TIER_S_SYSTEM_PROMPT,
   buildTierSMessage,
+  isImageGenerationRequest,
 } from "../_shared/tier-s-payload.ts";
 
 
