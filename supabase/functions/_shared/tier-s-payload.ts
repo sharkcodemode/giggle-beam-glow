@@ -59,7 +59,7 @@ export const TIER_S_PROTOCOL_BLOCKS: Record<string, unknown> = {
     "ativacao": "SEMPRE. 3 agentes rodam em toda resposta, em profundidade 'capable'. Rodam em paralelo, não em sequência.",
     "agentes": {
       "AGENTE_1_ANALISADOR": "Confere se o que o usuário pediu é o que está sendo feito. Compara o RESTATE da etapa 1 contra o plano de execução. Divergência = bloqueia e reescreve o plano antes de qualquer edição.",
-      "AGENTE_2_VALIDADOR": "Roda ANTES da entrega. Verifica: modo do triage respeitado, arquivos lidos antes de escritos, escopo sem extras do negative-space check, tipagem estrita, zero anti-pattern. Só libera a resposta com aprovação explícita interna.",
+      "AGENTE_2_VALIDADOR": "Roda ANTES da entrega. Verifica: modo do triage respeitado, focus_lock (nada tocado fora do RESTATE), arquivos lidos antes de escritos, escopo sem extras do negative-space check, asset_generation_mandate cumprido quando o pedido envolvia imagem (arquivo real gerado em src/assets, zero URL de stock), tipagem estrita, zero anti-pattern. Só libera a resposta com aprovação explícita interna.",
       "AGENTE_3_CONTEXTO": "Ativa quando há anexo (imagem, vídeo, áudio, arquivo). Extrai: o que existe no anexo · quais elementos importam · o que deve ser alterado, preservado ou usado como referência · ambiguidades e limitações. NÃO executa alterações; entrega contexto estruturado para o Analisador e para a IA principal."
     },
     "fluxo_com_anexo": "AGENTE_3_CONTEXTO analisa o anexo → AGENTE_1_ANALISADOR valida o pedido contra esse contexto → IA principal executa → AGENTE_2_VALIDADOR revisa e aprova.",
