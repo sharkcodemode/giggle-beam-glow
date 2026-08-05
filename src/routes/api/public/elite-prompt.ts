@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit.server";
+
+const RL_MAX = 10;
+const RL_WINDOW = 60;
 
 /**
  * ELITE LOVABLE — Prompt Refiner (Google AI Studio · Gemini 2.5 Flash)
@@ -91,6 +95,9 @@ export const Route = createFileRoute("/api/public/elite-prompt")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
       POST: async ({ request }) => {
+        const rl = await checkRateLimit(request, "elite-prompt", RL_MAX, RL_WINDOW);
+        if (!rl.allowed) return rateLimitResponse(rl, RL_WINDOW, CORS);
+
         const key = process.env.GOOGLE_AI_STUDIO_API_KEY;
         if (!key) {
           return json(500, { error: "config", message: "GOOGLE_AI_STUDIO_API_KEY ausente." });

@@ -54,8 +54,63 @@ function isValidMessage(m: unknown): m is ChatMessage {
   );
 }
 
+const RL_MAX = 20;
+const RL_WINDOW = 60;
+
+function clientKey(req: Request): string {
+  const h = req.headers;
+  const fwd = h.get("cf-connecting-ip") ?? h.get("x-real-ip") ?? h.get("x-forwarded-for") ?? "";
+  const ip = fwd.split(",")[0]?.trim();
+  if (ip) return `ip:${ip.slice(0, 100)}`;
+  return `ua:${(h.get("user-agent") ?? "unknown").slice(0, 100)}`;
+}
+
+/** Fail-closed: erro de infra bloqueia, protegendo a chave paga. */
+async function rateLimited(req: Request): Promise<Response | null> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    return new Response(JSON.stringify({ error: "Controle de uso indisponível." }), {
+      status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/acto_check_rate_limit`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_client_id: clientKey(req),
+        p_action: "claude-proxy",
+        p_max: RL_MAX,
+        p_window_seconds: RL_WINDOW,
+      }),
+    });
+    const allowed = res.ok && (await res.json()) === true;
+    if (allowed) return null;
+    if (!res.ok) {
+      console.error(`[claude-proxy] rate-limit rpc ${res.status}`);
+      return new Response(JSON.stringify({ error: "Controle de uso indisponível." }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return new Response(
+      JSON.stringify({ error: `Limite de requisições atingido. Aguarde ${RL_WINDOW}s.` }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(RL_WINDOW) } },
+    );
+  } catch (e) {
+    console.error(`[claude-proxy] rate-limit crash: ${e instanceof Error ? e.message : String(e)}`);
+    return new Response(JSON.stringify({ error: "Controle de uso indisponível." }), {
+      status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const limited = await rateLimited(req);
+  if (limited) return limited;
+
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit.server";
+
+const RL_MAX = 8;
+const RL_WINDOW = 60;
 
 /**
  * Backend — Lovable AI Gateway · streaming image generation
@@ -61,6 +65,9 @@ export const Route = createFileRoute("/api/generate-image")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const rl = await checkRateLimit(request, "generate-image", RL_MAX, RL_WINDOW);
+        if (!rl.allowed) return rateLimitResponse(rl, RL_WINDOW);
+
         const key = process.env.LOVABLE_API_KEY;
         if (!key) {
           return new Response(
