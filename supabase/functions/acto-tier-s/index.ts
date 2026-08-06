@@ -835,7 +835,8 @@ function buildThinkingPayload(
   context: Record<string, unknown> = {},
 ) {
   const realElements = getSelectedElements(context);
-  const selectedElements = realElements.length > 0 ? realElements : [SYNTHETIC_BODY_ELEMENT];
+  const hasRealSelection = realElements.length > 0;
+  const selectedElements = hasRealSelection ? realElements : [SYNTHETIC_BODY_ELEMENT];
   const requestedSystem = isStr(context.system) ? context.system.trim() : "";
   const system = requestedSystem
     ? `${requestedSystem}\n\n${TIER_S_SYSTEM_PROMPT}`
@@ -848,11 +849,11 @@ function buildThinkingPayload(
   // Rota única: visual_edit com wrapper TIER S — FABLE 5 GRADE.
   const intent = "visual_edit";
   const userPrompt = finalMessage;
-  const wrappedMessage = buildTierSMessage(userPrompt);
+  const wrappedMessage = buildTierSMessage(userPrompt, hasRealSelection);
 
   const intentMetadata: Record<string, unknown> = {
     visual_edit_metadata: {
-      text_replacements: buildTextReplacements(selectedElements, userPrompt),
+      text_replacements: buildTextReplacements(selectedElements, userPrompt, hasRealSelection),
     },
     ...Object.fromEntries(
       Object.entries(ctxMetadata).filter(
