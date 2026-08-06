@@ -809,9 +809,15 @@ const SYNTHETIC_BODY_ELEMENT = {
   text_content: "body",
 };
 
-function buildTextReplacements(selectedElements: unknown[], userPrompt: string) {
-  if (selectedElements.length === 0) {
-    return [{ old_text: "body", new_text: userPrompt, selected_element_index: 0 }];
+// IMPORTANTE: sem seleção real na UI, o envelope de edição visual NÃO pode
+// carregar o prompt do usuário como `new_text`. Isso fazia a Lovable receber
+// literalmente "troque o texto 'body' por <prompt>" e despejar o prompt como
+// conteúdo na página, ignorando a intenção real. Nesse caso emitimos um
+// no-op ("body" -> "body"): o envelope segue válido e a instrução real
+// permanece apenas em `message` (wrapper TIER S).
+function buildTextReplacements(selectedElements: unknown[], userPrompt: string, hasRealSelection: boolean) {
+  if (!hasRealSelection) {
+    return [{ old_text: "body", new_text: "body", selected_element_index: 0 }];
   }
   return selectedElements.map((element, index) => ({
     old_text: getElementText(element) || "body",
