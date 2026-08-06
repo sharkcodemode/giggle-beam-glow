@@ -101,6 +101,27 @@ export type Database = {
         }
         Relationships: []
       }
+      acto_rate_limits: {
+        Row: {
+          action: string
+          client_id: string
+          count: number
+          window_start: string
+        }
+        Insert: {
+          action: string
+          client_id: string
+          count?: number
+          window_start?: string
+        }
+        Update: {
+          action?: string
+          client_id?: string
+          count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       pulse_messages: {
         Row: {
           body: string
@@ -275,6 +296,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      acto_check_rate_limit: {
+        Args: {
+          p_action: string
+          p_client_id: string
+          p_max: number
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
       match_rag_chunks: {
         Args: { match_count?: number; query_embedding: string }
         Returns: {

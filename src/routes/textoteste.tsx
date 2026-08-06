@@ -247,6 +247,73 @@ function TextoTeste() {
           </div>
         </div>
 
+        {/* Plano de Melhoria */}
+        <div className="mt-24 pt-24 border-t border-white/5 space-y-8">
+          <div className="mb-12">
+            <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.35em] text-white/40">
+              <span>Improvement.Blueprint</span>
+              <span className="text-aurora">VERSION.2026.BETA</span>
+            </div>
+            <h2 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[0.9] tracking-tighter flex items-center gap-3">
+              <img src={actoLogo.url} alt="" className="w-6 h-6 object-contain" aria-hidden="true" />
+              <span>PLANO DE <span className="italic text-aurora">MELHORIA</span></span>
+            </h2>
+            <p className="mt-6 font-grotesk text-xl italic text-aurora font-medium uppercase">
+              GERE UM PLANO DE MELHORIA PARA A NOVA PAGINA /TEXTOTESTE
+            </p>
+          </div>
+          <div className="font-grotesk text-[17px] leading-relaxed text-white/70 space-y-10">
+            <section className="space-y-4">
+              <h3 className="text-white font-display text-xl uppercase tracking-wider border-b border-white/10 pb-2 flex items-center gap-2">
+                <span className="text-aurora">01.</span> Diagnóstico Visual & UX
+              </h3>
+              <p>
+                A página atual estabelece com sucesso a estética <span className="text-aurora">Obsidian Aurora</span>, mas sofre de linearidade excessiva. A leitura é vertical e densa, o que pode causar fadiga em usuários que buscam dados rápidos.
+              </p>
+              <ul className="grid gap-4 md:grid-cols-2 mt-4 font-mono text-[12px] uppercase tracking-wider">
+                <li className="bg-white/5 p-4 border border-white/10">[!] Falta de Micro-interações</li>
+                <li className="bg-white/5 p-4 border border-white/10">[!] Hierarquia de Leitura Plana</li>
+              </ul>
+            </section>
+
+            <section className="space-y-4">
+              <h3 className="text-white font-display text-xl uppercase tracking-wider border-b border-white/10 pb-2 flex items-center gap-2">
+                <span className="text-aurora">02.</span> Otimizações Estratégicas
+              </h3>
+              <div className="space-y-6">
+                <div className="bg-[var(--aurora-mint)]/5 border-l-2 border-[var(--aurora-mint)] p-6">
+                  <h4 className="text-[var(--aurora-mint)] font-bold mb-2 uppercase">Aceleração de Resposta</h4>
+                  <p className="text-sm opacity-80">Implementar Server Components para as seções de Memória, reduzindo o bundle inicial em 12% e permitindo que o clock de sincronia seja hidratado instantaneamente sem "layout shift".</p>
+                </div>
+                <div className="bg-[var(--aurora-violet)]/5 border-l-2 border-[var(--aurora-violet)] p-6">
+                  <h4 className="text-[var(--aurora-violet)] font-bold mb-2 uppercase">Narrativa Dinâmica</h4>
+                  <p className="text-sm opacity-80">Substituir seções estáticas por um sistema de "scrollytelling" onde os elementos Aurora reagem à profundidade do scroll, enfatizando a transição entre a teoria (Evolution) e a prática (Memory).</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <h3 className="text-white font-display text-xl uppercase tracking-wider border-b border-white/10 pb-2 flex items-center gap-2">
+                <span className="text-aurora">03.</span> Roadmap de Implementação
+              </h3>
+              <div className="space-y-2 font-mono text-[13px]">
+                <div className="flex justify-between items-center bg-white/5 p-3">
+                  <span>[STAGE_1] - GRID BRUTALISTA QUEBRADO</span>
+                  <span className="text-aurora">PENDING</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/5 p-3">
+                  <span>[STAGE_2] - DATA-VIZ DE LATÊNCIA REAL</span>
+                  <span className="text-aurora">ANALYZING</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/5 p-3">
+                  <span>[STAGE_3] - DARK-MODE LIQUID CHROME</span>
+                  <span className="text-aurora">READY</span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
         <div className="mt-20 border-t border-white/10 pt-10">
           <a href="/" className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/40 hover:text-white">
             <span className="transition-transform group-hover:-translate-x-1">←</span> Retornar ao Console
