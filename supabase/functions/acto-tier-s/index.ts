@@ -809,9 +809,15 @@ const SYNTHETIC_BODY_ELEMENT = {
   text_content: "body",
 };
 
-function buildTextReplacements(selectedElements: unknown[], userPrompt: string) {
-  if (selectedElements.length === 0) {
-    return [{ old_text: "body", new_text: userPrompt, selected_element_index: 0 }];
+// IMPORTANTE: sem seleção real na UI, o envelope de edição visual NÃO pode
+// carregar o prompt do usuário como `new_text`. Isso fazia a Lovable receber
+// literalmente "troque o texto 'body' por <prompt>" e despejar o prompt como
+// conteúdo na página, ignorando a intenção real. Nesse caso emitimos um
+// no-op ("body" -> "body"): o envelope segue válido e a instrução real
+// permanece apenas em `message` (wrapper TIER S).
+function buildTextReplacements(selectedElements: unknown[], userPrompt: string, hasRealSelection: boolean) {
+  if (!hasRealSelection) {
+    return [{ old_text: "body", new_text: "body", selected_element_index: 0 }];
   }
   return selectedElements.map((element, index) => ({
     old_text: getElementText(element) || "body",
@@ -829,7 +835,8 @@ function buildThinkingPayload(
   context: Record<string, unknown> = {},
 ) {
   const realElements = getSelectedElements(context);
-  const selectedElements = realElements.length > 0 ? realElements : [SYNTHETIC_BODY_ELEMENT];
+  const hasRealSelection = realElements.length > 0;
+  const selectedElements = hasRealSelection ? realElements : [SYNTHETIC_BODY_ELEMENT];
   const requestedSystem = isStr(context.system) ? context.system.trim() : "";
   const system = requestedSystem
     ? `${requestedSystem}\n\n${TIER_S_SYSTEM_PROMPT}`
@@ -842,11 +849,11 @@ function buildThinkingPayload(
   // Rota única: visual_edit com wrapper TIER S — FABLE 5 GRADE.
   const intent = "visual_edit";
   const userPrompt = finalMessage;
-  const wrappedMessage = buildTierSMessage(userPrompt);
+  const wrappedMessage = buildTierSMessage(userPrompt, hasRealSelection);
 
   const intentMetadata: Record<string, unknown> = {
     visual_edit_metadata: {
-      text_replacements: buildTextReplacements(selectedElements, userPrompt),
+      text_replacements: buildTextReplacements(selectedElements, userPrompt, hasRealSelection),
     },
     ...Object.fromEntries(
       Object.entries(ctxMetadata).filter(
