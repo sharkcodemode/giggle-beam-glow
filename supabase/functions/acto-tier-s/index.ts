@@ -65,7 +65,7 @@ const MAX_SKEW_MS = 5 * 60 * 1000;
 const UPLOAD_TICKET_TTL_MS = 10 * 60 * 1000; // 10 min — janela entre upload_init e upload_finalize
 const FILE_REF_TTL_MS = 30 * 60 * 1000; // 30 min — janela entre upload_finalize e send_message
 const MAX_FILES_PER_MESSAGE = 10;
-const ACTO_EDGE_VERSION = "thinking-visual-edit-payload-2026-07-31-redeploy-1";
+const ACTO_EDGE_VERSION = "thinking-visual-edit-payload-2026-08-06-prompt-preserving-noop";
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 const MAX_FILE_NAME_LEN = 255;
 
@@ -813,11 +813,13 @@ const SYNTHETIC_BODY_ELEMENT = {
 // carregar o prompt do usuário como `new_text`. Isso fazia a Lovable receber
 // literalmente "troque o texto 'body' por <prompt>" e despejar o prompt como
 // conteúdo na página, ignorando a intenção real. Nesse caso emitimos um
-// no-op ("body" -> "body"): o envelope segue válido e a instrução real
-// permanece apenas em `message` (wrapper TIER S).
+// no-op dinâmico (<prompt> -> <prompt>): o envelope segue válido, não ordena
+// nenhuma alteração e preserva o prompt na representação que a Lovable
+// efetivamente transforma na mensagem visível. Um no-op fixo "body" ->
+// "body" apagava o prompt porque o upstream prioriza text_replacements.
 function buildTextReplacements(selectedElements: unknown[], userPrompt: string, hasRealSelection: boolean) {
   if (!hasRealSelection) {
-    return [{ old_text: "body", new_text: "body", selected_element_index: 0 }];
+    return [{ old_text: userPrompt, new_text: userPrompt, selected_element_index: 0 }];
   }
   return selectedElements.map((element, index) => ({
     old_text: getElementText(element) || "body",
