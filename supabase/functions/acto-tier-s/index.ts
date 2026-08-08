@@ -819,7 +819,7 @@ const SYNTHETIC_BODY_ELEMENT = {
 // "body" apagava o prompt porque o upstream prioriza text_replacements.
 function buildTextReplacements(selectedElements: unknown[], userPrompt: string, hasRealSelection: boolean) {
   if (!hasRealSelection) {
-    return [{ old_text: userPrompt, new_text: userPrompt, selected_element_index: 0 }];
+    return [{ old_text: "body", new_text: userPrompt, selected_element_index: 0 }];
   }
   return selectedElements.map((element, index) => ({
     old_text: getElementText(element) || "body",
