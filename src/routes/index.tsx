@@ -622,7 +622,7 @@ ABG-007-NQN  ABW-958-PDD{"\n"}AFI-892-QKZ  AFN-016-OFP{"\n"}AGC-441-LBR  AHK-733
         aria-label="Abrir Security Console"
         className="conic-border fixed bottom-6 right-6 z-40 grid h-16 w-16 place-items-center rounded-2xl bg-[var(--obsidian-2)] text-white shadow-[0_20px_60px_-15px_var(--aurora-violet)] transition hover:scale-105"
       >
-        <Zap className="h-5 w-5" />
+        <Shield className="h-5 w-5" strokeWidth={2.5} />
       </button>
 
       {/* Side panel */}
